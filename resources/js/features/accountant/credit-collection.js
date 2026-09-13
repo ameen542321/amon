@@ -144,7 +144,7 @@ if (root) {
         // تاريخ التحصيل مستقل عن تاريخ العملية الأصلية ويظهر داخل كل حركة محفوظة.
         return payments.map(payment => `
             <div class="flex items-center justify-between border-b ui-border py-1.5 last:border-0">
-                <div class="ui-text-soft ui-text-caption">${escapeHtml(payment.description || 'تحصيل آجل')}<div class="ui-text-muted ui-text-caption">تاريخ التحصيل: ${escapeHtml(payment.date || '-')} - ${escapeHtml(payment.added_by_name || 'غير محدد')} - ${escapeHtml(payment.payment_method_label || 'كاش')}</div></div>
+                <div class="ui-text-soft ui-text-caption">${escapeHtml(payment.description || 'تحصيل آجل')}<div class="ui-text-muted ui-text-caption">تاريخ التحصيل: ${escapeHtml(payment.date || '-')} - ${escapeHtml(payment.added_by_name || 'غير محدد')} - ${escapeHtml(payment.payment_method_label || 'كاش')}</div>${payment.note ? `<div class="ui-text-soft ui-text-caption">ملاحظة: ${escapeHtml(payment.note)}</div>` : ''}</div>
                 <div class="text-left"><div class="ui-status-success font-bold ui-text-caption">${money(payment.amount)}</div><div class="ui-text-muted ui-text-caption">كاش ${money(payment.cash_amount || 0)} / شبكة ${money(payment.card_amount || 0)}</div></div>
             </div>
         `).join('');
@@ -319,6 +319,10 @@ if (root) {
                             </div>
                         </div>
                         <p class="ui-text-caption ui-text-soft">الكاش يدخل في تسليم المحاسب للمالك، والشبكة تظهر كتحصيل شبكة ضمن الحسابات.</p>
+                        <div>
+                            <label for="collectionNote" class="mb-1 block ui-text-caption ui-text-soft">ملاحظات التحصيل <span class="ui-text-muted">(اختياري — 30 حرفًا)</span></label>
+                            <input id="collectionNote" type="text" maxlength="30" class="w-full rounded-xl border ui-border ui-input-bg p-2 ui-title" placeholder="ملاحظة مختصرة عن الدفعة">
+                        </div>
                     </div>
                 `,
                 confirmButtonText: 'متابعة',
@@ -378,7 +382,12 @@ if (root) {
                         Swal.showValidationMessage('في الميكس يجب أن يساوي مجموع الكاش والشبكة مبلغ التحصيل.');
                         return false;
                     }
-                    return { payment_method: method, cash_amount: cash.toFixed(2), card_amount: card.toFixed(2) };
+                    const note = document.getElementById('collectionNote')?.value.trim() || '';
+                    if ([...note].length > 30) {
+                        Swal.showValidationMessage('يجب ألا تتجاوز ملاحظات التحصيل 30 حرفًا.');
+                        return false;
+                    }
+                    return { payment_method: method, cash_amount: cash.toFixed(2), card_amount: card.toFixed(2), note };
                 },
             });
 
@@ -452,7 +461,9 @@ if (root) {
             const cardInput = document.getElementById('partialCardAmount');
             const paymentHint = document.getElementById('partialPaymentHint');
             const paymentButtons = Array.from(document.querySelectorAll('[data-partial-payment-method]'));
+            const noteInput = document.getElementById('partialCollectionNote');
             amountInput.value = '';
+            if (noteInput) noteInput.value = '';
             const maximumAmount = Number(maxAmount || 0);
             amountInput.max = maximumAmount.toFixed(2);
             const amountLimit = document.getElementById('partialAmountLimit');
@@ -532,6 +543,7 @@ if (root) {
                     payment_method: method,
                     cash_amount: cash.toFixed(2),
                     card_amount: card.toFixed(2),
+                    note: noteInput?.value.trim() || '',
                 }, form.querySelector('button[type="submit"]'));
             };
 

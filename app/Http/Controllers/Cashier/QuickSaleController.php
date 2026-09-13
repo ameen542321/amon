@@ -391,8 +391,9 @@ class QuickSaleController extends Controller
             $requiredForProduct = $alreadyReserved + $quantityToDecrement;
             if (round((float) $product->quantity, 4) < round($requiredForProduct, 4)) {
                 $productErrors[] = "{$product->name}: المخزون غير كافٍ. المتوفر: "
-                    . number_format((float) $product->quantity, 3)
-                    . "، المطلوب للعملية: " . number_format($requiredForProduct, 3);
+                    . \App\Support\ProductQuantityFormatter::stockSnapshot($product, (float) $product->quantity)
+                    . "، المطلوب للعملية: "
+                    . \App\Support\ProductQuantityFormatter::stockSnapshot($product, $requiredForProduct);
                 Log::warning('⚠️ مخزون غير كاف', [
                     'product' => $product->name,
                     'available' => $product->quantity,

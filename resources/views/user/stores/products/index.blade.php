@@ -130,8 +130,8 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 <template x-for="p in visibleProducts()" :key="p.id">
-                    <button type="button" @click="openProductCard(p)"
-                        class="text-right ui-surface-muted-bg border ui-border rounded-lg px-3 py-2 transition">
+                    <div class="text-right ui-surface-muted-bg border ui-border rounded-lg px-3 py-2 transition">
+                        <button type="button" @click="openProductCard(p)" class="block w-full text-right">
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <span class="inline-flex w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -145,10 +145,19 @@
                             <p class="ui-text-caption ui-status-success font-bold" x-text="p.price_label"></p>
                             <p class="ui-text-caption ui-text-soft" x-text="p.stock_label"></p>
                         </div>
-                        <div class="mt-1 flex items-center justify-end gap-2">
+                        </button>
+                        <div class="mt-1 flex items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-1">
+                                <a :href="p.stock_url" class="ui-btn ui-btn-secondary px-2 py-1" aria-label="إدارة مخزون المنتج" data-ui-tooltip="إدارة المخزون">
+                                    <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+                                </a>
+                                <a :href="p.edit_url" class="ui-btn ui-btn-secondary px-2 py-1" aria-label="تعديل المنتج" data-ui-tooltip="تعديل المنتج">
+                                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                                </a>
+                            </span>
                             <span class="ui-text-caption ui-status-success">فتح البطاقة</span>
                         </div>
-                    </button>
+                    </div>
                 </template>
             </div>
             <div x-show="filteredProducts.length === 0" class="ui-text-caption ui-status-warning p-2">
@@ -522,6 +531,8 @@
                 'search' => $product->name,
                 'highlight_product' => $product->id,
             ]),
+            'stock_url' => route('user.stores.products.stock', [$store->id, $product->id]),
+            'edit_url' => route('user.stores.products.edit', [$store->id, $product->id]),
         ];
     })->values();
 

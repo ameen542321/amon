@@ -232,6 +232,7 @@
                         - {{ $formatOperationDateOnly($collectionPayment['date'] ?? null) }}
                         - {{ $collectionPayment['added_by_name'] ?? 'غير محدد' }}
                         @if(!empty($collectionPayment['description'])) ({{ $collectionPayment['description'] }}) @endif
+                        @if(!empty($collectionPayment['note'])) — ملاحظة: {{ $collectionPayment['note'] }} @endif
                         @if(!$loop->last)<br>@endif
                     @empty
                         <span class="note">لا توجد تفاصيل تحصيل محفوظة</span>
@@ -242,6 +243,26 @@
         @endforeach
         </tbody>
     </table>
+@endif
+
+@if($transfers->isNotEmpty())
+    <h2>سجل النقل بين المتاجر</h2>
+    <table class="data">
+        <thead><tr><th>#</th><th>المتجر السابق</th><th>المتجر الجديد</th><th>تاريخ السريان</th><th>الرصيد الشخصي المنقول</th><th>نفذ بواسطة</th></tr></thead>
+        <tbody>
+        @foreach($transfers as $transferIndex => $transfer)
+            <tr>
+                <td>{{ $transferIndex + 1 }}</td>
+                <td>{{ $transfer->old_store_name }}</td>
+                <td>{{ $transfer->new_store_name }}</td>
+                <td class="nowrap">{{ $formatOperationDateOnly($transfer->created_at) }}</td>
+                <td>{{ number_format((float) data_get($transfer->meta, 'transferred_personal_debt_balance', 0), 2) }} ريال</td>
+                <td>{{ $resolveActorName($transfer) }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+    <div class="empty-box">العمليات السابقة للنقل بيانات تاريخية محفوظة في متجر حدوثها، ولا تدخل في حسابات المتجر الحالي.</div>
 @endif
 
 @if($emptySections->isNotEmpty())

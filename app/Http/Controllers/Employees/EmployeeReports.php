@@ -9,6 +9,8 @@ use App\Services\EmployeeLogService;
 use Illuminate\Support\Carbon;
 use App\Models\Employee;
 use App\Services\Employees\EmployeePayrollService;
+use App\Models\EmployeeLog;
+use App\Models\Store;
 
 /**
  * --------------------------------------------------------------------------
@@ -113,12 +115,32 @@ class EmployeeReports
             ->orderBy('date')
             ->get();
 
+        $transfers = EmployeeLog::withTrashed()
+            ->where('person_id', $person->id)
+            ->where('person_type', get_class($person))
+            ->where('action_name', 'employee_transferred')
+            ->whereBetween('created_at', [$periodStart, $periodEnd])
+            ->orderBy('created_at')
+            ->get()
+            ->map(function (EmployeeLog $transfer): EmployeeLog {
+                $storeIds = array_filter([
+                    (int) data_get($transfer->meta, 'old_store_id'),
+                    (int) data_get($transfer->meta, 'new_store_id'),
+                ]);
+                $names = Store::withTrashed()->whereIn('id', $storeIds)->pluck('name', 'id');
+                $transfer->setAttribute('old_store_name', $names[(int) data_get($transfer->meta, 'old_store_id')] ?? '—');
+                $transfer->setAttribute('new_store_name', $names[(int) data_get($transfer->meta, 'new_store_id')] ?? '—');
+
+                return $transfer;
+            });
+
         $emptySections = collect([
             'السحوبات' => $withdrawals->isEmpty(),
             'الغيابات' => $absences->isEmpty(),
             'المديونيات والتحصيلات' => $debtOperations->isEmpty(),
             'البيع الآجل غير المحصل' => $creditSalesPending->isEmpty(),
             'البيع الآجل المحصل' => $creditSalesCollected->isEmpty(),
+            'سجل النقل بين المتاجر' => $transfers->isEmpty(),
         ])->filter()->keys()->values();
 
         // تجهيز البيانات للعرض داخل الـ PDF
@@ -141,6 +163,7 @@ class EmployeeReports
             'collectedThisMonth'   => abs($collectedThisMonth), // التحصيل الشهري (موجب)
             'creditSalesPending'   => $creditSalesPending,
             'creditSalesCollected' => $creditSalesCollected,
+            'transfers'             => $transfers,
             'emptySections'        => $emptySections,
             'created_by'           => auth()->user(),
         ];

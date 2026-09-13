@@ -102,7 +102,7 @@
                                                 <td class="px-3 py-2">{{ $collection['date'] ?? '—' }}</td>
                                                 <td class="px-3 py-2 ui-status-info font-bold">{{ number_format($collection['amount'] ?? 0, 2) }} ر.س</td>
                                                 <td class="px-3 py-2">{{ $collection['collector'] ?? 'غير محدد' }}</td>
-                                                <td class="px-3 py-2">{{ $collection['payment_method_label'] ?? 'كاش' }} <span class="ui-text-muted">({{ number_format($collection['cash_amount'] ?? 0, 2) }} كاش / {{ number_format($collection['card_amount'] ?? 0, 2) }} شبكة)</span></td>
+                                                <td class="px-3 py-2">{{ $collection['payment_method_label'] ?? 'كاش' }} <span class="ui-text-muted">({{ number_format($collection['cash_amount'] ?? 0, 2) }} كاش / {{ number_format($collection['card_amount'] ?? 0, 2) }} شبكة)</span>@if(!empty($collection['note']))<span class="block ui-text-muted">{{ $collection['note'] }}</span>@endif</td>
                                                 <td class="px-3 py-2">{{ $collection['description'] ?? '—' }}</td>
                                             </tr>
                                         @endforeach

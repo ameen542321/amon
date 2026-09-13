@@ -178,6 +178,7 @@
                                             </select>
                                         </label>
                                         <label class="block"><span class="ui-label">طريقة التحصيل</span><select class="ui-input" name="payment_method" required><option value="cash">كاش</option><option value="card">شبكة</option><option value="mixed">ميكس</option></select></label>
+                                        <label class="block"><span class="ui-label">ملاحظات التحصيل <span class="ui-text-muted">(اختياري — 30 حرفًا)</span></span><input class="ui-input" type="text" name="note" maxlength="30" value="{{ old('note') }}" placeholder="ملاحظة مختصرة عن الدفعة"></label>
                                         <label class="block"><span class="ui-label">مبلغ الكاش عند اختيار ميكس</span><input class="ui-input" type="number" name="cash_amount" min="0" step="0.01" placeholder="0.00"></label>
                                         <label class="block"><span class="ui-label">مبلغ الشبكة عند اختيار ميكس</span><input class="ui-input" type="number" name="card_amount" min="0" step="0.01" placeholder="0.00"></label>
                                     </div>
@@ -349,6 +350,7 @@
                                                     @foreach($payments as $payment)
                                                         <div class="ui-text-caption ui-text-soft">
                                                             {{ $payment['payment_method_label'] ?? 'كاش' }}
+                                                            @if(!empty($payment['note']))<span class="ui-text-muted">— {{ $payment['note'] }}</span>@endif
                                                             — {{ number_format((float) ($payment['amount'] ?? 0), 2) }} ريال
                                                             — {{ $payment['added_by_name'] ?? 'غير محدد' }}
                                                             <span class="ui-text-muted">({{ number_format((float) ($payment['cash_amount'] ?? 0), 2) }} كاش / {{ number_format((float) ($payment['card_amount'] ?? 0), 2) }} شبكة)</span>
