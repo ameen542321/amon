@@ -224,6 +224,7 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
                     Route::post('/', [ProductController::class, 'store'])->name('store');
                     Route::get('/export/csv', [ProductController::class, 'exportCsv'])->name('export.csv');
                     Route::post('/import/csv', [ProductController::class, 'importCsv'])->name('import.csv');
+                    Route::delete('/purge-store-catalog', [ProductController::class, 'purgeStoreCatalog'])->name('purge-store-catalog');
 
                     // يجب تسجيل مسارات المخزون قبل مسارات المنتج الديناميكية حتى لا تلتقطها تلك المسارات.
                     Route::get('/{product}/stock', [ProductStockController::class, 'index'])->name('stock');

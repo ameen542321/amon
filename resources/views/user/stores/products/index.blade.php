@@ -469,7 +469,7 @@
         <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
             <p class="ui-status-info ui-text-caption sm:text-sm">
                 <i class="fa-solid fa-circle-info ml-1"></i>
-                أدوات النقل: الكمية في ملف CSV تكون دائمًا صفر، وإذا كان أحد السعرين غير مكتمل يتم تصفير سعر البيع والتكلفة معًا.
+                أدوات النقل: تصدر الأقسام والأسعار والأنواع ووحدات البيع والتجزئة كما هي، وتكون كمية كل منتج في الملف صفرًا دائمًا.
             </p>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -488,6 +488,23 @@
                     </button>
                 </form>
             </div>
+        </div>
+
+        <div class="mt-4 border-t ui-border pt-4">
+            <form method="POST" action="{{ route('user.stores.products.purge-store-catalog', $store) }}" class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-end"
+                  data-ui-confirm="سيتم حذف جميع منتجات وأقسام هذا المتجر حذفًا نهائيًا. لا يمكن التراجع عن العملية."
+                  data-ui-confirm-title="إفراغ كتالوج المتجر نهائيًا؟">
+                @csrf @method('DELETE')
+                <label class="block">
+                    <span class="ui-label">اكتب اسم المتجر للتأكيد: {{ $store->name }}</span>
+                    <input type="text" name="confirmation" required autocomplete="off" class="ui-input" placeholder="{{ $store->name }}">
+                </label>
+                <button type="submit" class="ui-btn ui-btn-danger">
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                    حذف جميع المنتجات والأقسام نهائيًا
+                </button>
+            </form>
+            <p class="mt-2 ui-text-caption ui-text-muted">إذا كانت المنتجات مرتبطة بجلسات جرد أو بسجل تاريخي غير مكتمل، سيوقف النظام الحذف ويعرض السبب.</p>
         </div>
     </div>
 
