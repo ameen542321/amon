@@ -12,10 +12,26 @@
     </div>
     <x-ui.card>
         @forelse($sessions as $session)
-            <a href="{{ route('user.stores.inventory-counts.show', [$store, $session]) }}" class="ui-frame-row flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div><strong class="ui-title">{{ $session->referenceCode() }}</strong><p class="ui-text-soft">{{ $session->items_count }} منتجات — {{ $session->accountant?->name ?: 'لم يحدد محاسب' }}</p></div>
-                <x-ui.badge :variant="$session->status === 'approved' ? 'success' : ($session->status === 'cancelled' ? 'danger' : 'info')">{{ $session->statusLabel() }}</x-ui.badge>
-            </a>
+            <div class="ui-frame-row flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <a href="{{ route('user.stores.inventory-counts.show', [$store, $session]) }}" class="min-w-0 flex-1">
+                    <strong class="ui-title">{{ $session->referenceCode() }}</strong>
+                    <p class="ui-text-soft">{{ $session->items_count }} منتجات — {{ $session->accountant?->name ?: 'لم يحدد محاسب' }}</p>
+                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <x-ui.badge :variant="$session->status === 'approved' ? 'success' : ($session->status === 'cancelled' ? 'danger' : 'info')">{{ $session->statusLabel() }}</x-ui.badge>
+                    @if(in_array($session->status, ['draft', 'cancelled'], true))
+                        <form method="POST" action="{{ route('user.stores.inventory-counts.destroy', [$store, $session]) }}"
+                              data-ui-confirm="سيتم حذف جلسة الجرد من القائمة مع الاحتفاظ بسجلها التقني."
+                              data-ui-confirm-title="حذف جلسة الجرد؟">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="ui-btn ui-btn-danger px-2 py-1 ui-text-caption" aria-label="حذف جلسة الجرد">
+                                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                حذف
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
         @empty
             <div class="ui-empty-state">لا توجد جلسات جرد حتى الآن.</div>
         @endforelse
