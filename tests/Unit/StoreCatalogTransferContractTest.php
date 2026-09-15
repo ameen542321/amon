@@ -40,4 +40,19 @@ class StoreCatalogTransferContractTest extends TestCase
         self::assertStringContainsString("Schema::hasTable('inventory_count_session_items')", $controller);
         self::assertStringContainsString("Route::delete('/purge-store-catalog'", $routes);
     }
+
+    public function test_import_uses_store_scoped_slug_generator_that_includes_soft_deleted_products(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/ProductController.php');
+
+        self::assertIsString($controller);
+        self::assertMatchesRegularExpression(
+            '/private function generateImportProductSlug\(Store \$store, string \$name\): string\s*\{.*?return \$this->buildUniqueStoreScopedSlug\(\$name, \(int\) \$store->id\);\s*\}/s',
+            $controller
+        );
+        self::assertMatchesRegularExpression(
+            '/private function buildUniqueStoreScopedSlug.*?Product::withTrashed\(\).*?where\(\'slug\', \$slug\)/s',
+            $controller
+        );
+    }
 }
