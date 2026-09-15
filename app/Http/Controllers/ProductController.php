@@ -1520,18 +1520,12 @@ class ProductController extends Controller
 
     private function generateImportProductSlug(Store $store, string $name): string
     {
-        $base = Str::slug($name);
-        $base = $base !== '' ? $base : str_replace(' ', '-', trim($name));
-        $slug = $base;
-        $counter = 1;
-
-        // products.slug فريد على مستوى الجدول بالكامل وليس على مستوى المتجر فقط
-        while (Product::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $counter;
-            $counter++;
-        }
-
-        return $slug;
+        /*
+         * نستخدم المولد نفسه المعتمد في إنشاء المنتج اليدوي. فهو يربط slug
+         * بالمتجر، ويفحص السجلات النشطة والمحذوفة ناعمًا لأن القيد
+         * products_slug_unique مطبق على الجدول بالكامل ولا يتجاهل الحذف الناعم.
+         */
+        return $this->buildUniqueStoreScopedSlug($name, (int) $store->id);
     }
 
     private function decodeFractions(?string $json): array
