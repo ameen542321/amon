@@ -9,6 +9,9 @@ use App\Services\EmployeeLogService;
 use Illuminate\Support\Carbon;
 use App\Models\Employee;
 use App\Services\Employees\EmployeePayrollService;
+use App\Services\Employees\EmployeeHistoricalStoreService;
+use App\Models\EmployeeLog;
+use App\Models\Store;
 
 /**
  * --------------------------------------------------------------------------
@@ -40,7 +43,7 @@ class EmployeeReports
         // جلب الموظف أو المحاسب
         $person = $self->findPerson($id);
 
-        $person->loadMissing('store.user');
+        $person->loadMissing(['store.user', 'accountant']);
 
         // الشهر المستهدف يأتي من فلتر صفحة العمليات، مع fallback محافظ للسلوك القديم.
         $requestedMonth = request()->query('month');
@@ -58,7 +61,7 @@ class EmployeeReports
 
         // نعتمد على تاريخ العملية/الشفت، وليس تاريخ الإدخال، مع fallback موحد للسجلات القديمة.
         $debtOperations = $person->debts()
-            ->with('addedBy')
+            ->with(['addedBy', 'store'])
             ->betweenOperationDates($monthStart, $monthEnd)
             ->orderBy('date')
             ->get();
@@ -97,7 +100,7 @@ class EmployeeReports
         $salaryNet = max(0, (float) $salaryInfo['payable_salary'] - (float) $withdrawals->sum('amount') - $absencePenalty);
 
         $creditSalesPending = $person->creditSales()
-            ->with('addedBy')
+            ->with(['addedBy', 'store'])
             ->betweenOperationDates($monthStart, $monthEnd)
             ->where('status', 'pending')
             ->orderBy('date')
@@ -109,9 +112,45 @@ class EmployeeReports
                 $query->where('deducted_month', $reportMonthKey)
                     ->orWhereBetween('date', [$monthStart, $monthEnd]);
             })
-            ->with('addedBy')
+            ->with(['addedBy', 'store'])
             ->orderBy('date')
             ->get();
+
+        // سجل العمل الكامل لا يقيد بشهر التقرير؛ أما الأرقام المالية أعلاه فتبقى للشهر المختار فقط.
+        $transfers = EmployeeLog::withTrashed()
+            ->where('person_id', $person->id)
+            ->where('person_type', get_class($person))
+            ->where('action_name', 'employee_transferred')
+            ->orderBy('created_at')
+            ->get();
+        $transferStoreIds = $transfers->flatMap(fn (EmployeeLog $transfer) => [
+            (int) data_get($transfer->meta, 'old_store_id'),
+            (int) data_get($transfer->meta, 'new_store_id'),
+        ])->filter()->unique();
+        $transferStoreNames = Store::withTrashed()->whereIn('id', $transferStoreIds)->pluck('name', 'id');
+        $transfers->each(function (EmployeeLog $transfer) use ($transferStoreNames): void {
+                $names = $transferStoreNames;
+                $transfer->setAttribute('old_store_name', $names[(int) data_get($transfer->meta, 'old_store_id')] ?? '—');
+                $transfer->setAttribute('new_store_name', $names[(int) data_get($transfer->meta, 'new_store_id')] ?? '—');
+            });
+
+        $assignmentSegments = collect();
+        if ($person instanceof Employee) {
+            $assignmentSegments = app(EmployeeHistoricalStoreService::class)
+                ->assignmentSegmentsForEmployee($person, $periodStart, $periodEnd);
+            $segmentStoreNames = Store::withTrashed()
+                ->whereIn('id', $assignmentSegments->pluck('store_id')->filter()->unique())
+                ->pluck('name', 'id');
+            $assignmentSegments = $assignmentSegments->map(function (array $segment) use ($segmentStoreNames): array {
+                $start = Carbon::parse($segment['start'])->startOfDay();
+                $end = Carbon::parse($segment['end'])->startOfDay();
+
+                return $segment + [
+                    'store_name' => $segmentStoreNames[(int) $segment['store_id']] ?? 'متجر محذوف',
+                    'days' => $start->diffInDays($end) + 1,
+                ];
+            });
+        }
 
         $emptySections = collect([
             'السحوبات' => $withdrawals->isEmpty(),
@@ -119,6 +158,7 @@ class EmployeeReports
             'المديونيات والتحصيلات' => $debtOperations->isEmpty(),
             'البيع الآجل غير المحصل' => $creditSalesPending->isEmpty(),
             'البيع الآجل المحصل' => $creditSalesCollected->isEmpty(),
+            'سجل النقل بين المتاجر' => $transfers->isEmpty(),
         ])->filter()->keys()->values();
 
         // تجهيز البيانات للعرض داخل الـ PDF
@@ -141,6 +181,9 @@ class EmployeeReports
             'collectedThisMonth'   => abs($collectedThisMonth), // التحصيل الشهري (موجب)
             'creditSalesPending'   => $creditSalesPending,
             'creditSalesCollected' => $creditSalesCollected,
+            'transfers'             => $transfers,
+            'assignmentSegments'    => $assignmentSegments,
+            'creditPendingTotal'    => (float) $creditSalesPending->sum('remaining_amount'),
             'emptySections'        => $emptySections,
             'created_by'           => auth()->user(),
         ];

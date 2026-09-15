@@ -147,6 +147,37 @@ if (root) {
             customHasStock(row) { const product = this.customProduct(row); if (!product || Number(row.meters) <= 0) return true; return Number(row.meters) * (1 + product.waste / 100) <= product.stock + 0.0001; },
             customStockMessage(row) { const product = this.customProduct(row); if (!product || Number(row.meters) <= 0) return ''; const required = Number(row.meters) * (1 + product.waste / 100); return this.customHasStock(row) ? `متوفر: يحتاج ${required.toFixed(2)}م من ${product.stock.toFixed(2)}م.` : `الكمية لا تكفي: يحتاج ${required.toFixed(2)}م والمتوفر ${product.stock.toFixed(2)}م.`; },
             partDisplayRegistration(part) { return part.work === 'custom' ? `مخصص — ${part.sourceFractionLabel} — ${part.customMeters}م` : `${part.fraction.label} — ${part.fraction.meters}م${part.quantity > 1 ? ` × ${part.quantity}` : ''}`; },
+            editResolvedPart(part) {
+                if (part.work === 'custom') {
+                    this.customOpen = true;
+                    this.$nextTick(() => document.getElementById(`tint-custom-row-${part.key.replace('custom-', '')}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+                    return;
+                }
+                this.activeWork = part.owner?.startsWith('full-') ? part.owner.replace('full-', '') : part.work;
+                this.$nextTick(() => document.getElementById(`tint-work-${this.activeWork}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+            },
+            removeResolvedPart(part) {
+                if (part.work === 'custom') {
+                    this.removeCustomRow(Number(part.key.replace('custom-', '')));
+                    return;
+                }
+                if (this.fullMode) {
+                    const remaining = this.resolvedParts.filter(candidate => candidate.key !== part.key);
+                    this.fullMode = false;
+                    this.selectedWorks = [];
+                    this.workSelections = {};
+                    remaining.forEach(candidate => {
+                        if (!this.selectedWorks.includes(candidate.work)) this.selectedWorks.push(candidate.work);
+                        this.workSelections[candidate.work] = { ...this.fullSelections[candidate.owner.replace('full-', '')] };
+                        if (candidate.work === 'window') this.windowCount = candidate.quantity;
+                    });
+                    this.fullSelections = { front: this.emptySelection(), rear: this.emptySelection(), windows: this.emptySelection() };
+                    this.activeWork = this.selectedWorks[0] || '';
+                    this.syncPrice();
+                    return;
+                }
+                this.removeWork(part.work);
+            },
             resetBuilder() { this.fullMode = false; this.selectedWorks = []; this.workSelections = {}; this.activeWork = ''; this.fullSelections = { front: this.emptySelection(), rear: this.emptySelection(), windows: this.emptySelection() }; this.windowCount = 1; this.customOpen = false; this.customRows = []; this.finalPrice = 0; },
             money(value) { return Number(value || 0).toFixed(2) + ' ر.س'; },
             distributeFinalPrice(parts) {

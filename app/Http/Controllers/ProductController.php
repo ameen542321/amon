@@ -375,21 +375,29 @@ class ProductController extends Controller
         $filename = 'products-store-' . $store->id . '-' . now()->format('Ymd_His') . '.csv';
 
         $products = $store->products()
-            ->with(['category:id,name', 'fractions:id,product_id,option_label,deduction_value,price'])
+            ->with(['category:id,name,description,status,is_main_category', 'fractions:id,product_id,option_label,deduction_value,price'])
             ->orderBy('name')
             ->get();
+        $categories = $store->categories()
+            ->orderByDesc('is_main_category')
+            ->orderBy('name')
+            ->get(['name', 'description', 'status', 'is_main_category']);
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        return response()->streamDownload(function () use ($products) {
+        return response()->streamDownload(function () use ($products, $categories) {
             $out = fopen('php://output', 'w');
-            fwrite($out, "ï»¿");
+            fwrite($out, "\xEF\xBB\xBF");
 
             fputcsv($out, [
+                'record_type',
                 'category_name',
+                'category_description',
+                'category_status',
+                'category_is_main',
                 'product_name',
                 'barcode',
                 'description',
@@ -402,11 +410,21 @@ class ProductController extends Controller
                 'usage_type',
                 'is_splittable',
                 'items_per_unit',
+                'quick_sale_default_unit',
+                'carton_qty',
                 'piece_price',
                 'roll_length',
                 'waste_percentage',
                 'fractions_json',
             ]);
+
+            foreach ($categories as $category) {
+                fputcsv($out, [
+                    'category', $category->name, $category->description, $category->status,
+                    $category->is_main_category ? 1 : 0,
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+                ]);
+            }
 
             foreach ($products as $product) {
                 [$salePrice, $costPrice] = $this->normalizeTransferPrices($product->price, $product->cost_price);
@@ -420,7 +438,11 @@ class ProductController extends Controller
                     ])->values()->all(), JSON_UNESCAPED_UNICODE);
 
                 fputcsv($out, [
+                    'product',
                     $product->category->name ?? 'بدون قسم',
+                    $product->category->description ?? null,
+                    $product->category->status ?? 'active',
+                    $product->category?->is_main_category ? 1 : 0,
                     $product->name,
                     $product->barcode,
                     $product->description,
@@ -433,6 +455,8 @@ class ProductController extends Controller
                     $product->usage_type ?? Product::USAGE_TYPE_SALE,
                     $product->is_splittable ? 1 : 0,
                     (int) ($product->items_per_unit ?? 1),
+                    $product->quick_sale_default_unit ?? 'unit',
+                    (int) ($product->carton_qty ?? 0),
                     (float) ($product->piece_price ?? 0),
                     (float) ($product->roll_length ?? 0),
                     (float) ($product->waste_percentage ?? 0),
@@ -490,18 +514,14 @@ class ProductController extends Controller
                     continue;
                 }
 
+                $recordType = trim((string) $this->csvValue($row, $col, 'record_type')) ?: 'product';
                 $name = trim((string) $this->csvValue($row, $col, 'product_name'));
                 $categoryName = trim((string) $this->csvValue($row, $col, 'category_name'));
 
-                if ($name === '' || $categoryName === '') {
+                if ($categoryName === '') {
                     $skipped++;
                     continue;
                 }
-
-                [$salePrice, $costPrice] = $this->normalizeTransferPrices(
-                    $this->toNullableNumber($this->csvValue($row, $col, 'sale_price')),
-                    $this->toNullableNumber($this->csvValue($row, $col, 'cost_price'))
-                );
 
                 $category = Category::firstOrCreate(
                     [
@@ -511,15 +531,30 @@ class ProductController extends Controller
                     [
                         'user_id' => auth()->id(),
                         'slug' => $this->generateImportCategorySlug($store, $categoryName),
-                        'status' => 'active',
-                        'description' => null,
-                        'is_main_category' => false,
+                        'description' => $this->csvValue($row, $col, 'category_description'),
+                        'status' => in_array($this->csvValue($row, $col, 'category_status'), ['active', 'inactive'], true)
+                            ? $this->csvValue($row, $col, 'category_status')
+                            : 'active',
+                        'is_main_category' => (int) $this->toNullableNumber($this->csvValue($row, $col, 'category_is_main')) === 1,
                     ]
                 );
 
                 if ($category->wasRecentlyCreated) {
                     $createdCategories++;
                 }
+
+                if ($recordType === 'category') {
+                    continue;
+                }
+                if ($name === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                [$salePrice, $costPrice] = $this->normalizeTransferPrices(
+                    $this->toNullableNumber($this->csvValue($row, $col, 'sale_price')),
+                    $this->toNullableNumber($this->csvValue($row, $col, 'cost_price'))
+                );
 
                 $barcode = trim((string) $this->csvValue($row, $col, 'barcode')) ?: null;
                 $product = $this->findProductForImport($store, $name, $barcode, $category->id);
@@ -537,6 +572,9 @@ class ProductController extends Controller
                 $rollLength = (float) ($this->toNullableNumber($this->csvValue($row, $col, 'roll_length')) ?? 0);
                 $wastePercentage = (float) ($this->toNullableNumber($this->csvValue($row, $col, 'waste_percentage')) ?? 0);
                 $minStock = (float) ($this->toNullableNumber($this->csvValue($row, $col, 'min_stock')) ?? 1);
+                $quickSaleDefaultUnit = trim((string) $this->csvValue($row, $col, 'quick_sale_default_unit'));
+                $quickSaleDefaultUnit = in_array($quickSaleDefaultUnit, ['unit', 'piece'], true) ? $quickSaleDefaultUnit : 'unit';
+                $cartonQty = max(0, (int) ($this->toNullableNumber($this->csvValue($row, $col, 'carton_qty')) ?? 0));
 
                 $payload = [
                     'store_id' => $store->id,
@@ -557,6 +595,8 @@ class ProductController extends Controller
                     'usage_type' => $usageType,
                     'is_splittable' => $productType === 'standard' ? $isSplittable : false,
                     'items_per_unit' => $productType === 'standard' && $isSplittable ? $itemsPerUnit : 1,
+                    'quick_sale_default_unit' => $productType === 'standard' && $isSplittable ? $quickSaleDefaultUnit : 'unit',
+                    'carton_qty' => $cartonQty > 0 ? $cartonQty : null,
                     'piece_price' => $productType === 'standard' ? $piecePrice : 0,
                     'roll_length' => $productType === 'fractional' ? $rollLength : 0,
                     'waste_percentage' => $wastePercentage,
@@ -971,6 +1011,78 @@ class ProductController extends Controller
             ->with('success', $message);
     }
 
+    /** أداة مؤقتة لإفراغ كتالوج متجر قبل استيراد كتالوج بديل. */
+    public function purgeStoreCatalog(Request $request, Store $store)
+    {
+        $validated = $request->validate([
+            'confirmation' => ['required', 'string', Rule::in([$store->name])],
+        ], [
+            'confirmation.in' => 'اكتب اسم المتجر مطابقًا لتأكيد الحذف النهائي.',
+        ]);
+
+        $products = Product::withTrashed()
+            ->where('store_id', $store->id)
+            ->with('fractions')
+            ->get();
+        $productIds = $products->pluck('id');
+
+        $inventorySessionItems = Schema::hasTable('inventory_count_session_items')
+            ? DB::table('inventory_count_session_items')->whereIn('product_id', $productIds)->count()
+            : 0;
+        if ($inventorySessionItems > 0) {
+            return back()->with('error', 'تعذر الإفراغ النهائي: توجد منتجات مرتبطة بجلسات جرد. احذف جلسات الجرد أولًا ثم أعد المحاولة.');
+        }
+
+        $blocked = $products->mapWithKeys(function (Product $product): array {
+            $blockers = $this->permanentDeleteBlockers($product);
+
+            return $blockers === [] ? [] : [$product->name => $blockers];
+        });
+        if ($blocked->isNotEmpty()) {
+            $firstProduct = $blocked->keys()->first();
+            return back()->with('error', 'تعذر الإفراغ النهائي لحماية السجل التاريخي. المنتج '.$firstProduct.' مرتبط بـ '.implode('، ', $blocked->first()).'.');
+        }
+
+        $images = $products->pluck('image')->filter()->unique()->values();
+        $counts = DB::transaction(function () use ($store, $products, $validated): array {
+            $productIds = $products->pluck('id');
+            ArchivedItem::where('store_id', $store->id)
+                ->where('archivable_type', Product::class)
+                ->whereIn('archivable_id', $productIds)
+                ->delete();
+            Product::withTrashed()->whereIn('id', $productIds)->get()->each(function (Product $product): void {
+                $product->fractions()->delete();
+                $product->forceDelete();
+            });
+            $categories = Category::withTrashed()->where('store_id', $store->id)->get();
+            $categoryCount = $categories->count();
+            ArchivedItem::where('store_id', $store->id)
+                ->where('archivable_type', Category::class)
+                ->whereIn('archivable_id', $categories->pluck('id'))
+                ->delete();
+            $categories->each->forceDelete();
+
+            app(LogService::class)->add('store_catalog_purged', 'تم إفراغ منتجات وأقسام المتجر نهائيًا بأداة النقل المؤقتة.', $store, [
+                'products_count' => $products->count(),
+                'categories_count' => $categoryCount,
+                'confirmed_store_name' => $validated['confirmation'] ?? $store->name,
+            ]);
+
+            return ['products' => $products->count(), 'categories' => $categoryCount];
+        });
+
+        DB::afterCommit(function () use ($images): void {
+            foreach ($images as $image) {
+                if (\Storage::disk('public')->exists($image)) {
+                    \Storage::disk('public')->delete($image);
+                }
+            }
+        });
+
+        return redirect()->route('user.stores.products.index', $store)
+            ->with('success', "تم حذف {$counts['products']} منتج و{$counts['categories']} قسم نهائيًا. يمكنك الآن استيراد ملف المتجر المصدر.");
+    }
+
     public function restore(Store $store, $id)
     {
         $product = Product::onlyTrashed()
@@ -1232,14 +1344,8 @@ class ProductController extends Controller
 
     private function normalizeTransferPrices(?float $salePrice, ?float $costPrice): array
     {
-        $hasSale = $salePrice !== null && $salePrice > 0;
-        $hasCost = $costPrice !== null && $costPrice > 0;
-
-        if ($hasSale && $hasCost) {
-            return [$salePrice, $costPrice];
-        }
-
-        return [0, 0];
+        // يحفظ ملف النقل كل سعر كما هو في المتجر المصدر؛ غياب أحدهما لا يصفر الآخر.
+        return [max(0, (float) ($salePrice ?? 0)), max(0, (float) ($costPrice ?? 0))];
     }
 
     private function findProductForImport(Store $store, string $name, ?string $barcode, ?int $categoryId = null): ?Product

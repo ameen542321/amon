@@ -296,7 +296,6 @@ class EmployeeOperationService
                 'mixed' => 'ميكس',
                 default => 'كاش',
             };
-
             // فحص التكرار يجب أن يكون على نفس أصل المديونية فقط.
             // مثال: إذا كان لدى الموظف دينان منفصلان وتم تحصيل 25 ريالًا من كل واحد في نفس اليوم،
             // فهذا ليس تكرارًا. التكرار الحقيقي هو إرسال نفس تحصيل الـ 25 ريالًا لنفس الدين مرتين.
@@ -413,6 +412,11 @@ class EmployeeOperationService
                 'mixed' => 'ميكس',
                 default => 'كاش',
             };
+            $collectionNote = trim((string) ($options['note'] ?? ''));
+            if (mb_strlen($collectionNote) > 30) {
+                throw new EmployeeOperationException('يجب ألا تتجاوز ملاحظات التحصيل 30 حرفًا.');
+            }
+            $collectionNote = $collectionNote !== '' ? $collectionNote : null;
             $lockedCreditSale->remaining_amount = $remainingAmount;
             $lockedCreditSale->status = $isFullyCollected ? CreditSale::STATUS_DEDUCTED : CreditSale::STATUS_PENDING;
             $lockedCreditSale->deducted_month = $isFullyCollected ? $operationDate->format('Y-m') : $lockedCreditSale->deducted_month;
@@ -429,11 +433,13 @@ class EmployeeOperationService
                 'cash_amount' => $cashAmount,
                 'card_amount' => $cardAmount,
                 'collection_date' => $operationDate->toDateString(),
+                'note' => $collectionNote,
                 'collected_by' => $actor['id'] ?? null,
                 'meta' => json_encode([
                     'added_by_name' => $actor['name'] ?? null,
                     'description' => ($isFullyCollected ? 'تحصيل كامل' : 'تحصيل جزئي') . ' - ' . $paymentMethodLabel,
                     'remaining_amount_after_collection' => $remainingAmount,
+                    'note' => $collectionNote,
                 ], JSON_UNESCAPED_UNICODE),
                 'created_at' => now(),
                 'updated_at' => now(),

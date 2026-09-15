@@ -101,6 +101,12 @@
         ? $activeStoreAccountants->first()
         : null;
     $showActorColumn = blank($singleReportAccountantName);
+    $statusLabel = match ($person->status ?? null) {
+        'active' => 'نشط',
+        'suspended' => 'موقوف',
+        'inactive' => 'غير نشط',
+        default => $person->status ?? 'غير محدد',
+    };
 @endphp
 
 <table class="header">
@@ -109,8 +115,12 @@
             <div class="info-title">بيانات العامل</div>
             <div class="info-line"><span>الاسم:</span> {{ $person->name }}</div>
             <div class="info-line"><span>الجوال:</span> {{ $person->phone ?? '—' }}</div>
+            <div class="info-line"><span>الحالة:</span> {{ $statusLabel }}</div>
+            <div class="info-line"><span>الرقم التعريفي:</span> #{{ $person->id }}</div>
+            <div class="info-line"><span>تاريخ الإضافة:</span> {{ $formatOperationDateOnly($person->created_at) }}</div>
             <div class="info-line"><span>راتب التقرير:</span> {{ number_format($historical_salary ?? $person->salary ?? 0, 2) }} ريال</div>
             <div class="info-line"><span>أيام التقرير:</span> {{ $salary_worked_days ?? $salary_total_days ?? '—' }} / {{ $salary_total_days ?? '—' }}</div>
+            <div class="info-line"><span>ملاحظات الموظف:</span> {{ $person->notes ?: '—' }}</div>
         </td>
         <td class="center">
             <div class="brand">{{ config('app.name', 'Carled') }}</div>
@@ -121,6 +131,7 @@
             <div class="info-title">بيانات المتجر</div>
             <div class="info-line"><span>المتجر:</span> {{ $store->name ?? '—' }}</div>
             <div class="info-line"><span>المالك:</span> {{ $owner->name ?? '—' }}</div>
+            <div class="info-line"><span>حساب المحاسب:</span> {{ $person->accountant?->name ?? 'غير مرتبط' }}@if($person->accountant) ({{ $person->accountant->status === 'active' ? 'نشط' : 'موقوف' }}) @endif</div>
             @if($singleReportAccountantName)
                 <div class="info-line"><span>المحاسب:</span> {{ $singleReportAccountantName }}</div>
             @endif
@@ -129,12 +140,40 @@
     </tr>
 </table>
 
+@if($assignmentSegments->isNotEmpty())
+    <h2>المتاجر التي عمل بها خلال شهر التقرير</h2>
+    <table class="data">
+        <thead><tr><th>#</th><th>المتجر</th><th>من</th><th>إلى</th><th>أيام الانتساب</th><th>التصنيف</th></tr></thead>
+        <tbody>
+        @foreach($assignmentSegments as $segmentIndex => $segment)
+            <tr>
+                <td>{{ $segmentIndex + 1 }}</td>
+                <td>{{ $segment['store_name'] }}</td>
+                <td class="nowrap">{{ $formatOperationDateOnly($segment['start']) }}</td>
+                <td class="nowrap">{{ $formatOperationDateOnly($segment['end']) }}</td>
+                <td>{{ $segment['days'] }} يوم</td>
+                <td>{{ (int) $segment['store_id'] === (int) ($store->id ?? 0) ? 'المتجر الحالي' : 'متجر سابق ضمن الفترة' }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+@endif
+
 <table class="summary">
     <tr>
         <td><span class="label">الراتب المستحق</span><span class="value">{{ number_format($salary_payable ?? 0, 2) }}</span></td>
         <td><span class="label">السحوبات</span><span class="value">{{ number_format($withdrawals_total ?? 0, 2) }}</span></td>
         <td><span class="label">خصم الغياب</span><span class="value">{{ number_format($absence_penalty ?? 0, 2) }}</span></td>
         <td><span class="label">الصافي</span><span class="value">{{ number_format($salary_net ?? 0, 2) }}</span></td>
+    </tr>
+</table>
+
+<table class="summary">
+    <tr>
+        <td><span class="label">رصيد المديونية الحالي</span><span class="value">{{ number_format($remainingDebt ?? 0, 2) }}</span></td>
+        <td><span class="label">مديونيات مضافة بالشهر</span><span class="value">{{ number_format($addedThisMonth ?? 0, 2) }}</span></td>
+        <td><span class="label">مديونيات محصلة بالشهر</span><span class="value">{{ number_format($collectedThisMonth ?? 0, 2) }}</span></td>
+        <td><span class="label">آجل مفتوح بالشهر</span><span class="value">{{ number_format($creditPendingTotal ?? 0, 2) }}</span></td>
     </tr>
 </table>
 
@@ -179,7 +218,7 @@
 @if($debts->isNotEmpty())
     <h2>المديونيات والتحصيلات</h2>
     <table class="data">
-        <thead><tr><th>#</th><th>النوع</th><th>المبلغ</th><th>التاريخ</th>@if($showActorColumn)<th>سجّل بواسطة</th>@endif<th>الملاحظات</th></tr></thead>
+        <thead><tr><th>#</th><th>النوع</th><th>المبلغ</th><th>التاريخ</th><th>المتجر</th>@if($showActorColumn)<th>سجّل بواسطة</th>@endif<th>الملاحظات</th></tr></thead>
         <tbody>
         @foreach($debts as $debtIndex => $debtOperation)
             @php($isDebtCollectionOperation = (float) $debtOperation->amount < 0)
@@ -188,6 +227,7 @@
                 <td>{{ $isDebtCollectionOperation ? 'تحصيل' : 'إضافة مديونية' }}</td>
                 <td class="{{ $isDebtCollectionOperation ? 'amount-collect' : 'amount-add' }}">{{ number_format(abs((float) $debtOperation->amount), 2) }} ريال</td>
                 <td class="nowrap">{{ $resolveOperationDateOnly($debtOperation) }}</td>
+                <td>{{ $debtOperation->store?->name ?? '—' }}</td>
                 @if($showActorColumn)<td>{{ $resolveActorName($debtOperation) }}</td>@endif
                 <td class="text-cell">{{ $debtOperation->description ?? '—' }}</td>
             </tr>
@@ -199,15 +239,18 @@
 @if($creditSalesPending->isNotEmpty())
     <h2>البيع الآجل غير المحصل</h2>
     <table class="data">
-        <thead><tr><th>#</th><th>القيمة</th><th>المتبقي</th><th>التاريخ</th>@if($showActorColumn)<th>سجّل بواسطة</th>@endif<th>الملاحظات</th></tr></thead>
+        <thead><tr><th>#</th><th>القيمة</th><th>المحصّل</th><th>المتبقي</th><th>التاريخ</th><th>المتجر</th>@if($showActorColumn)<th>سجّل بواسطة</th>@endif<th>دفعات التحصيل</th><th>الملاحظات</th></tr></thead>
         <tbody>
         @foreach($creditSalesPending as $pendingCreditSaleIndex => $pendingCreditSaleOperation)
             <tr>
                 <td>{{ $pendingCreditSaleIndex + 1 }}</td>
                 <td>{{ number_format($pendingCreditSaleOperation->amount, 2) }} ريال</td>
+                <td>{{ number_format(max(0, (float) $pendingCreditSaleOperation->amount - (float) $pendingCreditSaleOperation->remaining_amount), 2) }} ريال</td>
                 <td>{{ number_format($pendingCreditSaleOperation->remaining_amount, 2) }} ريال</td>
                 <td class="nowrap">{{ $resolveOperationDateOnly($pendingCreditSaleOperation) }}</td>
+                <td>{{ $pendingCreditSaleOperation->store?->name ?? '—' }}</td>
                 @if($showActorColumn)<td>{{ $resolveActorName($pendingCreditSaleOperation) }}</td>@endif
+                <td class="text-cell">@forelse(collect($pendingCreditSaleOperation->collection_payments ?? []) as $payment){{ number_format((float) ($payment['amount'] ?? 0), 2) }} ريال — {{ $formatOperationDateOnly($payment['date'] ?? null) }} — {{ $payment['payment_method_label'] ?? 'كاش' }}@if(!empty($payment['note'])) — {{ $payment['note'] }}@endif @if(!$loop->last)<br>@endif @empty<span class="note">لا توجد دفعات</span>@endforelse</td>
                 <td class="text-cell">{{ $pendingCreditSaleOperation->credit_note ?: ($pendingCreditSaleOperation->description ?? '—') }}</td>
             </tr>
         @endforeach
@@ -218,13 +261,14 @@
 @if($creditSalesCollected->isNotEmpty())
     <h2>البيع الآجل المحصل والتحصيلات</h2>
     <table class="data">
-        <thead><tr><th>#</th><th>القيمة</th><th>التاريخ</th>@if($showActorColumn)<th>سجّل بواسطة</th>@endif<th>التحصيلات</th><th>الملاحظات</th></tr></thead>
+        <thead><tr><th>#</th><th>القيمة</th><th>التاريخ</th><th>المتجر</th>@if($showActorColumn)<th>سجّل بواسطة</th>@endif<th>التحصيلات</th><th>الملاحظات</th></tr></thead>
         <tbody>
         @foreach($creditSalesCollected as $collectedCreditSaleIndex => $collectedCreditSaleOperation)
             <tr>
                 <td>{{ $collectedCreditSaleIndex + 1 }}</td>
                 <td>{{ number_format($collectedCreditSaleOperation->amount, 2) }} ريال</td>
                 <td class="nowrap">{{ $resolveOperationDateOnly($collectedCreditSaleOperation) }}</td>
+                <td>{{ $collectedCreditSaleOperation->store?->name ?? '—' }}</td>
                 @if($showActorColumn)<td>{{ $resolveActorName($collectedCreditSaleOperation) }}</td>@endif
                 <td class="text-cell">
                     @forelse(collect($collectedCreditSaleOperation->collection_payments ?? []) as $collectionPayment)
@@ -232,6 +276,7 @@
                         - {{ $formatOperationDateOnly($collectionPayment['date'] ?? null) }}
                         - {{ $collectionPayment['added_by_name'] ?? 'غير محدد' }}
                         @if(!empty($collectionPayment['description'])) ({{ $collectionPayment['description'] }}) @endif
+                        @if(!empty($collectionPayment['note'])) — ملاحظة: {{ $collectionPayment['note'] }} @endif
                         @if(!$loop->last)<br>@endif
                     @empty
                         <span class="note">لا توجد تفاصيل تحصيل محفوظة</span>
@@ -242,6 +287,26 @@
         @endforeach
         </tbody>
     </table>
+@endif
+
+@if($transfers->isNotEmpty())
+    <h2>سجل النقل الكامل بين المتاجر</h2>
+    <table class="data">
+        <thead><tr><th>#</th><th>المتجر السابق</th><th>المتجر الجديد</th><th>تاريخ السريان</th><th>الرصيد الشخصي المنقول</th><th>نفذ بواسطة</th></tr></thead>
+        <tbody>
+        @foreach($transfers as $transferIndex => $transfer)
+            <tr>
+                <td>{{ $transferIndex + 1 }}</td>
+                <td>{{ $transfer->old_store_name }}</td>
+                <td>{{ $transfer->new_store_name }}</td>
+                <td class="nowrap">{{ $formatOperationDateOnly($transfer->created_at) }}</td>
+                <td>{{ number_format((float) data_get($transfer->meta, 'transferred_personal_debt_balance', 0), 2) }} ريال</td>
+                <td>{{ $resolveActorName($transfer) }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+    <div class="empty-box">هذا السجل يشمل جميع التنقلات المسجلة، وليس شهر التقرير فقط. العمليات السابقة للنقل بيانات تاريخية محفوظة في متجر حدوثها، ولا تدخل في حسابات المتجر الحالي.</div>
 @endif
 
 @if($emptySections->isNotEmpty())

@@ -20,6 +20,7 @@ class CreditCollection extends Model
         'cash_amount',
         'card_amount',
         'collection_date',
+        'note',
         'collected_by',
         'meta',
     ];

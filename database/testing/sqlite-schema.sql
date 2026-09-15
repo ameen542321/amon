@@ -201,6 +201,7 @@ CREATE TABLE "employee_credit_collections" (
     "cash_amount" NUMERIC(12,2) NOT NULL DEFAULT 0.00,
     "card_amount" NUMERIC(12,2) NOT NULL DEFAULT 0.00,
     "collection_date" date NOT NULL,
+    "note" varchar(30) DEFAULT NULL,
     "collected_by" INTEGER DEFAULT NULL,
     "meta" TEXT DEFAULT NULL,
     "created_at" timestamp NULL DEFAULT NULL,

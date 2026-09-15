@@ -113,6 +113,7 @@ public function storeCollection(Request $request, $saleId)
         'payment_method' => ['nullable', 'in:cash,card,mixed'],
         'cash_amount' => ['nullable', 'numeric', 'min:0'],
         'card_amount' => ['nullable', 'numeric', 'min:0'],
+        'note' => ['nullable', 'string', 'max:30'],
     ]);
 
     $accountant = auth('accountant')->user();
@@ -151,6 +152,7 @@ public function storeCollection(Request $request, $saleId)
                 'payment_method' => $paymentMethod,
                 'cash_amount' => $cashAmount,
                 'card_amount' => $cardAmount,
+                'note' => $validated['note'] ?? null,
             ]
         );
     } catch (EmployeeOperationException $exception) {
@@ -175,6 +177,7 @@ public function storeCollection(Request $request, $saleId)
             'payment_method' => ['required', 'in:cash,card,mixed'],
             'cash_amount' => ['nullable', 'numeric', 'min:0'],
             'card_amount' => ['nullable', 'numeric', 'min:0'],
+            'note' => ['nullable', 'string', 'max:30'],
         ]);
         $openCollectionDates = app(ShiftLifecycleService::class)->openBusinessDates($store);
         if (! in_array($validated['collection_date'], $openCollectionDates, true)) {
@@ -203,6 +206,7 @@ public function storeCollection(Request $request, $saleId)
                     'payment_method' => $paymentMethod,
                     'cash_amount' => $cashAmount,
                     'card_amount' => $cardAmount,
+                    'note' => $validated['note'] ?? null,
                     'full' => abs($amount - (float) $creditSale->remaining_amount) <= 0.01,
                 ]
             );

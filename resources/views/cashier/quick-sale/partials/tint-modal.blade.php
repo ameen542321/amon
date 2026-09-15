@@ -139,7 +139,7 @@
                         </button>
                         <div x-show="customOpen" class="mt-3 space-y-3">
                             <template x-for="row in customRows" :key="row.id">
-                                <div class="space-y-3 rounded-xl border ui-border ui-surface-muted-bg p-3">
+                                <div class="space-y-3 rounded-xl border ui-border ui-surface-muted-bg p-3" :id="'tint-custom-row-' + row.id">
                                     <div>
                                         <span class="mb-1.5 block ui-text-caption font-bold ui-text-muted">منتج الرول</span>
                                         <div class="flex max-h-28 flex-wrap gap-2 overflow-y-auto">
@@ -182,7 +182,11 @@
                             <template x-for="part in resolvedParts" :key="part.key">
                                 <div class="flex items-start justify-between gap-3 rounded-xl border ui-border ui-surface-muted-bg p-3">
                                     <div class="min-w-0"><strong class="block ui-text-caption ui-title" x-text="part.label"></strong><span class="mt-1 block ui-text-caption ui-text-muted" x-text="part.product.name + ' — ' + partDisplayRegistration(part)"></span></div>
-                                    <span class="shrink-0 ui-text-caption font-black ui-status-success" x-text="money(part.linePrice)"></span>
+                                    <div class="flex shrink-0 items-center gap-1">
+                                        <span class="ui-text-caption font-black ui-status-success" x-text="money(part.linePrice)"></span>
+                                        <button type="button" @click="editResolvedPart(part)" class="ui-btn ui-btn-secondary px-2 py-1 ui-text-caption" aria-label="تعديل سطر التظليل"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
+                                        <button type="button" @click="removeResolvedPart(part)" class="ui-btn ui-btn-danger px-2 py-1 ui-text-caption" aria-label="حذف سطر التظليل"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                                    </div>
                                 </div>
                             </template>
                             <div x-show="!resolvedParts.length" class="rounded-xl border border-dashed ui-border px-3 py-6 text-center ui-text-caption ui-text-muted">حدد العمل والمنتجات لإظهار الملخص.</div>
