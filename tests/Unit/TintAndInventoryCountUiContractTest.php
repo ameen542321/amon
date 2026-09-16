@@ -64,13 +64,18 @@ class TintAndInventoryCountUiContractTest extends TestCase
 
         self::assertStringContainsString("inventory-counts.items.bulk-update", $view);
         self::assertStringContainsString('حفظ جميع الكميات', $view);
-        self::assertStringContainsString('الطقم يحتوي على', $view);
-        self::assertStringContainsString('الرول يحتوي على', $view);
+        self::assertStringContainsString('مكونات المنتج: الطقم الواحد يحتوي على', $view);
+        self::assertStringContainsString('مكونات المنتج: الرول الواحد يحتوي على', $view);
+        self::assertStringContainsString('data-inventory-count-storage-key', $view);
+        self::assertStringContainsString('data-inventory-count-version', $view);
         self::assertStringContainsString('منتج مكسور، تالف، رجيع، استهلاك، الاسم بحاجة للتغيير', $view);
         self::assertStringContainsString("->name('items.bulk-update')", $routes);
         self::assertStringContainsString('function bulkUpdate(', $controller);
         self::assertStringContainsString('function saveAccountantCounts(', $service);
         self::assertStringContainsString('إما ينجح حفظ الصفحة كاملة أو لا يحفظ منها شيء', $service);
         self::assertStringContainsString("تعادل: \${parts.join(' و')}", $script);
+        self::assertStringContainsString('window.localStorage.setItem', $script);
+        self::assertStringContainsString('restoreDraft()', $script);
+        self::assertStringContainsString('draft.serverVersion === serverVersion', $script);
     }
 }

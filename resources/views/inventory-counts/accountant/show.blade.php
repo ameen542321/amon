@@ -1,6 +1,16 @@
 @extends('dashboard.app')
 @section('title', 'إدخال الجرد')
 @section('content')
+@php
+    // تتغير البصمة بعد أي حفظ ناجح في الخادم، فلا تعيد مسودة المتصفح القديمة فوق البيانات الأحدث.
+    $browserDraftVersion = hash('sha256', $session->items->map(fn ($item) => [
+        $item->id,
+        $item->accountant_quantity,
+        $item->unit_type,
+        $item->accountant_note,
+        $item->accountant_updated_at?->format('Y-m-d H:i:s.u'),
+    ])->toJson());
+@endphp
 <div class="max-w-5xl mx-auto space-y-5">
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -12,11 +22,14 @@
     @if(session('success'))<div class="ui-alert ui-alert-success" role="status">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="ui-alert ui-alert-danger" role="alert"><strong>تعذر إكمال العملية:</strong> {{ $errors->first() }}</div>@endif
     <div class="flex items-center gap-2">
-        <x-ui.badge variant="info">أدخل الكميات ثم احفظها دفعة واحدة</x-ui.badge>
-        <x-ui.help title="حفظ الكميات" body="أدخل كمية ووحدة كل منتج، ثم اضغط حفظ جميع الكميات مرة واحدة قبل إرسال النتائج إلى المالك." />
+        <x-ui.badge variant="info"><span data-inventory-count-draft-status>تُحفظ مدخلاتك مؤقتًا في هذا المتصفح</span></x-ui.badge>
+        <x-ui.help title="حفظ الكميات" body="يحفظ المتصفح ما تكتبه تلقائيًا لتستكمل الجرد عند العودة. بعد إكمال المنتجات اضغط حفظ جميع الكميات لتثبيتها في الخادم قبل إرسال النتائج للمالك." />
     </div>
 
-    <form method="POST" action="{{ route('accountant.inventory-counts.items.bulk-update', $session) }}" class="space-y-4" data-inventory-count-form>
+    <form method="POST" action="{{ route('accountant.inventory-counts.items.bulk-update', $session) }}" class="space-y-4"
+          data-inventory-count-form
+          data-inventory-count-storage-key="inventory-count:{{ auth('accountant')->id() }}:{{ $session->id }}"
+          data-inventory-count-version="{{ $browserDraftVersion }}">
         @csrf
         @method('PUT')
     @foreach($session->items as $item)
@@ -30,6 +43,11 @@
         <div class="ui-card p-4 space-y-3" data-inventory-count-item data-items-per-unit="{{ (int) ($item->product?->items_per_unit ?? 0) }}">
             <div>
                 <h2 class="ui-title text-lg font-bold">{{ $item->product_name_snapshot }}</h2>
+                @if($item->product?->is_splittable && (int) $item->product->items_per_unit > 0)
+                    <p class="mt-1 ui-text-caption ui-text-soft">مكونات المنتج: الطقم الواحد يحتوي على {{ (int) $item->product->items_per_unit }} حبة.</p>
+                @elseif($item->product?->product_type === 'fractional' && (float) $item->product->roll_length > 0)
+                    <p class="mt-1 ui-text-caption ui-text-soft">مكونات المنتج: الرول الواحد يحتوي على {{ rtrim(rtrim(number_format((float) $item->product->roll_length, 3, '.', ''), '0'), '.') }} متر.</p>
+                @endif
                 @if(in_array($item->decision, ['returned', 'recounted']))<p class="ui-status-warning mt-2">أعاده المالك: {{ $item->owner_adjustment_reason }}</p>@endif
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
@@ -41,11 +59,6 @@
                     @endif
                 </label>
                 <div>
-                    @if($item->product?->is_splittable && (int) $item->product->items_per_unit > 0)
-                        <p class="ui-text-caption ui-text-soft">الطقم يحتوي على {{ (int) $item->product->items_per_unit }} حبة.</p>
-                    @elseif($item->product?->product_type === 'fractional' && (float) $item->product->roll_length > 0)
-                        <p class="ui-text-caption ui-text-soft">الرول يحتوي على {{ rtrim(rtrim(number_format((float) $item->product->roll_length, 3, '.', ''), '0'), '.') }} متر.</p>
-                    @endif
                     <div class="ui-label inline-flex items-center gap-2">الوحدة <x-ui.help title="اختيار وحدة العد" body="تظهر الوحدات المناسبة للمنتج فقط. إذا كان المنتج طقمًا واخترت الحبة، يحول النظام رصيد الأطقم إلى حبات عند المقارنة مع المحافظة على الكمية التي أدخلتها." /></div>
                     <select class="ui-input" name="items[{{ $item->id }}][unit_type]" aria-label="وحدة جرد {{ $item->product_name_snapshot }}" data-inventory-count-unit>
                         @foreach($unitOptions as $value => $label)
