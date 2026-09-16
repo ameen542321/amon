@@ -28,4 +28,26 @@ class TintAndInventoryCountUiContractTest extends TestCase
         self::assertStringContainsString("in_array(\$inventoryCount->status, ['draft', 'cancelled'], true)", $controller);
         self::assertStringContainsString('$this->ownerStore($store)', $controller);
     }
+
+    public function test_inventory_session_product_selection_is_limited_to_the_current_page(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/create.blade.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
+
+        self::assertStringContainsString('value="select_page">تحديد جميع منتجات هذه الصفحة', $view);
+        self::assertStringContainsString("Rule::in(['page', 'select_page'])", $controller);
+        self::assertStringContainsString("->whereIn('id', \$pageIds)", $controller);
+        self::assertStringNotContainsString("selection_action'] ?? 'page') === 'all'", $controller);
+    }
+
+    public function test_inventory_session_products_are_ordered_by_oldest_audit_after_never_audited_products(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/create.blade.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
+
+        self::assertStringContainsString('التي لم تُجرد من قبل أولًا، ثم المنتجات المجرودة من تاريخ الجرد الأقدم إلى الأحدث', $view);
+        self::assertStringContainsString("MAX(COALESCE(business_date, DATE(created_at)))", $controller);
+        self::assertStringContainsString("->orderByRaw('last_audit_date IS NOT NULL')", $controller);
+        self::assertStringContainsString("->orderBy('last_audit_date')", $controller);
+    }
 }
