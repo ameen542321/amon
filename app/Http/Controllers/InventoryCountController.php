@@ -43,9 +43,11 @@ class InventoryCountController extends Controller
         $search = trim((string) $request->query('q'));
         $baseProducts = Product::query()->where('store_id', $store->id)->where(fn ($q) => $q->where('usage_type', '!=', Product::USAGE_TYPE_OWNER_PURCHASE)->orWhereNull('usage_type'));
         $auditCutoff = now()->startOfDay()->subDays(30);
+        // نبقي أعمدة المنتج كاملة؛ لأن selectSub وحده يستبدل قائمة SELECT، ثم نحسب آخر جرد مع دعم السجلات القديمة بلا business_date.
         $products = $this->eligibleProductsQuery($store)
             ->when($search, fn ($q) => $q->where(fn ($x) => $x->where('name', 'like', "%{$search}%")->orWhere('description', 'like', "%{$search}%")))
             ->with('category')
+            ->select('products.*')
             ->selectSub(
                 InventoryLog::query()
                     ->selectRaw('MAX(COALESCE(business_date, DATE(created_at)))')
@@ -107,6 +109,7 @@ class InventoryCountController extends Controller
         $existing = collect(session($this->selectionKey($store), []));
         $pageIds = collect($data['page_product_ids'] ?? [])->map(fn ($id) => (int) $id);
         if (($data['selection_action'] ?? 'page') === 'select_page') {
+            // لا نعيد بناء التحديد من كامل المتجر؛ نضيف فقط المعرّفات المعروضة في الصفحة الحالية بعد التحقق من أهليتها.
             $ids = $this->eligibleProductsQuery($store)
                 ->whereIn('id', $pageIds)
                 ->pluck('id')
@@ -116,6 +119,7 @@ class InventoryCountController extends Controller
 
             return back()->with('success', 'تم تحديد جميع المنتجات الموجودة في هذه الصفحة فقط.');
         }
+        // عند الحفظ العادي نستبدل اختيارات الصفحة الحالية فقط، ونترك اختيارات الصفحات الأخرى محفوظة في الجلسة.
         $chosen = collect($data['selected_ids'] ?? [])->map(fn ($id) => (int) $id)->intersect($pageIds);
         $valid = $this->eligibleProductsQuery($store)->whereIn('id', $chosen)->pluck('id');
         session([$this->selectionKey($store) => $existing->diff($pageIds)->merge($valid)->unique()->values()->all()]);

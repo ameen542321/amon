@@ -34,6 +34,7 @@ class TintAndInventoryCountUiContractTest extends TestCase
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/create.blade.php');
         $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
 
+        // يحمي العقد من إعادة ربط الزر بالإجراء القديم الذي كان يحدد كامل نتائج المتجر.
         self::assertStringContainsString('value="select_page">تحديد جميع منتجات هذه الصفحة', $view);
         self::assertStringContainsString("Rule::in(['page', 'select_page'])", $controller);
         self::assertStringContainsString("->whereIn('id', \$pageIds)", $controller);
@@ -45,7 +46,9 @@ class TintAndInventoryCountUiContractTest extends TestCase
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/create.blade.php');
         $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
 
+        // يجب أن يضيف الاستعلام تاريخ الجرد المحسوب من دون إسقاط أعمدة المنتج اللازمة للبطاقات.
         self::assertStringContainsString('التي لم تُجرد من قبل أولًا، ثم المنتجات المجرودة من تاريخ الجرد الأقدم إلى الأحدث', $view);
+        self::assertStringContainsString("->select('products.*')", $controller);
         self::assertStringContainsString("MAX(COALESCE(business_date, DATE(created_at)))", $controller);
         self::assertStringContainsString("->orderByRaw('last_audit_date IS NOT NULL')", $controller);
         self::assertStringContainsString("->orderBy('last_audit_date')", $controller);

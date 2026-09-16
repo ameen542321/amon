@@ -40,6 +40,7 @@
                         'green' => 'ui-dot-success',
                     ][$audit['color']] ?? 'ui-surface-muted-bg';
                 @endphp
+                {{-- ترسل معرفات الصفحة الحالية للخادم حتى يبقى التحديد الجماعي محصورًا في المنتجات الظاهرة فقط. --}}
                 <input type="hidden" name="page_product_ids[]" value="{{ $product->id }}">
                 <label class="ui-card p-4 cursor-pointer">
                     <span class="flex items-start justify-between gap-3">
@@ -62,6 +63,7 @@
             @empty<div class="md:col-span-2 xl:col-span-3 ui-empty-state">لا توجد نتائج.</div>@endforelse
         </div>
         <div class="flex flex-wrap gap-2">
+            {{-- الإجراء الأول يحفظ المربعات المختارة، والثاني يضيف جميع منتجات الصفحة الحالية دون التأثير في الصفحات الأخرى. --}}
             <button class="ui-btn ui-btn-secondary" name="selection_action" value="page">حفظ اختيارات هذه الصفحة</button>
             <button class="ui-btn ui-btn-primary" name="selection_action" value="select_page">تحديد جميع منتجات هذه الصفحة</button>
         </div>
