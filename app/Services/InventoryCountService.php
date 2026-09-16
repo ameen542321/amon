@@ -34,6 +34,39 @@ class InventoryCountService
         });
     }
 
+    public function saveAccountantCounts(InventoryCountSession $session, array $items, string $businessDate): void
+    {
+        DB::transaction(function () use ($session, $items, $businessDate): void {
+            $lockedSession = InventoryCountSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($lockedSession->status, ['sent_to_accountant', 'counting', 'returned_to_accountant'], true)) {
+                throw ValidationException::withMessages(['session' => 'جلسة الجرد ليست متاحة للحفظ حاليًا.']);
+            }
+
+            $lockedItems = $lockedSession->items()->whereIn('id', array_keys($items))->lockForUpdate()->get()->keyBy('id');
+            if ($lockedItems->count() !== count($items)) {
+                throw ValidationException::withMessages(['items' => 'بعض منتجات الجلسة لم تعد متاحة للحفظ.']);
+            }
+            $allowedDecisions = $lockedSession->status === 'returned_to_accountant' ? ['returned', 'recounted'] : ['pending'];
+            if ($lockedItems->contains(fn ($item) => ! in_array($item->decision, $allowedDecisions, true))) {
+                throw ValidationException::withMessages(['items' => 'تغيرت حالة بعض المنتجات. حدّث الصفحة قبل الحفظ.']);
+            }
+
+            // تحفظ كل الكميات واللقطات في معاملة واحدة؛ إما ينجح حفظ الصفحة كاملة أو لا يحفظ منها شيء.
+            foreach ($items as $itemId => $data) {
+                $lockedItem = $lockedItems->get((int) $itemId);
+                $product = Product::withTrashed()->whereKey($lockedItem->product_id)->lockForUpdate()->firstOrFail();
+                $capturedAt = now();
+                $lockedItem->update($data + [
+                    'count_business_date' => $businessDate,
+                    'accountant_updated_at' => $capturedAt,
+                    'system_quantity_snapshot' => $this->systemQuantityInUnit($product, $data['unit_type']),
+                    'system_snapshot_at' => $capturedAt,
+                    'decision' => in_array($lockedItem->decision, ['returned', 'recounted'], true) ? 'recounted' : 'pending',
+                ]);
+            }
+        });
+    }
+
     public function submitByAccountant(InventoryCountSession $session): InventoryCountSession
     {
         return DB::transaction(function () use ($session): InventoryCountSession {
