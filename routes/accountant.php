@@ -74,6 +74,7 @@ Route::middleware(['accountant.unified'])->group(function () {
         Route::prefix('inventory-counts')->name('inventory-counts.')->group(function () {
             Route::get('/', [InventoryCountController::class, 'index'])->name('index');
             Route::get('/{inventoryCount}', [InventoryCountController::class, 'show'])->name('show');
+            Route::put('/{inventoryCount}/items', [InventoryCountController::class, 'bulkUpdate'])->name('items.bulk-update');
             Route::put('/{inventoryCount}/items/{item}', [InventoryCountController::class, 'update'])->name('items.update');
             Route::post('/{inventoryCount}/submit', [InventoryCountController::class, 'submit'])->name('submit');
         });

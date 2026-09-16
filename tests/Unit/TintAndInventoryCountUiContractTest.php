@@ -53,4 +53,24 @@ class TintAndInventoryCountUiContractTest extends TestCase
         self::assertStringContainsString("->orderByRaw('last_audit_date IS NOT NULL')", $controller);
         self::assertStringContainsString("->orderBy('last_audit_date')", $controller);
     }
+
+    public function test_accountant_can_save_inventory_quantities_together_with_unit_guidance(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/accountant/show.blade.php');
+        $routes = file_get_contents(dirname(__DIR__, 2).'/routes/accountant.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Accountant/InventoryCountController.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/InventoryCountService.php');
+        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/accountant/inventory-count.js');
+
+        self::assertStringContainsString("inventory-counts.items.bulk-update", $view);
+        self::assertStringContainsString('حفظ جميع الكميات', $view);
+        self::assertStringContainsString('الطقم يحتوي على', $view);
+        self::assertStringContainsString('الرول يحتوي على', $view);
+        self::assertStringContainsString('منتج مكسور، تالف، رجيع، استهلاك، الاسم بحاجة للتغيير', $view);
+        self::assertStringContainsString("->name('items.bulk-update')", $routes);
+        self::assertStringContainsString('function bulkUpdate(', $controller);
+        self::assertStringContainsString('function saveAccountantCounts(', $service);
+        self::assertStringContainsString('إما ينجح حفظ الصفحة كاملة أو لا يحفظ منها شيء', $service);
+        self::assertStringContainsString("تعادل: \${parts.join(' و')}", $script);
+    }
 }
