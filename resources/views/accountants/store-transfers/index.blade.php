@@ -40,7 +40,7 @@
                     <div>
                         <p class="ui-title font-black">طلب #{{ $transfer->id }}</p>
                         <p class="ui-text-soft text-sm mt-1">من: {{ $transfer->senderStore?->name }} — الحالة: {{ ['pending' => 'معلق', 'completed' => 'مكتمل', 'rejected' => 'مرفوض', 'cancelled' => 'ملغي'][$transfer->status] ?? $transfer->status }}</p>
-                        <p class="ui-text-muted ui-text-caption mt-1">تاريخ الاستلام: {{ $transfer->created_at?->format('Y-m-d') }}</p>
+                        <p class="ui-text-soft ui-text-caption mt-1">يوم عمل الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
                         @if($transfer->notes)
                             <p class="ui-status-warning ui-text-caption mt-2 ui-status-warning-bg border ui-status-warning-border rounded-lg px-3 py-2">ملاحظة الطلب: {{ $transfer->notes }}</p>
                         @endif
@@ -48,7 +48,7 @@
                     @if($transfer->status === 'pending')
                         <form method="POST" action="{{ route('accountant.transfers.reject', $transfer->id) }}" data-ui-confirm="سيتم رفض النقل وإرجاع الكمية للمرسل." data-ui-confirm-title="تأكيد رفض النقل" class="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                             @csrf
-                            <input type="date" name="business_date" value="{{ $currentBusinessDate }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-3 py-2">
+                            <span class="ui-inline-frame ui-text-caption">يوم عمل الرفض: {{ $currentBusinessDate }}</span>
                             <input name="reason" required placeholder="سبب الرفض" class="ui-input px-3 py-2 text-sm">
                             <button class="ui-btn ui-btn-danger w-full px-4 py-2 text-sm sm:w-auto">رفض</button>
                         </form>
@@ -59,8 +59,7 @@
                     <form method="POST" action="{{ route('accountant.transfers.approve', $transfer->id) }}" class="space-y-4">
                         @csrf
                         <div>
-                            <label class="block ui-text-soft font-bold mb-2">اختر التاريخ</label>
-                            <input type="date" name="business_date" value="{{ $currentBusinessDate }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-4 py-3">
+                            <div class="ui-frame-row"><span class="ui-text-soft font-bold">تاريخ الاستلام والإضافة للمخزون</span><strong class="ui-title">{{ $currentBusinessDate }}</strong></div>
                         </div>
                 @endif
                 <div class="grid grid-cols-1 gap-4">
@@ -99,11 +98,12 @@
                 <div>
                     <p class="ui-title font-bold">طلب #{{ $transfer->id }} إلى {{ $transfer->receiverStore?->name }}</p>
                     <p class="ui-text-soft text-sm">الحالة: {{ ['pending' => 'معلق', 'completed' => 'مكتمل', 'rejected' => 'مرفوض', 'cancelled' => 'ملغي'][$transfer->status] ?? $transfer->status }}</p>
+                    <p class="ui-text-soft ui-text-caption">يوم عمل الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
                 </div>
                 @if($transfer->status === 'pending')
                     <form method="POST" action="{{ route('accountant.transfers.cancel', $transfer->id) }}" data-ui-confirm="سيتم إلغاء النقل وإرجاع الكمية لمتجرك." data-ui-confirm-title="تأكيد إلغاء النقل">
                     @csrf
-                    <input type="date" name="business_date" value="{{ $currentBusinessDate }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-3 py-2">
+                    <span class="ui-inline-frame ui-text-caption">يوم عمل الإلغاء: {{ $currentBusinessDate }}</span>
                         <button class="ui-btn ui-btn-danger px-4 py-2">إلغاء</button>
                     </form>
                 @endif
@@ -120,6 +120,7 @@
             <div class="ui-card p-5">
                 <p class="ui-title font-bold">طلب #{{ $transfer->id }} إلى {{ $transfer->receiverStore?->name }}</p>
                 <p class="ui-status-success ui-text-caption mt-1">مكتمل</p>
+                <p class="ui-text-soft ui-text-caption mt-1">الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }} — الاستلام والإضافة: {{ $transfer->action_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
                 <div class="mt-3 flex flex-wrap gap-2">
                     @foreach($transfer->items as $item)
                         <span class="ui-card-muted px-3 py-2 ui-text-caption">{{ $item->product_name_snapshot ?? $item->senderProduct?->name ?? 'منتج غير متاح' }} — {{ $transferQuantity($item) }}</span>

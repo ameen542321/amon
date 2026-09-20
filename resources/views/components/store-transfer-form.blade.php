@@ -23,7 +23,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-2xl font-black ui-title">{{ $title }}</h1>
-                    <x-ui.help variant="warning" title="كيف يعمل النقل؟" body="اختر تاريخًا من الشهر الحالي. عند إرسال الطلب تنقص الكمية من المتجر المرسل وتظهر في سجل إدارة المخزون، وعند قبول الطلب تضاف الكمية إلى المتجر المستلم بالتاريخ الذي يختاره المستلم." />
+                    <x-ui.help variant="warning" title="كيف يعمل النقل؟" body="عند إرسال الطلب تنقص الكمية من المتجر المرسل في يوم عمله المفتوح، وعند قبول الطلب تضاف إلى المتجر المستلم في يوم عمله المفتوح." />
                 </div>
             </div>
         </div>
@@ -40,10 +40,10 @@
 
     <form method="POST" action="{{ $action }}" class="ui-card p-4 sm:p-6 space-y-5">
         @csrf
-        <div>
-            <label class="block ui-text-soft font-bold mb-2">اختر التاريخ</label>
-            <input type="date" name="business_date" value="{{ old('business_date', $currentBusinessDate) }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-4 py-3">
-            <p class="ui-text-caption ui-text-muted mt-2">متاح اختيار تاريخ من الشهر الحالي فقط.</p>
+        <div class="ui-frame-row">
+            <span class="ui-text-soft font-bold">يوم عمل الإرسال</span>
+            <strong class="ui-title">{{ $currentBusinessDate }}</strong>
+            <span class="ui-text-caption ui-text-muted">يحدده النظام من يوم العمل المفتوح للمتجر المرسل.</span>
         </div>
         <div>
             <label class="block ui-text-soft font-bold mb-2">المتجر المستلم</label>

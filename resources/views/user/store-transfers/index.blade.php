@@ -46,7 +46,10 @@
                             <span class="ui-badge ui-badge-info">{{ (int) $transfer->sender_store_id === (int) $store->id ? 'صادر من هذا المتجر' : 'وارد إلى هذا المتجر' }}</span>
                         </div>
                         <p class="ui-text-soft text-sm mt-2">من: <span class="ui-title">{{ $transfer->senderStore?->name }}</span> ← إلى: <span class="ui-title">{{ $transfer->receiverStore?->name }}</span></p>
-                        <p class="ui-text-muted ui-text-caption mt-1">منذ {{ $transfer->created_at?->locale('ar')?->diffForHumans(null, true) }}</p>
+                        <p class="ui-text-soft ui-text-caption mt-1">يوم عمل الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
+                        @if($transfer->action_business_date)
+                            <p class="ui-text-soft ui-text-caption mt-1">يوم عمل الإجراء: {{ $transfer->action_business_date->format('Y-m-d') }}</p>
+                        @endif
                         @if($transfer->notes)
                             <p class="ui-status-warning ui-text-caption mt-2 ui-status-warning-bg border ui-border rounded-lg px-3 py-2">ملاحظة الطلب: {{ $transfer->notes }}</p>
                         @endif
@@ -56,13 +59,13 @@
                         @if((int) $transfer->sender_store_id === (int) $store->id)
                             <form method="POST" action="{{ route('user.stores.transfers.cancel', [$store->id, $transfer->id]) }}" data-ui-confirm="سيتم إلغاء الطلب وإرجاع الكمية للمتجر المرسل." data-ui-confirm-title="تأكيد إلغاء طلب النقل">
                                 @csrf
-                                <input type="date" name="business_date" value="{{ $currentBusinessDate }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-3 py-2">
+                                <span class="ui-inline-frame ui-text-caption">يوم عمل الإلغاء: {{ $currentBusinessDate }}</span>
                                 <button class="ui-btn ui-btn-danger w-full px-4 py-2 text-sm">إلغاء</button>
                             </form>
                         @else
                             <form method="POST" action="{{ route('user.stores.transfers.reject', [$store->id, $transfer->id]) }}" data-ui-confirm="سيتم رفض الطلب وإرجاع الكمية للمرسل." data-ui-confirm-title="تأكيد رفض طلب النقل" class="grid grid-cols-1 gap-2 sm:flex">
                                 @csrf
-                                <input type="date" name="business_date" value="{{ $currentBusinessDate }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-3 py-2">
+                                <span class="ui-inline-frame ui-text-caption">يوم عمل الرفض: {{ $currentBusinessDate }}</span>
                                 <input name="reason" required placeholder="سبب الرفض" class="ui-input rounded-lg px-3 py-2 text-sm">
                                 <button class="ui-btn ui-btn-danger w-full px-4 py-2 text-sm sm:w-auto">رفض</button>
                             </form>
@@ -76,8 +79,7 @@
                     <form method="POST" action="{{ route('user.stores.transfers.owner-approve', [$store->id, $transfer->id]) }}" class="space-y-4" data-transfer-approval-form>
                         @csrf
                         <div class="ui-card-muted p-4 space-y-2">
-                            <label class="block ui-text-soft font-bold" for="transfer-business-date-{{ $transfer->id }}">تاريخ استلام جميع البنود</label>
-                            <input id="transfer-business-date-{{ $transfer->id }}" type="date" name="business_date" value="{{ $currentBusinessDate }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}" required class="ui-input px-4 py-3">
+                            <div class="ui-frame-row"><span class="ui-text-soft font-bold">تاريخ استلام جميع البنود وإضافتها للمخزون</span><strong class="ui-title">{{ $currentBusinessDate }}</strong></div>
                             <p class="ui-text-soft ui-text-caption">اختر منتجًا مقابلًا لكل بند، ثم اعتمد الطلب كاملًا مرة واحدة.</p>
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
