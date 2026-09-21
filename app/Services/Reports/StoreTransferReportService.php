@@ -54,6 +54,8 @@ class StoreTransferReportService
         ];
 
         $ordered = $query
+            // ترتيب التقرير ثابت: الصادر أولًا، ثم الوارد، ثم المرفوض بصرف النظر عن اتجاهه.
+            ->orderByRaw("CASE WHEN status = 'rejected' THEN 3 WHEN sender_store_id = ? THEN 1 ELSE 2 END ASC", [$store->id])
             ->orderByRaw('CASE WHEN sender_store_id = ? THEN request_business_date ELSE COALESCE(action_business_date, request_business_date) END DESC', [$store->id])
             ->orderByDesc('id');
         $transfers = $paginate

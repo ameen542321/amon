@@ -23,6 +23,7 @@ class StoreTransferReportContractTest extends TestCase
         self::assertStringContainsString("'outgoing'", $service);
         self::assertStringContainsString("'incoming'", $service);
         self::assertStringContainsString("'rejected'", $service);
+        self::assertStringContainsString("CASE WHEN status = 'rejected' THEN 3 WHEN sender_store_id = ? THEN 1 ELSE 2 END ASC", $service);
         self::assertStringContainsString('مرسل إلى', $view);
         self::assertStringContainsString('وارد من', $view);
         self::assertStringContainsString('سبب الرفض', $view);
@@ -30,5 +31,11 @@ class StoreTransferReportContractTest extends TestCase
         self::assertStringContainsString('$transfer->items', $view);
         self::assertStringContainsString('تحميل PDF', $view);
         self::assertFileExists(dirname(__DIR__, 2).'/resources/views/pdf/store-transfer-report.blade.php');
+        $pdf = file_get_contents(dirname(__DIR__, 2).'/resources/views/pdf/store-transfer-report.blade.php');
+        self::assertStringContainsString('class="brand">CARLED', $pdf);
+        self::assertStringContainsString('document-alert-title', $pdf);
+        self::assertStringContainsString('document-help-title', $pdf);
+        self::assertStringContainsString('أساس الفترة: يوم العمل', $pdf);
+        self::assertStringContainsString('الصادر أولًا، ثم النقل الوارد، ثم العمليات المرفوضة', $pdf);
     }
 }
