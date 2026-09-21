@@ -29,8 +29,8 @@ class StoreTransferBusinessDateContractTest extends TestCase
         ));
 
         self::assertStringNotContainsString('name="business_date"', $views);
-        self::assertStringContainsString('يوم عمل الإرسال', $views);
-        self::assertStringContainsString('تاريخ الاستلام والإضافة للمخزون', $views);
+        self::assertStringContainsString('تم الإرسال في', $views);
+        self::assertStringContainsString('سيتم الاستلام في', $views);
         self::assertStringContainsString('request_business_date', $views);
         self::assertStringContainsString('action_business_date', $views);
     }
@@ -74,7 +74,9 @@ class StoreTransferBusinessDateContractTest extends TestCase
         self::assertStringContainsString('بنود طلب النقل', $form);
         self::assertStringContainsString('الملاحظات والإرسال', $form);
         self::assertStringContainsString('وارد يحتاج إجراء', $accountantView);
-        self::assertStringContainsString('جميع التواريخ أدناه هي أيام عمل المحاسبة', $ownerView);
+        self::assertStringNotContainsString('جميع التواريخ أدناه هي أيام عمل المحاسبة', $ownerView);
+        self::assertStringNotContainsString('إرسال وخصم من المصدر', $ownerView);
+        self::assertStringContainsString('this.items.unshift(this.makeItem())', file_get_contents(dirname(__DIR__, 2).'/resources/js/features/store-transfers/transfer-system.js'));
         self::assertStringContainsString('ui-card', $views);
         self::assertStringNotContainsString('<style', $views);
         self::assertStringNotContainsString('style="', $views);

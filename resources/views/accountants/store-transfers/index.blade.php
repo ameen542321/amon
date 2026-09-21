@@ -14,7 +14,7 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div class="flex min-w-0 items-center gap-3">
                 <span class="ui-status-info-bg ui-status-info flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><i class="fa-solid fa-right-left" aria-hidden="true"></i></span>
-                <div>
+                <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                         <h1 class="text-2xl font-black ui-title">النقل المخزني</h1>
                         <x-ui.help title="النقل المخزني" body="ابدأ من الوارد الذي يحتاج إجراء، وطابق كل منتج قبل القبول، ثم تابع الطلبات الصادرة." />
@@ -51,7 +51,7 @@
                     <div>
                         <p class="ui-title font-black">طلب #{{ $transfer->id }}</p>
                         <p class="ui-text-soft text-sm mt-1">من: {{ $transfer->senderStore?->name }} — الحالة: {{ ['pending' => 'معلق', 'completed' => 'مكتمل', 'rejected' => 'مرفوض', 'cancelled' => 'ملغي'][$transfer->status] ?? $transfer->status }}</p>
-                        <p class="ui-text-soft ui-text-caption mt-1">يوم عمل الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
+                        <p class="ui-text-soft ui-text-caption mt-1">تم الإرسال في: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
                         @if($transfer->notes)
                             <p class="ui-status-warning ui-text-caption mt-2 ui-status-warning-bg border ui-status-warning-border rounded-lg px-3 py-2">ملاحظة الطلب: {{ $transfer->notes }}</p>
                         @endif
@@ -62,10 +62,10 @@
                     <form method="POST" action="{{ route('accountant.transfers.approve', $transfer->id) }}" class="space-y-4">
                         @csrf
                         <div>
-                            <div class="ui-frame-row"><span class="ui-text-soft font-bold">تاريخ الاستلام والإضافة للمخزون</span><strong class="ui-title">{{ $currentBusinessDate }}</strong></div>
+                            <div class="ui-frame-row"><span class="ui-text-soft font-bold">سيتم الاستلام في</span><strong class="ui-title">{{ $currentBusinessDate }}</strong></div>
                         </div>
                 @endif
-                <div class="grid grid-cols-1 gap-4">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     @foreach($transfer->items as $item)
                         <div class="ui-card-muted p-4 space-y-3">
                             <p class="ui-title font-bold">{{ $item->product_name_snapshot ?? $item->senderProduct?->name ?? 'منتج غير متاح' }}</p>
@@ -103,10 +103,15 @@
         <div class="flex items-center justify-between gap-3"><div><h2 class="text-xl font-black ui-title">الصادر قيد الانتظار</h2><p class="ui-text-soft ui-text-caption mt-1">طلبات خُصمت من المخزون وتنتظر قرار المتجر المستلم.</p></div><span class="ui-badge ui-badge-info">{{ $outgoingPending->total() }} طلب</span></div>
         @forelse($outgoingPending as $transfer)
             <article class="ui-card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
+                <div class="min-w-0 flex-1">
                     <p class="ui-title font-bold">طلب #{{ $transfer->id }} إلى {{ $transfer->receiverStore?->name }}</p>
                     <p class="ui-text-soft text-sm">الحالة: {{ ['pending' => 'معلق', 'completed' => 'مكتمل', 'rejected' => 'مرفوض', 'cancelled' => 'ملغي'][$transfer->status] ?? $transfer->status }}</p>
-                    <p class="ui-text-soft ui-text-caption">يوم عمل الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
+                    <p class="ui-text-soft ui-text-caption">تم الإرسال في: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
+                    <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        @foreach($transfer->items as $item)
+                            <div class="ui-card-muted p-3"><strong class="ui-title block">{{ $item->product_name_snapshot ?? $item->senderProduct?->name ?? 'منتج غير متاح' }}</strong><span class="ui-text-soft ui-text-caption mt-1 block">{{ $transferQuantity($item) }}</span></div>
+                        @endforeach
+                    </div>
                 </div>
                 @if($transfer->status === 'pending')
                     <form method="POST" action="{{ route('accountant.transfers.cancel', $transfer->id) }}" data-ui-confirm="سيتم إلغاء النقل وإرجاع الكمية لمتجرك." data-ui-confirm-title="تأكيد إلغاء النقل">
@@ -128,10 +133,10 @@
             <article class="ui-card p-5">
                 <p class="ui-title font-bold">طلب #{{ $transfer->id }} إلى {{ $transfer->receiverStore?->name }}</p>
                 <p class="ui-status-success ui-text-caption mt-1">مكتمل</p>
-                <p class="ui-text-soft ui-text-caption mt-1">الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }} — الاستلام والإضافة: {{ $transfer->action_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
-                <div class="mt-3 flex flex-wrap gap-2">
+                <p class="ui-text-soft ui-text-caption mt-1">تم الإرسال في: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }} — تم الاستلام في: {{ $transfer->action_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
+                <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach($transfer->items as $item)
-                        <span class="ui-card-muted px-3 py-2 ui-text-caption">{{ $item->product_name_snapshot ?? $item->senderProduct?->name ?? 'منتج غير متاح' }} — {{ $transferQuantity($item) }}</span>
+                        <div class="ui-card-muted p-3"><strong class="ui-title block">{{ $item->product_name_snapshot ?? $item->senderProduct?->name ?? 'منتج غير متاح' }}</strong><span class="ui-text-soft ui-text-caption mt-1 block">{{ $transferQuantity($item) }}</span></div>
                     @endforeach
                 </div>
             </article>

@@ -23,7 +23,8 @@ document.addEventListener('alpine:init', () => {
             };
         },
         addItem() {
-            this.items.push(this.makeItem());
+            // يبقى أحدث بند في أعلى القائمة حتى لا يضطر المستخدم للتمرير عند كثرة المنتجات.
+            this.items.unshift(this.makeItem());
         },
         removeItem(index) {
             if (this.items.length > 1) this.items.splice(index, 1);

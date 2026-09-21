@@ -14,20 +14,12 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div class="flex min-w-0 items-center gap-3">
                 <span class="ui-status-info-bg ui-status-info flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><i class="fa-solid fa-right-left" aria-hidden="true"></i></span>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-2xl font-black ui-title">النقل المخزني بين المتاجر</h1>
-                        <x-ui.help title="إدارة النقل المخزني" body="أنشئ طلبات النقل، تابع الصادر، وطابق الوارد قبل إضافته إلى مخزون المتجر." />
-                    </div>
-                    <p class="ui-text-soft mt-1">متجر {{ $store->name }} — جميع التواريخ أدناه هي أيام عمل المحاسبة.</p>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-2xl font-black ui-title">النقل المخزني بين المتاجر</h1>
+                    <x-ui.help title="إدارة النقل المخزني" body="أنشئ طلبات النقل، تابع الصادر، وطابق الوارد قبل إضافته إلى مخزون المتجر." />
                 </div>
             </div>
             <a href="{{ route('user.stores.transfers.create', $store->id) }}" class="ui-btn ui-btn-primary w-full md:w-auto"><i class="fa-solid fa-plus" aria-hidden="true"></i> طلب نقل جديد</a>
-        </div>
-        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div class="ui-frame-row"><span class="ui-badge ui-badge-info">1</span><span class="ui-text-soft">إرسال وخصم من المصدر</span></div>
-            <div class="ui-frame-row"><span class="ui-badge ui-badge-warning">2</span><span class="ui-text-soft">مطابقة المنتج الوارد</span></div>
-            <div class="ui-frame-row"><span class="ui-badge ui-badge-success">3</span><span class="ui-text-soft">قبول وإضافة للمستلم</span></div>
         </div>
     </header>
 
@@ -59,9 +51,9 @@
                             <span class="ui-badge ui-badge-info">{{ (int) $transfer->sender_store_id === (int) $store->id ? 'صادر من هذا المتجر' : 'وارد إلى هذا المتجر' }}</span>
                         </div>
                         <p class="ui-text-soft text-sm mt-2">من: <span class="ui-title">{{ $transfer->senderStore?->name }}</span> ← إلى: <span class="ui-title">{{ $transfer->receiverStore?->name }}</span></p>
-                        <p class="ui-text-soft ui-text-caption mt-1">يوم عمل الإرسال: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
-                        @if($transfer->action_business_date)
-                            <p class="ui-text-soft ui-text-caption mt-1">يوم عمل الإجراء: {{ $transfer->action_business_date->format('Y-m-d') }}</p>
+                        <p class="ui-text-soft ui-text-caption mt-1">تم الإرسال في: {{ $transfer->request_business_date?->format('Y-m-d') ?: 'غير مسجل' }}</p>
+                        @if($transfer->status === 'completed' && $transfer->action_business_date)
+                            <p class="ui-text-soft ui-text-caption mt-1">تم الاستلام في: {{ $transfer->action_business_date->format('Y-m-d') }}</p>
                         @endif
                         @if($transfer->notes)
                             <p class="ui-status-warning ui-text-caption mt-2 ui-status-warning-bg border ui-border rounded-lg px-3 py-2">ملاحظة الطلب: {{ $transfer->notes }}</p>

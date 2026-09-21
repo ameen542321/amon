@@ -25,7 +25,6 @@
                     <span class="ui-status-info-bg ui-status-info flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><i class="fa-solid fa-right-left" aria-hidden="true"></i></span>
                     <div>
                         <h1 class="ui-title text-2xl font-black">{{ $title }}</h1>
-                        <p class="ui-text-soft mt-1">من {{ $store->name }} إلى متجر آخر تابع للمالك نفسه</p>
                     </div>
                     <x-ui.help variant="warning" title="كيف يعمل النقل؟" body="يخصم النظام الكمية من المتجر المرسل عند إرسال الطلب في يوم عمله المفتوح، ثم يضيفها إلى المتجر المستلم بعد مطابقة المنتجات وقبول الطلب في يوم عمل المتجر المستلم." />
                 </div>
@@ -57,7 +56,7 @@
             </div>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div class="ui-card-muted p-4">
-                    <span class="ui-text-soft font-bold">يوم عمل الإرسال</span>
+                    <span class="ui-text-soft font-bold">سيتم الإرسال في</span>
                     <strong class="ui-title block text-xl mt-2">{{ $currentBusinessDate }}</strong>
                     <span class="ui-text-caption ui-text-muted block mt-1">اليوم المفتوح للمتجر المرسل</span>
                 </div>
@@ -82,7 +81,7 @@
                 <button type="button" class="ui-btn ui-btn-info" @click="addItem()"><i class="fa-solid fa-plus" aria-hidden="true"></i> إضافة منتج</button>
             </div>
 
-            <div class="space-y-3">
+            <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <template x-for="(item, index) in items" :key="item.key">
                     <div class="ui-card-muted p-4 space-y-4">
                         <div class="flex items-center justify-between gap-3">
