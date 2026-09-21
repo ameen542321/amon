@@ -62,4 +62,21 @@ class StoreTransferBusinessDateContractTest extends TestCase
         self::assertStringContainsString('data-ui-show="reject-transfer-', $accountantView);
         self::assertStringContainsString('data-ui-show="reject-transfer-', $ownerView);
     }
+
+    public function test_transfer_pages_use_the_shared_visual_workflow_without_inline_css(): void
+    {
+        $form = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/store-transfer-form.blade.php');
+        $accountantView = file_get_contents(dirname(__DIR__, 2).'/resources/views/accountants/store-transfers/index.blade.php');
+        $ownerView = file_get_contents(dirname(__DIR__, 2).'/resources/views/user/store-transfers/index.blade.php');
+        $views = $form."\n".$accountantView."\n".$ownerView;
+
+        self::assertStringContainsString('بيانات النقل', $form);
+        self::assertStringContainsString('بنود طلب النقل', $form);
+        self::assertStringContainsString('الملاحظات والإرسال', $form);
+        self::assertStringContainsString('وارد يحتاج إجراء', $accountantView);
+        self::assertStringContainsString('جميع التواريخ أدناه هي أيام عمل المحاسبة', $ownerView);
+        self::assertStringContainsString('ui-card', $views);
+        self::assertStringNotContainsString('<style', $views);
+        self::assertStringNotContainsString('style="', $views);
+    }
 }

@@ -10,21 +10,34 @@
     );
 @endphp
 <div class="max-w-7xl mx-auto space-y-6 px-4 py-6 sm:px-6" dir="rtl" data-store-transfer-system>
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div class="flex min-w-0 items-center justify-center gap-2 text-center md:justify-start md:text-right">
-            <h1 class="text-2xl font-black ui-title">النقل المخزني بين المتاجر</h1>
-            <x-ui.help title="إدارة النقل المخزني" body="إدارة طلبات النقل الصادرة والواردة بين متاجرك." />
+    <header class="ui-card p-5 sm:p-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div class="flex min-w-0 items-center gap-3">
+                <span class="ui-status-info-bg ui-status-info flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><i class="fa-solid fa-right-left" aria-hidden="true"></i></span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-2xl font-black ui-title">النقل المخزني بين المتاجر</h1>
+                        <x-ui.help title="إدارة النقل المخزني" body="أنشئ طلبات النقل، تابع الصادر، وطابق الوارد قبل إضافته إلى مخزون المتجر." />
+                    </div>
+                    <p class="ui-text-soft mt-1">متجر {{ $store->name }} — جميع التواريخ أدناه هي أيام عمل المحاسبة.</p>
+                </div>
+            </div>
+            <a href="{{ route('user.stores.transfers.create', $store->id) }}" class="ui-btn ui-btn-primary w-full md:w-auto"><i class="fa-solid fa-plus" aria-hidden="true"></i> طلب نقل جديد</a>
         </div>
-        <a href="{{ route('user.stores.transfers.create', $store->id) }}" class="ui-btn ui-btn-primary ui-title inline-flex w-full items-center justify-center rounded-xl px-5 py-3 font-bold md:w-auto">+ طلب نقل جديد</a>
-    </div>
+        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="ui-frame-row"><span class="ui-badge ui-badge-info">1</span><span class="ui-text-soft">إرسال وخصم من المصدر</span></div>
+            <div class="ui-frame-row"><span class="ui-badge ui-badge-warning">2</span><span class="ui-text-soft">مطابقة المنتج الوارد</span></div>
+            <div class="ui-frame-row"><span class="ui-badge ui-badge-success">3</span><span class="ui-text-soft">قبول وإضافة للمستلم</span></div>
+        </div>
+    </header>
 
     @php($statusLabels = ['pending' => 'معلق', 'completed' => 'مكتمل', 'rejected' => 'مرفوض', 'cancelled' => 'ملغي'])
-    <div class="grid grid-cols-2 gap-2 rounded-2xl border ui-border ui-surface-strong-bg p-3 sm:flex sm:flex-wrap">
+    <nav class="ui-card grid grid-cols-2 gap-2 p-3 sm:flex sm:flex-wrap" aria-label="تصفية طلبات النقل">
         <a href="{{ route('user.stores.transfers.index', $store->id) }}" class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-bold {{ empty($status) ? 'ui-btn ui-btn-primary ui-title' : 'ui-surface-muted-bg ui-text-soft ui-hover-info-bg' }}">الكل</a>
         @foreach($statusLabels as $value => $label)
             <a href="{{ route('user.stores.transfers.index', ['store' => $store->id, 'status' => $value]) }}" class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-bold {{ ($status ?? null) === $value ? 'ui-btn ui-btn-primary ui-title' : 'ui-surface-muted-bg ui-text-soft ui-hover-info-bg' }}">{{ $label }}</a>
         @endforeach
-    </div>
+    </nav>
 
     @if(session('success'))
         <div class="rounded-xl border ui-border ui-status-success-bg p-4 ui-status-success">{{ session('success') }}</div>
@@ -35,7 +48,7 @@
 
     <div class="space-y-4">
         @forelse($transfers as $transfer)
-            <div class="ui-card p-5 space-y-4">
+            <article class="ui-card p-5 space-y-4">
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
@@ -108,7 +121,7 @@
                         @endforeach
                     </div>
                 @endif
-            </div>
+            </article>
         @empty
             <div class="ui-card p-10 text-center ui-text-muted">لا توجد طلبات نقل حتى الآن.</div>
         @endforelse
