@@ -35,7 +35,18 @@ class StoreTransferReportContractTest extends TestCase
         self::assertStringContainsString('class="brand">CARLED', $pdf);
         self::assertStringContainsString('document-alert-title', $pdf);
         self::assertStringContainsString('document-help-title', $pdf);
-        self::assertStringContainsString('أساس الفترة: يوم العمل', $pdf);
         self::assertStringContainsString('الصادر أولًا، ثم النقل الوارد، ثم العمليات المرفوضة', $pdf);
+        self::assertStringNotContainsString('نوع الوثيقة: تقرير نقل مخزني', $pdf);
+        self::assertStringContainsString("'title' => 'الطلبات الصادرة'", $pdf);
+        self::assertStringContainsString("'title' => 'الطلبات الواردة'", $pdf);
+        self::assertStringContainsString("'title' => 'الطلبات المرفوضة'", $pdf);
+        self::assertStringContainsString('تاريخ الإرسال:', $pdf);
+        self::assertStringContainsString('تاريخ الاستلام:', $pdf);
+        self::assertStringContainsString('<th>الملاحظات</th><th>الحالة</th>', $pdf);
+        self::assertStringContainsString("\$summary['outgoing_cost']", $pdf);
+        self::assertStringContainsString("\$summary['incoming_cost']", $pdf);
+        self::assertStringContainsString('بسعر التكلفة المحفوظ وقت إنشاء طلب النقل', $pdf);
+        self::assertStringContainsString("'outgoing_cost'", $service);
+        self::assertStringContainsString("'incoming_cost'", $service);
     }
 }

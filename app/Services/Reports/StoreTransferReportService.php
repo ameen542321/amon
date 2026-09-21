@@ -53,6 +53,23 @@ class StoreTransferReportService
             'rejected' => (clone $query)->where('status', 'rejected')->count(),
         ];
 
+        // تعتمد القيمة على الكمية المخزنية الموحّدة وسعر التكلفة المحفوظ مع بند النقل.
+        // لا تدخل الطلبات المرفوضة أو الملغاة لأنها أعيدت إلى مخزون المتجر المرسل.
+        $costTransfers = (clone $query)
+            ->whereNotIn('status', ['rejected', 'cancelled'])
+            ->with('items:id,store_transfer_id,normalized_quantity,cost_price')
+            ->get();
+        $summary['outgoing_cost'] = round((float) $costTransfers
+            ->where('sender_store_id', $store->id)
+            ->sum(fn (StoreTransfer $transfer) => $transfer->items->sum(
+                fn ($item) => (float) $item->normalized_quantity * (float) $item->cost_price
+            )), 2);
+        $summary['incoming_cost'] = round((float) $costTransfers
+            ->where('receiver_store_id', $store->id)
+            ->sum(fn (StoreTransfer $transfer) => $transfer->items->sum(
+                fn ($item) => (float) $item->normalized_quantity * (float) $item->cost_price
+            )), 2);
+
         $ordered = $query
             // ترتيب التقرير ثابت: الصادر أولًا، ثم الوارد، ثم المرفوض بصرف النظر عن اتجاهه.
             ->orderByRaw("CASE WHEN status = 'rejected' THEN 3 WHEN sender_store_id = ? THEN 1 ELSE 2 END ASC", [$store->id])
