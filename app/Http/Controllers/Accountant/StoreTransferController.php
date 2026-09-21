@@ -46,7 +46,7 @@ class StoreTransferController extends Controller
         $receiverProducts = Product::where('store_id', $storeId)
             ->sellable()
             ->orderBy('name')
-            ->get(['id', 'name', 'quantity', 'barcode', 'category_id']);
+            ->get(['id', 'name', 'quantity', 'barcode', 'category_id', 'product_type', 'is_splittable', 'items_per_unit', 'roll_length']);
 
         $incoming->getCollection()->each(function (StoreTransfer $transfer) use ($receiverProducts) {
             $transfer->items->each(function ($item) use ($receiverProducts) {

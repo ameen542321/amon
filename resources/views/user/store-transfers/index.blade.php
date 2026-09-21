@@ -54,22 +54,13 @@
                             <p class="ui-status-warning ui-text-caption mt-2 ui-status-warning-bg border ui-border rounded-lg px-3 py-2">ملاحظة الطلب: {{ $transfer->notes }}</p>
                         @endif
                     </div>
-                    @if($transfer->status === 'pending')
+                    @if($transfer->status === 'pending' && (int) $transfer->sender_store_id === (int) $store->id)
                         <div class="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-                        @if((int) $transfer->sender_store_id === (int) $store->id)
                             <form method="POST" action="{{ route('user.stores.transfers.cancel', [$store->id, $transfer->id]) }}" data-ui-confirm="سيتم إلغاء الطلب وإرجاع الكمية للمتجر المرسل." data-ui-confirm-title="تأكيد إلغاء طلب النقل">
                                 @csrf
                                 <span class="ui-inline-frame ui-text-caption">يوم عمل الإلغاء: {{ $currentBusinessDate }}</span>
                                 <button class="ui-btn ui-btn-danger w-full px-4 py-2 text-sm">إلغاء</button>
                             </form>
-                        @else
-                            <form method="POST" action="{{ route('user.stores.transfers.reject', [$store->id, $transfer->id]) }}" data-ui-confirm="سيتم رفض الطلب وإرجاع الكمية للمرسل." data-ui-confirm-title="تأكيد رفض طلب النقل" class="grid grid-cols-1 gap-2 sm:flex">
-                                @csrf
-                                <span class="ui-inline-frame ui-text-caption">يوم عمل الرفض: {{ $currentBusinessDate }}</span>
-                                <input name="reason" required placeholder="سبب الرفض" class="ui-input rounded-lg px-3 py-2 text-sm">
-                                <button class="ui-btn ui-btn-danger w-full px-4 py-2 text-sm sm:w-auto">رفض</button>
-                            </form>
-                        @endif
                         </div>
                     @endif
                 </div>
@@ -101,6 +92,11 @@
                             <button class="ui-btn ui-btn-success px-5 py-3">اعتماد واستلام جميع البنود ({{ $transfer->items->count() }})</button>
                         </div>
                     </form>
+                    <button type="button" data-ui-show="reject-transfer-{{ $transfer->id }}" data-ui-scroll-lock class="ui-btn ui-btn-danger w-full px-4 py-3">رفض طلب النقل</button>
+                    <x-store-transfers.rejection-modal
+                        modal-id="reject-transfer-{{ $transfer->id }}"
+                        :action="route('user.stores.transfers.reject', [$store->id, $transfer->id])"
+                        :current-business-date="$currentBusinessDate" />
                 @else
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         @foreach($transfer->items as $item)

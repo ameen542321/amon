@@ -45,14 +45,6 @@
                             <p class="ui-status-warning ui-text-caption mt-2 ui-status-warning-bg border ui-status-warning-border rounded-lg px-3 py-2">ملاحظة الطلب: {{ $transfer->notes }}</p>
                         @endif
                     </div>
-                    @if($transfer->status === 'pending')
-                        <form method="POST" action="{{ route('accountant.transfers.reject', $transfer->id) }}" data-ui-confirm="سيتم رفض النقل وإرجاع الكمية للمرسل." data-ui-confirm-title="تأكيد رفض النقل" class="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-                            @csrf
-                            <span class="ui-inline-frame ui-text-caption">يوم عمل الرفض: {{ $currentBusinessDate }}</span>
-                            <input name="reason" required placeholder="سبب الرفض" class="ui-input px-3 py-2 text-sm">
-                            <button class="ui-btn ui-btn-danger w-full px-4 py-2 text-sm sm:w-auto">رفض</button>
-                        </form>
-                    @endif
                 </div>
 
                 @if($transfer->status === 'pending')
@@ -83,6 +75,11 @@
                 @if($transfer->status === 'pending')
                         <button class="ui-btn ui-btn-success w-full px-4 py-3">موافقة واستلام جميع البنود</button>
                     </form>
+                    <button type="button" data-ui-show="reject-transfer-{{ $transfer->id }}" data-ui-scroll-lock class="ui-btn ui-btn-danger w-full px-4 py-3">رفض طلب النقل</button>
+                    <x-store-transfers.rejection-modal
+                        modal-id="reject-transfer-{{ $transfer->id }}"
+                        :action="route('accountant.transfers.reject', $transfer->id)"
+                        :current-business-date="$currentBusinessDate" />
                 @endif
             </div>
         @empty

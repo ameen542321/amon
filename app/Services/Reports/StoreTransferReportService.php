@@ -12,7 +12,7 @@ class StoreTransferReportService
     /**
      * يبني تقرير النقل للمتجر وفق يوم العمل: الصادر بتاريخ الإرسال، والوارد بتاريخ الإجراء أو الإرسال إذا بقي معلقًا.
      */
-    public function build(Store $store, array $filters): array
+    public function build(Store $store, array $filters, bool $paginate = true): array
     {
         $from = CarbonImmutable::parse($filters['from'])->startOfDay();
         $to = CarbonImmutable::parse($filters['to'])->startOfDay();
@@ -53,11 +53,12 @@ class StoreTransferReportService
             'rejected' => (clone $query)->where('status', 'rejected')->count(),
         ];
 
-        $transfers = $query
+        $ordered = $query
             ->orderByRaw('CASE WHEN sender_store_id = ? THEN request_business_date ELSE COALESCE(action_business_date, request_business_date) END DESC', [$store->id])
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
+            ->orderByDesc('id');
+        $transfers = $paginate
+            ? $ordered->paginate(20)->withQueryString()
+            : $ordered->get();
 
         return compact('from', 'to', 'status', 'summary', 'transfers');
     }

@@ -52,6 +52,12 @@
         </div>
     </form>
 
+    <div class="flex justify-end">
+        <a href="{{ route('user.stores.reports.store-transfers.pdf', ['store' => $store, 'from' => $filters['from'], 'to' => $filters['to'], 'status' => $filters['status']]) }}" class="ui-btn ui-btn-info">
+            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تحميل PDF
+        </a>
+    </div>
+
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div class="ui-card p-4"><span class="ui-text-soft">إجمالي النقل</span><strong class="block ui-title text-xl mt-1">{{ $summary['total'] }}</strong></div>
         <div class="ui-card p-4"><span class="ui-text-soft">الصادر</span><strong class="block ui-title text-xl mt-1">{{ $summary['outgoing'] }}</strong></div>

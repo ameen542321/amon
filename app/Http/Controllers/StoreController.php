@@ -1034,6 +1034,25 @@ class StoreController extends Controller
     public function reportsStoreTransfers(Store $store, Request $request)
     {
         $this->authorizeStoreAccess($store);
+        $filters = $this->storeTransferReportFilters($store, $request);
+        $report = app(StoreTransferReportService::class)->build($store, $filters);
+
+        return view('user.stores.reports.store-transfers', compact('store', 'filters') + $report);
+    }
+
+    public function reportsStoreTransfersPdf(Store $store, Request $request)
+    {
+        $this->authorizeStoreAccess($store);
+        $filters = $this->storeTransferReportFilters($store, $request);
+        $report = app(StoreTransferReportService::class)->build($store, $filters, false);
+        $pdf = PDF::loadView('pdf.store-transfer-report', compact('store', 'filters') + $report)
+            ->setOption('encoding', 'utf-8');
+
+        return $pdf->download('تقرير_النقل_المخزني_'.$store->id.'_'.$filters['from'].'_'.$filters['to'].'.pdf');
+    }
+
+    private function storeTransferReportFilters(Store $store, Request $request): array
+    {
         $currentBusinessDate = app(ShiftLifecycleService::class)->currentShiftContext($store)['business_date'];
         $defaultTo = \Carbon\CarbonImmutable::parse($currentBusinessDate);
         $defaults = [
@@ -1049,14 +1068,11 @@ class StoreController extends Controller
             'to' => 'required|date_format:Y-m-d|after_or_equal:from',
             'status' => 'nullable|in:pending,completed,rejected,cancelled',
         ]);
-        $filters = [
+        return [
             'from' => $validated['from'],
             'to' => $validated['to'],
             'status' => $validated['status'] ?? null,
         ];
-        $report = app(StoreTransferReportService::class)->build($store, $filters);
-
-        return view('user.stores.reports.store-transfers', compact('store', 'filters') + $report);
     }
 
 

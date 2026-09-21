@@ -44,4 +44,22 @@ class StoreTransferBusinessDateContractTest extends TestCase
         self::assertStringContainsString("'request_date' => \$transfer->request_business_date?->format('Y-m-d')", $report);
         self::assertStringNotContainsString("optional(\$transfer->created_at)->format('Y-m-d')", $report);
     }
+
+    public function test_receiver_product_matching_shows_unit_and_rejection_uses_a_modal(): void
+    {
+        $picker = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/store-transfers/product-picker.blade.php');
+        $modal = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/store-transfers/rejection-modal.blade.php');
+        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/store-transfers/transfer-system.js');
+        $accountantView = file_get_contents(dirname(__DIR__, 2).'/resources/views/accountants/store-transfers/index.blade.php');
+        $ownerView = file_get_contents(dirname(__DIR__, 2).'/resources/views/user/store-transfers/index.blade.php');
+
+        self::assertStringContainsString('هل المنتج المستلم هو:', $picker);
+        self::assertStringContainsString('رول أو متر', $picker);
+        self::assertStringContainsString('طقم أو حبة', $picker);
+        self::assertStringContainsString('data-unit-label', $picker);
+        self::assertStringContainsString('selectedOption.dataset.unitLabel', $script);
+        self::assertStringContainsString('سبب الرفض', $modal);
+        self::assertStringContainsString('data-ui-show="reject-transfer-', $accountantView);
+        self::assertStringContainsString('data-ui-show="reject-transfer-', $ownerView);
+    }
 }

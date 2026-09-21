@@ -35,7 +35,7 @@ class StoreTransferController extends Controller
         $receiverProductsByStore = Product::whereIn('store_id', $receiverStoreIds)
             ->sellable()
             ->orderBy('name')
-            ->get(['id', 'store_id', 'name', 'quantity', 'barcode', 'category_id'])
+            ->get(['id', 'store_id', 'name', 'quantity', 'barcode', 'category_id', 'product_type', 'is_splittable', 'items_per_unit', 'roll_length'])
             ->groupBy('store_id');
 
         $transfers->getCollection()->each(function (StoreTransfer $transfer) use ($receiverProductsByStore) {
