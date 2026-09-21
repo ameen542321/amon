@@ -131,6 +131,7 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
             Route::post('/{store}/shift-gaps/zero-close', [StoreController::class, 'zeroCloseShiftGap'])->name('shift-gaps.zero-close');
             Route::get('/{store}/reports', [StoreController::class, 'reportsIndex'])->name('reports.index');
             Route::get('/{store}/reports/search', [StoreController::class, 'reportsComprehensiveSearch'])->name('reports.search');
+            Route::get('/{store}/reports/store-transfers', [StoreController::class, 'reportsStoreTransfers'])->name('reports.store-transfers');
             Route::get('/{store}/reports/last-10-days', [StoreController::class, 'reportsLastTenDays'])->name('reports.last-ten-days');
             Route::get('/{store}/reports/monthly', [StoreController::class, 'reportsMonthly'])->name('reports.monthly');
             Route::get('/{store}/reports/monthly/pdf', [StoreController::class, 'reportsMonthlyPdf'])->name('reports.monthly.pdf');
