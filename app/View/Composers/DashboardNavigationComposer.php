@@ -37,8 +37,7 @@ class DashboardNavigationComposer
         $recipient = NotificationRecipient::fromAccount($authenticatedOwner);
         $latestNotifications = Notification::visibleTo($recipient)->latest()->take(5)->get();
         $unreadNotificationCount = Notification::visibleTo($recipient)
-            ->get()
-            ->filter(fn (Notification $notification): bool => !$notification->isReadByRecipient($recipient))
+            ->unreadByRecipient($recipient)
             ->count();
         $activeStores = $authenticatedOwner->stores()->where('status', 'active')->orderBy('name')->get();
 
@@ -145,10 +144,7 @@ class DashboardNavigationComposer
 
         $view->with([
             'auth' => $authenticatedAdmin,
-            'unreadCount' => (clone $visibleNotifications)
-                ->get()
-                ->filter(fn (Notification $notification): bool => !$notification->isReadByRecipient($recipient))
-                ->count(),
+            'unreadCount' => (clone $visibleNotifications)->unreadByRecipient($recipient)->count(),
             'notificationRecipient' => $recipient,
             'latestNotifications' => $latestNotifications,
         ]);
@@ -164,10 +160,7 @@ class DashboardNavigationComposer
         $view->with([
             'auth' => $authenticatedAccountant,
             'latestNotifications' => (clone $visibleNotifications)->latest()->take(5)->get(),
-            'unreadCount' => (clone $visibleNotifications)
-                ->get()
-                ->filter(fn (Notification $notification): bool => !$notification->isReadByRecipient($recipient))
-                ->count(),
+            'unreadCount' => (clone $visibleNotifications)->unreadByRecipient($recipient)->count(),
             'notificationRecipient' => $recipient,
         ]);
     }

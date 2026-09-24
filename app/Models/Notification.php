@@ -93,6 +93,14 @@ class Notification extends Model
         return in_array($recipient->readMarker(), $this->read_by ?? [], true);
     }
 
+    public function scopeUnreadByRecipient(Builder $query, NotificationRecipient $recipient): Builder
+    {
+        return $query->where(function (Builder $readQuery) use ($recipient): void {
+            $readQuery->whereNull('read_by')
+                ->orWhereJsonDoesntContain('read_by', $recipient->readMarker());
+        });
+    }
+
     public function markAsReadByRecipient(NotificationRecipient $recipient): self
     {
         $readBy = $this->read_by ?? [];
@@ -125,37 +133,4 @@ class Notification extends Model
 
         return $this;
     }
-
-
-public static function cleanupOldNotifications($userId = null)
-{
-    // إذا لم يتم تمرير المعرف، نحاول جلب معرف المستخدم الحالي من الجلسة
-    $userId = $userId ?? auth()->id();
-
-    // إذا لم يكن هناك مستخدم مسجل دخول أصلاً، نخرج من الدالة لتجنب الأخطاء
-    if (!$userId) {
-        return false;
-    }
-
-    // جلب إعدادات المستخدم أو استخدام القيم الافتراضية
-    $settings = \App\Models\UserSetting::where('user_id', $userId)->first();
-
-    // عدد أيام الصلاحية (من الإعدادات أو 15 يوم افتراضياً)
-    $days = $settings ? $settings->notifications_expiry : 15;
-
-    return static::whereJsonContains('target_ids', (string)$userId)
-                 ->where('created_at', '<', now()->subDays($days))
-                 ->delete();
-}
-
-protected static function booted()
-{
-    static::retrieved(function ($notification) {
-        // رفعنا الاحتمالية قليلاً (إلى 10%) لأن المدة قصيرة جداً
-        // لضمان استجابة أسرع للحذف
-        if (rand(1, 100) <= 10) {
-            static::cleanupOldNotifications();
-        }
-    });
-}
 }

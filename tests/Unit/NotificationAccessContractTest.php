@@ -46,4 +46,33 @@ class NotificationAccessContractTest extends TestCase
         self::assertStringNotContainsString('deleteSelected', $routes);
         self::assertStringContainsString("->name('notifications.markSelected')", $routes);
     }
+
+    public function test_cleanup_is_scheduled_and_never_runs_during_model_retrieval(): void
+    {
+        $model = file_get_contents(dirname(__DIR__, 2).'/app/Models/Notification.php');
+        $command = file_get_contents(dirname(__DIR__, 2).'/app/Console/Commands/CleanupNotifications.php');
+        $schedule = file_get_contents(dirname(__DIR__, 2).'/routes/console.php');
+
+        self::assertStringNotContainsString('static::retrieved', $model);
+        self::assertStringNotContainsString('rand(', $model);
+        self::assertStringContainsString("notifications:cleanup", $command);
+        self::assertStringContainsString('private const RETENTION_DAYS = 15;', $command);
+        self::assertStringContainsString("dailyAt('02:30')", $schedule);
+        self::assertStringContainsString('withoutOverlapping()', $schedule);
+    }
+
+    public function test_push_delivery_is_queued_with_operational_limits(): void
+    {
+        $job = file_get_contents(dirname(__DIR__, 2).'/app/Jobs/SendOneSignalNotification.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/OneSignalService.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/AdminPushNotificationController.php');
+
+        self::assertStringContainsString('implements ShouldQueue', $job);
+        self::assertStringContainsString('public int $tries = 3;', $job);
+        self::assertStringContainsString('public int $timeout = 30;', $job);
+        self::assertStringContainsString('connectTimeout(5)', $service);
+        self::assertStringContainsString('->timeout(10)', $service);
+        self::assertStringContainsString('SendOneSignalNotification::dispatch(', $controller);
+        self::assertStringContainsString('->chunk(1000)', $controller);
+    }
 }

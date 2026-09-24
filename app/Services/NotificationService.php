@@ -89,43 +89,57 @@ class NotificationService
     {
         // إرسال للجميع (Users + Accountants)
         if ($notification->target_type === 'all') {
+            User::users()->where('status', User::STATUS_ACTIVE)
+                ->select('id')
+                ->chunkById(500, function ($users) use ($notification): void {
+                    foreach ($users as $user) {
+                        event(new NewNotificationCreated($notification, (int) $user->id));
+                    }
+                });
 
-            foreach (User::users()->where('status', User::STATUS_ACTIVE)->pluck('id') as $userId) {
-                event(new NewNotificationCreated($notification, $userId));
-            }
-
-            foreach (Accountant::where('status', 'active')->pluck('id') as $accId) {
-                event(new NewNotificationCreated($notification, $accId));
-            }
+            Accountant::where('status', 'active')
+                ->select('id')
+                ->chunkById(500, function ($accountants) use ($notification): void {
+                    foreach ($accountants as $accountant) {
+                        event(new NewNotificationCreated($notification, (int) $accountant->id));
+                    }
+                });
 
             return;
         }
 
         // إرسال لمستخدمين محددين
         if ($notification->target_type === 'users') {
-            foreach ($notification->target_ids ?? [] as $userId) {
-                event(new NewNotificationCreated($notification, $userId));
+            foreach (array_chunk($notification->target_ids ?? [], 500) as $userIds) {
+                foreach ($userIds as $userId) {
+                    event(new NewNotificationCreated($notification, (int) $userId));
+                }
             }
+
             return;
         }
 
         // إرسال لمحاسبين محددين
         if ($notification->target_type === 'accountants') {
-            foreach ($notification->target_ids ?? [] as $accId) {
-                event(new NewNotificationCreated($notification, $accId));
+            foreach (array_chunk($notification->target_ids ?? [], 500) as $accountantIds) {
+                foreach ($accountantIds as $accId) {
+                    event(new NewNotificationCreated($notification, (int) $accId));
+                }
             }
+
             return;
         }
 
         // إرسال لمتاجر (المالك فقط)
         if (in_array($notification->target_type, ['store', 'stores'])) {
-            $storeOwners = Store::whereIn('id', $notification->target_ids ?? [])
-                ->pluck('user_id')
-                ->toArray();
+            Store::whereIn('id', $notification->target_ids ?? [])
+                ->select(['id', 'user_id'])
+                ->chunkById(500, function ($stores) use ($notification): void {
+                    foreach ($stores->pluck('user_id')->unique() as $ownerId) {
+                        event(new NewNotificationCreated($notification, (int) $ownerId));
+                    }
+                });
 
-            foreach ($storeOwners as $ownerId) {
-                event(new NewNotificationCreated($notification, $ownerId));
-            }
             return;
         }
     }
