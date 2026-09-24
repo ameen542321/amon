@@ -32,6 +32,16 @@ class UnifiedAccountantGuard
             return redirect()->route('login');
         }
 
+        // الحساب التشغيلي لا يكون صالحًا دون مالك ومتجر مرتبطين؛ نرفض السجل اليتيم بأمان.
+        $accountant->loadMissing(['user', 'store']);
+        if (! $accountant->user || ! $accountant->store) {
+            Auth::guard('accountant')->logout();
+
+            return redirect()->route('login')->withErrors([
+                'auth' => 'تعذر التحقق من ارتباط حسابك بالمنشأة والمتجر. راجع المالك.',
+            ]);
+        }
+
         // 2. فحص حالة المحاسب (active/suspended) وحالة الموظف المرتبط به
         // ملاحظة: دمجنا هنا فحص CheckUserSuspended و AccountantAuth
         if ($accountant->status !== 'active') {
@@ -41,22 +51,20 @@ class UnifiedAccountantGuard
 
         // 3. فحص حالة المالك (Owner) واشتراكه
         // ملاحظة: دمجنا هنا فحص CheckSubscriptionActive
-        $owner = $accountant->user; // العلاقة مع المالك
-        if ($owner) {
-            if ($owner->status !== 'active') {
-                Auth::guard('accountant')->logout();
-                return redirect()->route('login')->withErrors(['auth' => 'حساب المالك موقوف حالياً.']);
-            }
+        $owner = $accountant->user;
+        if ($owner->status !== 'active') {
+            Auth::guard('accountant')->logout();
+            return redirect()->route('login')->withErrors(['auth' => 'حساب المالك موقوف حالياً.']);
+        }
 
-            if ($owner->subscription_end_at && now()->gt(Carbon::parse($owner->subscription_end_at)->endOfDay())) {
-                Auth::guard('accountant')->logout();
-                return redirect()->route('login')->withErrors(['auth' => 'انتهى اشتراك المنشأة، يرجى مراجعة المالك.']);
-            }
+        if ($owner->subscription_end_at && now()->gt(Carbon::parse($owner->subscription_end_at)->endOfDay())) {
+            Auth::guard('accountant')->logout();
+            return redirect()->route('login')->withErrors(['auth' => 'انتهى اشتراك المنشأة، يرجى مراجعة المالك.']);
         }
 
         // 4. فحص حالة المتجر (Store)
         // ملاحظة: دمجنا هنا فحص CheckStoreStatus
-        if ($accountant->store && $accountant->store->status !== 'active') {
+        if ($accountant->store->status !== 'active') {
             return abort(403, 'المتجر المرتبط بك غير نشط حالياً.');
         }
 

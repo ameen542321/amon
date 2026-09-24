@@ -34,6 +34,7 @@ class AuthAccessSecurityContractTest extends TestCase
         self::assertStringNotContainsString('لا يوجد مستخدم مسجل بهذا البريد', $controller);
         self::assertStringContainsString('إذا كان البريد مسجلاً فسيصلك رابط إعادة تعيين كلمة المرور.', $controller);
         self::assertMatchesRegularExpression("/forgot-password'.*?->middleware\('throttle:5,1'\)/s", $webRoutes);
+        self::assertMatchesRegularExpression("/reset-password'.*?->middleware\('throttle:5,1'\)/s", $webRoutes);
     }
 
     public function test_store_guard_uses_the_accountant_guard_user(): void
@@ -42,5 +43,28 @@ class AuthAccessSecurityContractTest extends TestCase
 
         self::assertStringContainsString("auth()->guard('accountant')->user()?->store_id", $middleware);
         self::assertStringNotContainsString("\$store->id === auth()->user()->store_id", $middleware);
+    }
+
+    public function test_accountant_guard_fails_closed_for_orphaned_accounts(): void
+    {
+        $middleware = file_get_contents(dirname(__DIR__, 2).'/app/Http/Middleware/UnifiedAccountantGuard.php');
+
+        self::assertStringContainsString("loadMissing(['user', 'store'])", $middleware);
+        self::assertStringContainsString('if (! $accountant->user || ! $accountant->store)', $middleware);
+    }
+
+    public function test_password_brokers_match_the_existing_reset_table(): void
+    {
+        $config = file_get_contents(dirname(__DIR__, 2).'/config/auth.php');
+
+        self::assertSame(2, substr_count($config, "'table' => 'password_resets'"));
+        self::assertStringNotContainsString("'table' => 'password_reset_tokens'", $config);
+    }
+
+    public function test_duplicate_commented_login_implementation_is_removed(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Auth/LoginController.php');
+
+        self::assertSame(1, substr_count($controller, 'public function login(Request $request)'));
     }
 }

@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter; // لإدارة محاولات الدخول
-use App\Models\User; // أو موديول المحاسب حسب الحاجة
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use App\Services\SupportSessionService;
 use App\Services\SecurityEventService;
@@ -70,30 +69,6 @@ class LoginController extends Controller
     {
         return view('auth.login');
     }
-
-    // public function login(Request $request)
-    // {
-    //     $credentials = $request->validate([
-    //         'email'    => ['required', 'email'],
-    //         'password' => ['required'],
-    //     ]);
-
-    //     $remember = $request->boolean('remember');
-
-    //     // 1) محاولة دخول المحاسب
-    //     if (Auth::guard('accountant')->attempt($credentials, $remember)) {
-    //         return $this->handleLoginSuccess($request, 'accountant');
-    //     }
-
-    //     // 2) محاولة دخول المستخدم (مالك أو أدمن)
-    //     if (Auth::guard('web')->attempt($credentials, $remember)) {
-    //         return $this->handleLoginSuccess($request, 'web');
-    //     }
-
-    //     return back()
-    //         ->withErrors(['email' => 'بيانات الدخول غير صحيحة'])
-    //         ->onlyInput('email');
-    // }
 
     /**
      * دالة موحدة للتعامل مع نجاح الدخول وتوجيه كل رتبة لمكانها

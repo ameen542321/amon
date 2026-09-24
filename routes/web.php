@@ -87,6 +87,7 @@ Route::middleware('web')->group(function () {
             ->name('password.reset');
 
         Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
+            ->middleware('throttle:5,1')
             ->name('password.update');
     });
 
