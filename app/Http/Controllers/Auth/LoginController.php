@@ -23,14 +23,6 @@ class LoginController extends Controller
         // مفتاح مركب يمنع التحايل على الحد، دون تمكين مهاجم من إيقاف حساب الضحية.
         $throttleKey = hash('sha256', Str::lower($request->input('email')).'|'.$request->ip());
 
-        // فحص الحالة قبل كل شيء
-        $user = \App\Models\User::where('email', $request->email)->first()
-                ?? \App\Models\Accountant::where('email', $request->email)->first();
-
-        if ($user && $user->status === 'suspended') {
-            return back()->withErrors(['email' => 'حسابك موقوف، راجع مالك المتجر.']);
-        }
-
         // فحص عدد المحاولات
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             app(SecurityEventService::class)->record(
@@ -85,6 +77,17 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::guard($guard)->user();
+
+        // لا نكشف حالة الحساب قبل نجاح كلمة المرور؛ هذا يمنع استخدام الدخول لتعداد الحسابات الموقوفة.
+        if (! $user || $user->status !== 'active') {
+            Auth::guard($guard)->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'تعذر تسجيل الدخول بهذا الحساب. راجع مسؤول النظام.',
+            ]);
+        }
 
         if ($user?->must_reset_password) {
             Auth::guard($guard)->logout();

@@ -67,4 +67,63 @@ class AuthAccessSecurityContractTest extends TestCase
 
         self::assertSame(1, substr_count($controller, 'public function login(Request $request)'));
     }
+
+    public function test_login_does_not_reveal_account_status_before_authentication(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Auth/LoginController.php');
+        $attemptPosition = strpos($controller, "Auth::guard('accountant')->attempt");
+        $statusPosition = strpos($controller, "\$user->status !== 'active'");
+
+        self::assertNotFalse($attemptPosition);
+        self::assertNotFalse($statusPosition);
+        self::assertGreaterThan($attemptPosition, $statusPosition);
+        self::assertStringNotContainsString("where('email', \$request->email)->first()", $controller);
+    }
+
+    public function test_authentication_views_use_shared_alerts_and_password_autocomplete(): void
+    {
+        $login = file_get_contents(dirname(__DIR__, 2).'/resources/views/auth/login.blade.php');
+        $forgot = file_get_contents(dirname(__DIR__, 2).'/resources/views/auth/forgot.blade.php');
+        $reset = file_get_contents(dirname(__DIR__, 2).'/resources/views/auth/reset.blade.php');
+        $views = $login."\n".$forgot."\n".$reset;
+
+        self::assertStringNotContainsString('ui-badge-danger', $views);
+        self::assertStringNotContainsString('ui-badge-success', $views);
+        self::assertStringContainsString('autocomplete="current-password"', $login);
+        self::assertStringContainsString('autocomplete="new-password"', $reset);
+        self::assertStringContainsString('auth-password-toggle', $reset);
+        self::assertStringNotContainsString('<style', $views);
+        self::assertStringNotContainsString('style="', $views);
+    }
+
+    public function test_legacy_auth_middleware_is_removed_after_guard_consolidation(): void
+    {
+        $bootstrap = file_get_contents(dirname(__DIR__, 2).'/bootstrap/app.php');
+        $legacyClasses = [
+            'CheckSubscriptionActive',
+            'CheckStoreAccess',
+            'CheckStoreStatus',
+            'CheckUserSuspended',
+            'SubscriptionWarning',
+        ];
+
+        foreach ($legacyClasses as $legacyClass) {
+            self::assertFileDoesNotExist(dirname(__DIR__, 2)."/app/Http/Middleware/{$legacyClass}.php");
+            self::assertStringNotContainsString($legacyClass.'::class', $bootstrap);
+        }
+
+        self::assertStringNotContainsString("'store.master'", $bootstrap);
+        self::assertStringContainsString("'owner.unified'", $bootstrap);
+        self::assertStringContainsString("'accountant.unified'", $bootstrap);
+        self::assertStringContainsString("'store.check'", $bootstrap);
+    }
+
+    public function test_admin_routes_do_not_keep_duplicate_commented_route_definitions(): void
+    {
+        $routes = file_get_contents(dirname(__DIR__, 2).'/routes/admin.php');
+
+        self::assertStringNotContainsString("// Route::get('/notifications/send'", $routes);
+        self::assertStringNotContainsString("// Route::get('/notifications/push'", $routes);
+        self::assertStringNotContainsString("Route::prefix('admin')->middleware(['auth:web', 'is.admin'])->group(function () {\n\n});", $routes);
+    }
 }

@@ -47,20 +47,6 @@ return Application::configure(basePath: dirname(__DIR__))
             /* |--- 🛡️ الحراس الجدد (مدمجة ومنظمة) --- */
 
 
-            // حارس المتجر الشامل (يدمج: store.access, store.active)
-            'store.master' => \App\Http\Middleware\UnifiedStoreGuard::class,
-
-            // /* |--- 🛑 الحراس القدامى (للمراجعة فقط - سيتم حذفهم لاحقاً) ---
-            // 'is.user'              => \App\Http\Middleware\IsUser::class,
-            'subscription.active'  => \App\Http\Middleware\CheckSubscriptionActive::class,
-            'subscription.warning' => \App\Http\Middleware\SubscriptionWarning::class,
-            'store.active'         => \App\Http\Middleware\CheckStoreStatus::class,
-            'store.access'         => \App\Http\Middleware\CheckStoreAccess::class,
-            'check.suspended'      => \App\Http\Middleware\CheckUserSuspended::class,
-            // 'active.welcome'       => \App\Http\Middleware\RedirectActiveUser::class,
-            // 'accountant.auth'      => \App\Http\Middleware\AccountantAuth::class,
-            // |-------------------------------------------------------------------------- */
-
             'redirect.dashboard' => \App\Http\Middleware\RedirectIfAuthenticatedToDashboard::class,
             'no.access'          => \App\Http\Middleware\NoAccess::class,
             'plan.limit'         => \App\Http\Middleware\CheckPlanLimit::class,

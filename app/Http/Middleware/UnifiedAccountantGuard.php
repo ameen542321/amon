@@ -42,15 +42,13 @@ class UnifiedAccountantGuard
             ]);
         }
 
-        // 2. فحص حالة المحاسب (active/suspended) وحالة الموظف المرتبط به
-        // ملاحظة: دمجنا هنا فحص CheckUserSuspended و AccountantAuth
+        // 2. فحص حالة المحاسب بعد توحيد فحوص الحساب في هذا الحارس.
         if ($accountant->status !== 'active') {
             Auth::guard('accountant')->logout();
             return redirect()->route('login')->withErrors(['auth' => 'حسابك الشخصي غير نشط.']);
         }
 
-        // 3. فحص حالة المالك (Owner) واشتراكه
-        // ملاحظة: دمجنا هنا فحص CheckSubscriptionActive
+        // 3. فحص حالة المالك واشتراكه.
         $owner = $accountant->user;
         if ($owner->status !== 'active') {
             Auth::guard('accountant')->logout();
@@ -62,8 +60,7 @@ class UnifiedAccountantGuard
             return redirect()->route('login')->withErrors(['auth' => 'انتهى اشتراك المنشأة، يرجى مراجعة المالك.']);
         }
 
-        // 4. فحص حالة المتجر (Store)
-        // ملاحظة: دمجنا هنا فحص CheckStoreStatus
+        // 4. فحص حالة المتجر.
         if ($accountant->store->status !== 'active') {
             return abort(403, 'المتجر المرتبط بك غير نشط حالياً.');
         }
