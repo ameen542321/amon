@@ -80,6 +80,7 @@ Route::middleware('web')->group(function () {
             ->name('password.request');
 
         Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+            ->middleware('throttle:5,1')
             ->name('password.email');
 
         Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
@@ -223,4 +224,3 @@ Route::post('/device-token', [DeviceTokenController::class, 'store'])
         'Content-Disposition' => 'inline; filename="' . $filename . '"'
     ]);
 })->name('public.report.view');
-

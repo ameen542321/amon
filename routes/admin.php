@@ -30,10 +30,12 @@ use App\Http\Controllers\Admin\SecurityCommandCenterController;
 |--------------------------------------------------------------------------
 */
 Route::get('/notifications/push', [AdminPushNotificationController::class, 'create'])
+        ->middleware(['auth:web', 'is.admin'])
         ->name('admin.notifications.push');
 
     // تنفيذ الإرسال
     Route::post('/notifications/push', [AdminPushNotificationController::class, 'store'])
+        ->middleware(['auth:web', 'is.admin', 'throttle:10,1'])
         ->name('admin.notifications.push.store');
 
 
@@ -186,10 +188,10 @@ Route::middleware(['web', 'auth', 'is.admin'])
     });
 
 Route::post('/support-session/stop', [SupportSessionController::class, 'stop'])
-    ->middleware('web')
+    ->middleware(['auth:web', 'is.admin'])
     ->name('admin.support.stop');
 Route::patch('/support-archive/{archive}/message', [SupportArchiveController::class, 'message'])
-    ->middleware('web')
+    ->middleware(['auth:web', 'is.admin'])
     ->name('admin.support.archive.message');
 
 /*
@@ -213,9 +215,11 @@ Route::post('/device-token', [DeviceTokenController::class, 'store'])
     ->name('device.token.store')
     ->middleware('auth');
 Route::get('/notifications/send', [AdminNotificationSendController::class, 'create'])
+    ->middleware(['auth:web', 'is.admin'])
     ->name('notifications.internal.send');
 
 Route::post('/notifications/send', [AdminNotificationSendController::class, 'store'])
+    ->middleware(['auth:web', 'is.admin', 'throttle:10,1'])
     ->name('notifications.internal.send.store');
 
 

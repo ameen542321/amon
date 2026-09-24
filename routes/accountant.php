@@ -33,7 +33,9 @@ Route::get('/view-report/{filename}', function ($filename) {
     abort_unless($path && str_starts_with($path, $reportsDir . DIRECTORY_SEPARATOR) && is_file($path), 404, 'الملف غير موجود');
 
     return response()->file($path);
-})->where('filename', '[^/]+')->name('pdf.report.view');
+})->where('filename', '[^/]+')
+    ->middleware('accountant.unified')
+    ->name('pdf.report.view');
 
 // صفحة الإيقاف
 Route::get('/suspended', fn() => view('accountant.suspended'))

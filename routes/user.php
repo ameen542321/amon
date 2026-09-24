@@ -29,7 +29,10 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::post('/user/logout', [LoginController::class, 'logout'])->name('logout');
-Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])->name('user.employees.checkEmail');
+// يبقى المسار بنفس الرابط لحماية توافق الواجهة، لكنه لا يكشف وجود حسابات إلا لمالك مصرح.
+Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
+    ->middleware(['owner.unified', 'throttle:20,1'])
+    ->name('user.employees.checkEmail');
 
 /*
 |--------------------------------------------------------------------------
