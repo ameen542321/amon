@@ -51,12 +51,14 @@ class NotificationAccessContractTest extends TestCase
     {
         $model = file_get_contents(dirname(__DIR__, 2).'/app/Models/Notification.php');
         $command = file_get_contents(dirname(__DIR__, 2).'/app/Console/Commands/CleanupNotifications.php');
+        $maintenance = file_get_contents(dirname(__DIR__, 2).'/app/Services/NotificationMaintenanceService.php');
         $schedule = file_get_contents(dirname(__DIR__, 2).'/routes/console.php');
 
         self::assertStringNotContainsString('static::retrieved', $model);
         self::assertStringNotContainsString('rand(', $model);
         self::assertStringContainsString("notifications:cleanup", $command);
-        self::assertStringContainsString('private const RETENTION_DAYS = 15;', $command);
+        self::assertStringContainsString('public const RETENTION_DAYS = 15;', $maintenance);
+        self::assertStringContainsString('$maintenance->deleteExpired($chunkSize)', $command);
         self::assertStringContainsString("dailyAt('02:30')", $schedule);
         self::assertStringContainsString('withoutOverlapping()', $schedule);
     }
@@ -74,5 +76,22 @@ class NotificationAccessContractTest extends TestCase
         self::assertStringContainsString('->timeout(10)', $service);
         self::assertStringContainsString('SendOneSignalNotification::dispatch(', $controller);
         self::assertStringContainsString('->chunk(1000)', $controller);
+    }
+
+    public function test_admin_has_a_notification_operations_center_with_guarded_deletion(): void
+    {
+        $routes = file_get_contents(dirname(__DIR__, 2).'/routes/admin.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Admin/NotificationOperationsController.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/NotificationMaintenanceService.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/admin/notifications/operations.blade.php');
+
+        self::assertStringContainsString("name('notification-operations.index')", $routes);
+        self::assertStringContainsString("middleware('throttle:2,1')", $routes);
+        self::assertStringContainsString('public const RETENTION_DAYS = 15;', $service);
+        self::assertStringContainsString('$maintenance->deleteExpired()', $controller);
+        self::assertStringContainsString('لا يوجد زر لحذف كل السجلات', $view);
+        self::assertStringContainsString('data-ui-confirm=', $view);
+        self::assertStringNotContainsString('<style', $view);
+        self::assertStringNotContainsString('style="', $view);
     }
 }

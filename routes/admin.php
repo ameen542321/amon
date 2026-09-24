@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SupportArchiveController;
 use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\SupportActionController;
 use App\Http\Controllers\Admin\SecurityCommandCenterController;
+use App\Http\Controllers\Admin\NotificationOperationsController;
 
 
 
@@ -146,6 +147,15 @@ Route::middleware(['web', 'auth', 'is.admin'])
 
         Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])
             ->name('notifications.delete');
+
+        Route::get('/notification-operations', [NotificationOperationsController::class, 'index'])
+            ->name('notification-operations.index');
+        Route::delete('/notification-operations/expired', [NotificationOperationsController::class, 'cleanup'])
+            ->middleware('throttle:2,1')
+            ->name('notification-operations.cleanup');
+        Route::delete('/notification-operations/{notification}', [NotificationOperationsController::class, 'destroy'])
+            ->middleware('throttle:10,1')
+            ->name('notification-operations.destroy');
 
         /*
         |--------------------------------------------------------------------------
