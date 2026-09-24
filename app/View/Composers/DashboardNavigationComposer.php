@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Models\Notification;
+use App\Support\Notifications\NotificationRecipient;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -33,8 +34,12 @@ class DashboardNavigationComposer
         $currentAccountantCount = $authenticatedOwner->accountants()->count();
         $allowedStoreCount = $subscriptionPlan->allowed_stores ?? 0;
 
-        $latestNotifications = Notification::forUser($authenticatedOwner->id)->latest()->take(5)->get();
-        $unreadNotificationCount = Notification::unreadCountFor($authenticatedOwner->id);
+        $recipient = NotificationRecipient::fromAccount($authenticatedOwner);
+        $latestNotifications = Notification::visibleTo($recipient)->latest()->take(5)->get();
+        $unreadNotificationCount = Notification::visibleTo($recipient)
+            ->get()
+            ->filter(fn (Notification $notification): bool => !$notification->isReadByRecipient($recipient))
+            ->count();
         $activeStores = $authenticatedOwner->stores()->where('status', 'active')->orderBy('name')->get();
 
         $currentStore = null;
@@ -85,6 +90,7 @@ class DashboardNavigationComposer
             'allowedStores' => $allowedStoreCount,
             'latestNotifications' => $latestNotifications,
             'unreadCount' => $unreadNotificationCount,
+            'notificationRecipient' => $recipient,
             'activeStores' => $activeStores,
             'storeId' => $currentStoreId,
             'storeName' => $currentStoreName,
@@ -133,17 +139,17 @@ class DashboardNavigationComposer
     private function composeAdminNavigation(View $view): void
     {
         $authenticatedAdmin = Auth::guard('web')->user();
-        $latestNotifications = Notification::orderBy('created_at', 'desc')
-            ->take(5)
-            ->get()
-            ->filter(function (Notification $notification) use ($authenticatedAdmin): bool {
-                return $notification->target_type === 'all'
-                    || in_array($authenticatedAdmin->id, $notification->target_ids ?? []);
-            });
+        $recipient = NotificationRecipient::fromAccount($authenticatedAdmin);
+        $visibleNotifications = Notification::visibleTo($recipient);
+        $latestNotifications = (clone $visibleNotifications)->latest()->take(5)->get();
 
         $view->with([
             'auth' => $authenticatedAdmin,
-            'unreadCount' => Notification::unreadCountFor($authenticatedAdmin->id),
+            'unreadCount' => (clone $visibleNotifications)
+                ->get()
+                ->filter(fn (Notification $notification): bool => !$notification->isReadByRecipient($recipient))
+                ->count(),
+            'notificationRecipient' => $recipient,
             'latestNotifications' => $latestNotifications,
         ]);
     }
@@ -152,10 +158,17 @@ class DashboardNavigationComposer
     {
         $authenticatedAccountant = Auth::guard('accountant')->user();
 
+        $recipient = NotificationRecipient::fromAccount($authenticatedAccountant);
+        $visibleNotifications = Notification::visibleTo($recipient);
+
         $view->with([
             'auth' => $authenticatedAccountant,
-            'latestNotifications' => $authenticatedAccountant->notificationsForAccountant()->take(5)->get(),
-            'unreadCount' => $authenticatedAccountant->unreadNotificationsCountForAccountant(),
+            'latestNotifications' => (clone $visibleNotifications)->latest()->take(5)->get(),
+            'unreadCount' => (clone $visibleNotifications)
+                ->get()
+                ->filter(fn (Notification $notification): bool => !$notification->isReadByRecipient($recipient))
+                ->count(),
+            'notificationRecipient' => $recipient,
         ]);
     }
 }

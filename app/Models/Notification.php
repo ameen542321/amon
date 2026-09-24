@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Notifications\NotificationRecipient;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -33,73 +34,94 @@ class Notification extends Model
     */
 // داخل ملف Notification.php
 
-// جلب الإشعارات التي تخص المستخدم أو العامة
-public static function scopeForUser($query, $userId)
-{
-    return $query->where(function ($q) use ($userId) {
-        $q->where('target_type', 'all')
-          ->orWhereJsonContains('target_ids', $userId);
-    })->orderBy('created_at', 'desc');
-}
-
-// حساب عدد الإشعارات غير المقروءة
-public static function scopeUnreadCountFor($query, $userId)
-{
-    // ملاحظة: هنا نفترض وجود جدول وسيط أو حقل يحدد من قرأ ماذا
-    // إذا كنت تستخدم نظام لارافل الافتراضي للإشعارات:
-    return $query->forUser($userId)->whereNull('read_at')->count();
-}
-
-// دالة التحقق من القراءة (التي استخدمتها أنت في الكود)
-public function isReadBy($userId)
-{
-    $readBy = collect($this->read_by ?? [])->map(fn ($value) => (string) $value);
-
-    return $readBy->contains((string) $userId)
-        || $readBy->contains('hidden_by_' . $userId);
-}
     /**
-     * جلب الإشعارات الموجهة لمستخدم محدد (عامة أو خاصة)
+     * حصر الاستعلام في الإشعارات التي تخص هوية المستلم ونوع حسابه.
      */
-    // public function scopeForUser(Builder $query, $userId)
-    // {
-    //     return $query->where(function ($q) use ($userId) {
-    //         $q->where('target_type', 'all')
-    //           ->orWhereJsonContains('target_ids', (string)$userId);
-    //     });
-    // }
-
-    /**
-     * جلب الإشعارات غير المقروءة والموجهة للمستخدم حصراً
-     */
-    public function scopeUnreadFor(Builder $query, $userId)
+    public function scopeVisibleTo(Builder $query, NotificationRecipient $recipient): Builder
     {
-        return $query->forUser($userId)
-                     ->where(function ($q) use ($userId) {
-                         $q->whereNull('read_by')
-                           ->orWhereJsonDoesntContain('read_by', (string)$userId);
-                     });
+        return $query
+            ->where(function (Builder $targetQuery) use ($recipient): void {
+                // يبدأ بشرط مستحيل حتى تبقى فروع OR واضحة مهما كان نوع الحساب.
+                $targetQuery->whereRaw('1 = 0');
+
+                if ($recipient->receivesBroadcastNotifications()) {
+                    $targetQuery->orWhere('target_type', 'all');
+                }
+
+                if ($recipient->type === 'accountant') {
+                    $targetQuery->orWhere('target_type', 'all_accountants')
+                        ->orWhere(function (Builder $accountantQuery) use ($recipient): void {
+                            $accountantQuery->whereIn('target_type', ['accountant', 'accountants'])
+                                ->where(fn (Builder $ids) => $this->whereJsonId($ids, $recipient->id));
+                        });
+
+                    return;
+                }
+
+                $targetQuery->orWhere(function (Builder $userQuery) use ($recipient): void {
+                    $userQuery->whereIn('target_type', ['user', 'users'])
+                        ->where(fn (Builder $ids) => $this->whereJsonId($ids, $recipient->id));
+                });
+
+                if ($recipient->storeIds !== []) {
+                    $targetQuery->orWhere(function (Builder $storeQuery) use ($recipient): void {
+                        $storeQuery->whereIn('target_type', ['store', 'stores'])
+                            ->where(function (Builder $ids) use ($recipient): void {
+                                foreach ($recipient->storeIds as $index => $storeId) {
+                                    $method = $index === 0 ? 'whereJsonContains' : 'orWhereJsonContains';
+                                    $ids->{$method}('target_ids', $storeId);
+                                    $ids->orWhereJsonContains('target_ids', (string) $storeId);
+                                }
+                            });
+                    });
+                }
+            })
+            ->where(function (Builder $hiddenQuery) use ($recipient): void {
+                $hiddenQuery->whereNull('read_by')
+                    ->orWhereJsonDoesntContain('read_by', $recipient->hiddenMarker());
+            });
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | دوال القراءة (Read System)
-    |--------------------------------------------------------------------------
-    */
+    private function whereJsonId(Builder $query, int $id): void
+    {
+        $query->whereJsonContains('target_ids', $id)
+            ->orWhereJsonContains('target_ids', (string) $id);
+    }
 
-    /**
-     * تعليم الإشعار كمقروء
-     */
-    public function markAsRead($userId)
+    public function isReadByRecipient(NotificationRecipient $recipient): bool
+    {
+        return in_array($recipient->readMarker(), $this->read_by ?? [], true);
+    }
+
+    public function markAsReadByRecipient(NotificationRecipient $recipient): self
     {
         $readBy = $this->read_by ?? [];
 
-        if (in_array((string)$userId, $readBy)) {
-            return $this;
+        if (!in_array($recipient->readMarker(), $readBy, true)) {
+            $readBy[] = $recipient->readMarker();
+            $this->update(['read_by' => array_values(array_unique($readBy))]);
         }
 
-        $readBy[] = (string)$userId;
+        return $this;
+    }
+
+    public function markAsUnreadByRecipient(NotificationRecipient $recipient): self
+    {
+        $readBy = array_values(array_filter(
+            $this->read_by ?? [],
+            static fn ($marker): bool => $marker !== $recipient->readMarker(),
+        ));
+
         $this->update(['read_by' => $readBy]);
+
+        return $this;
+    }
+
+    public function hideFromRecipient(NotificationRecipient $recipient): self
+    {
+        $readBy = $this->read_by ?? [];
+        $readBy[] = $recipient->hiddenMarker();
+        $this->update(['read_by' => array_values(array_unique($readBy))]);
 
         return $this;
     }
@@ -136,32 +158,4 @@ protected static function booted()
         }
     });
 }
-    /*
-    |--------------------------------------------------------------------------
-    | دوال الإحصاء (Statistics)
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * العداد الدقيق للإشعارات غير المقروءة
-     */
-    public static function unreadCountFor($userId)
-    {
-        if (!$userId) return 0;
-        return self::unreadFor($userId)->count();
-    }
-
-    /**
-     * مسح كافة الإشعارات (جعل الكل مقروء) للمستخدم
-     */
-    public static function markAllAsReadFor($userId)
-    {
-        $unreadNotifications = self::unreadFor($userId)->get();
-
-        foreach ($unreadNotifications as $notification) {
-            $notification->markAsRead($userId);
-        }
-
-        return true;
-    }
 }

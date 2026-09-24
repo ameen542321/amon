@@ -179,9 +179,7 @@ Route::middleware(['accountant.unified'])->group(function () {
             Route::post('/mark-all', [NotificationController::class, 'markAll'])->name('markAll');
             Route::post('/mark-selected', [NotificationController::class, 'markSelected'])->name('markSelected');
 
-            // تم تمييز روابط دالات الحذف لتعمل بشكل منفصل وبدون تعارض
             Route::delete('/{id}/delete', [NotificationController::class, 'delete'])->name('delete');
-            Route::delete('/{id}/remove', [NotificationController::class, 'remov'])->name('remov');
         });
     });
 });

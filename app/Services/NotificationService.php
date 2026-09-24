@@ -90,11 +90,11 @@ class NotificationService
         // إرسال للجميع (Users + Accountants)
         if ($notification->target_type === 'all') {
 
-            foreach (User::pluck('id') as $userId) {
+            foreach (User::users()->where('status', User::STATUS_ACTIVE)->pluck('id') as $userId) {
                 event(new NewNotificationCreated($notification, $userId));
             }
 
-            foreach (Accountant::pluck('id') as $accId) {
+            foreach (Accountant::where('status', 'active')->pluck('id') as $accId) {
                 event(new NewNotificationCreated($notification, $accId));
             }
 

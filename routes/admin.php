@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\CreditHealthCheckController;
@@ -140,13 +139,13 @@ Route::middleware(['web', 'auth', 'is.admin'])
             ->name('notifications.read');
 
         Route::post('/notifications/read-all', [NotificationController::class, 'markAll'])
-            ->name('notifications.readAll');
+            ->name('notifications.markAll');
+
+        Route::post('/notifications/mark-selected', [NotificationController::class, 'markSelected'])
+            ->name('notifications.markSelected');
 
         Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])
             ->name('notifications.delete');
-        Route::delete('/{id}', [NotificationController::class, 'deleteindex'])->name('deleteindex');
-        Route::post('/notifications/delete-selected', [NotificationController::class, 'deleteSelected'])
-            ->name('notifications.deleteSelected');
 
         /*
         |--------------------------------------------------------------------------
@@ -170,9 +169,6 @@ Route::patch('/support-archive/{archive}/message', [SupportArchiveController::cl
     ->middleware(['auth:web', 'is.admin'])
     ->name('admin.support.archive.message');
 
-Route::post('/device-token', [DeviceTokenController::class, 'store'])
-    ->name('device.token.store')
-    ->middleware('auth');
 Route::get('/notifications/send', [AdminNotificationSendController::class, 'create'])
     ->middleware(['auth:web', 'is.admin'])
     ->name('notifications.internal.send');
