@@ -6,7 +6,8 @@
     "build": "vite build",
     "test:visual": "node scripts/check-visual-identity.mjs",
     "test:contrast": "npm run build && node scripts/check-browser-contrast.mjs",
-    "test:notifications": "node scripts/check-notification-readiness.mjs"
+    "test:notifications": "node scripts/check-notification-readiness.mjs",
+    "test:pwa": "node scripts/check-pwa-contract.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

@@ -16,6 +16,7 @@ use App\Http\Controllers\Accountant\StoreTransferController as AccountantStoreTr
 use App\Modules\PurchaseOrders\Controllers\AccountantPurchaseOrderController;
 use App\Http\Controllers\Accountant\InventoryCountController;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
+use App\Http\Controllers\Api\AppContextController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +55,10 @@ Route::post('/accountant/logout', [LoginController::class, 'logout'])
 */
 Route::middleware(['accountant.unified'])->group(function () {
     Route::prefix('accountant')->name('accountant.')->group(function () {
+
+        Route::get('/api/v1/app-context', AppContextController::class)
+            ->middleware('throttle:60,1')
+            ->name('api.app-context');
 
         // --- مسارات الفواتير ---
         Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');

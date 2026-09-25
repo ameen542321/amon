@@ -85,16 +85,18 @@ if (phpunit.includes('name="DB_CONNECTION" value="sqlite" force="true"')
     pass('PHPUnit is forced to use in-memory SQLite');
 } else fail('PHPUnit may connect to a non-test database');
 
-const revertedPwaFiles = [
+const pwaTextAssets = [
     'public/manifest.webmanifest',
     'public/sw.js',
     'public/offline.html',
+    'public/icons/carled.svg',
     'resources/js/features/pwa/register-service-worker.js',
 ];
-for (const file of revertedPwaFiles) {
-    if (existsSync(file)) fail(`reverted PWA file unexpectedly exists: ${file}`);
-}
-if (!revertedPwaFiles.some(existsSync)) pass('reverted PWA foundation remains absent');
+if (pwaTextAssets.every(existsSync)) pass('text-only PWA foundation is present');
+else fail('one or more text-only PWA foundation files are missing');
+if (!existsSync('public/icons/carled-192.png') && !existsSync('public/icons/carled-512.png')) {
+    pass('legacy binary PWA icons remain absent');
+} else fail('binary PWA icons must be replaced by the SVG asset');
 
 if (process.argv.includes('--staging-env')) {
     const appEnv = process.env.APP_ENV;

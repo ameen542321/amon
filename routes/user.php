@@ -23,6 +23,7 @@ use App\Http\Controllers\Tools\StockMovementDateCorrectionController;
 use App\Http\Controllers\InventoryCountController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
+use App\Http\Controllers\Api\AppContextController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,10 @@ Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(function () {
+
+    Route::get('/api/v1/app-context', AppContextController::class)
+        ->middleware('throttle:60,1')
+        ->name('api.app-context');
 
     // API جلسة الويب للـPWA؛ لا يستخدم Token ولا يفتح وصولاً عامًا لتطبيق Flutter.
     Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
