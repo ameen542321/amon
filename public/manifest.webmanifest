@@ -13,7 +13,7 @@
   "theme_color": "#00C4B4",
   "icons": [
     {
-      "src": "/icons/carled.svg",
+      "src": "/carled.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

@@ -68,6 +68,7 @@ npm run test:pwa:deployment -- https://carled.ddns.net
 curl.exe -I https://carled.ddns.net/manifest.webmanifest
 curl.exe -I https://carled.ddns.net/sw.js
 curl.exe -I https://carled.ddns.net/offline.html
+curl.exe -I https://carled.ddns.net/carled.svg
 ```
 
 الفحص الأول يجري اتصال HTTPS حقيقيًا ويتحقق من الحالة وContent-Type وManifest
@@ -88,6 +89,16 @@ curl.exe -I https://carled.ddns.net/offline.html
 إذا كان HTTPS ينتهي في Reverse Proxy قبل Apache، تأكد أن Laravel يستقبل معلومات
 البروتوكول الآمن من Proxy موثوق؛ لا تثق بجميع Proxies دون حصرها. وبعد تعديل `.env`
 نفذ `php artisan optimize:clear` قبل إعادة الاختبار.
+
+### أخطاء النشر التي عولجت
+
+- الصفحة العامة `/` تستخدم `resources/views/welcome.blade.php` ولا تمر بقالب
+  المصادقة أو لوحة التحكم؛ لذلك ترتبط الآن بالـManifest والأيقونة ولوحة التثبيت
+  مباشرة.
+- نُقلت الأيقونة النصية من `/icons/carled.svg` إلى `/carled.svg` لأن اختبار XAMPP
+  أثبت أن مجلد `public/icons` لم يصل إلى النشر بينما الملفات الجذرية وصلت بنجاح.
+- رُفع إصدار Cache إلى `carled-shell-v3` حتى يحذف المتصفح Cache القديم الذي كان
+  يشير إلى مسار الأيقونة السابق.
 
 ## حدود المرحلة
 

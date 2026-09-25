@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00C4B4">
+    <meta name="application-name" content="CARLED">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="{{ asset('carled.svg') }}">
     <title>Carled</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -221,5 +225,6 @@
 
     </footer>
 
+    <x-pwa-install-panel />
 </body>
 </html>

@@ -9,7 +9,7 @@ const requiredFiles = [
     'public/offline.html',
     'public/css/offline.css',
     'public/js/offline.js',
-    'public/icons/carled.svg',
+    'public/carled.svg',
     'scripts/check-pwa-deployment.mjs',
 ];
 
@@ -30,7 +30,7 @@ if (manifest.icons?.length !== 1
     fail('manifest must use the single scalable SVG icon');
 }
 
-const icon = readFileSync('public/icons/carled.svg', 'utf8');
+const icon = readFileSync('public/carled.svg', 'utf8');
 if (!icon.includes('viewBox="0 0 512 512"')) fail('SVG icon viewBox is invalid');
 
 const apache = readFileSync('public/.htaccess', 'utf8');
@@ -84,11 +84,18 @@ if (!inventoryDraft.includes('draft.serverVersion === serverVersion')) {
     fail('inventory drafts must reject stale server versions');
 }
 
-for (const layoutPath of ['resources/views/dashboard/app.blade.php', 'resources/views/layouts/auth.blade.php']) {
+for (const layoutPath of [
+    'resources/views/welcome.blade.php',
+    'resources/views/dashboard/app.blade.php',
+    'resources/views/layouts/auth.blade.php',
+]) {
     const layout = readFileSync(layoutPath, 'utf8');
     if (!layout.includes('manifest.webmanifest')) fail(`${layoutPath} does not link the manifest`);
-    if (!layout.includes('icons/carled.svg')) fail(`${layoutPath} does not link the SVG icon`);
+    if (!layout.includes('carled.svg')) fail(`${layoutPath} does not link the SVG icon`);
 }
+
+const welcome = readFileSync('resources/views/welcome.blade.php', 'utf8');
+if (!welcome.includes('<x-pwa-install-panel />')) fail('public home page does not expose the PWA install panel');
 
 if (failures.length) {
     for (const message of failures) console.error(`FAIL: ${message}`);

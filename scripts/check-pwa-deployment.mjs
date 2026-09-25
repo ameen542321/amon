@@ -65,7 +65,7 @@ try {
     else pass('sw.js response contains the CARLED worker contract');
 
     await fetchPath('/offline.html', ['text/html']);
-    await fetchPath('/icons/carled.svg', ['image/svg+xml']);
+    await fetchPath('/carled.svg', ['image/svg+xml']);
 } catch (error) {
     fail(`HTTPS request failed: ${error.message}`);
 }

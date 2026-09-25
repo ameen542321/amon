@@ -89,7 +89,7 @@ const pwaTextAssets = [
     'public/manifest.webmanifest',
     'public/sw.js',
     'public/offline.html',
-    'public/icons/carled.svg',
+    'public/carled.svg',
     'resources/js/features/pwa/register-service-worker.js',
 ];
 if (pwaTextAssets.every(existsSync)) pass('text-only PWA foundation is present');

@@ -1,10 +1,10 @@
-const CACHE_VERSION = 'carled-shell-v2';
+const CACHE_VERSION = 'carled-shell-v3';
 const OFFLINE_ASSETS = [
     '/offline.html',
     '/css/offline.css',
     '/js/offline.js',
     '/fonts/cairo/cairo-arabic-wght-normal.woff2',
-    '/icons/carled.svg',
+    '/carled.svg',
 ];
 const PRIVATE_PREFIXES = ['/admin', '/user', '/accountant', '/api', '/device-token'];
 

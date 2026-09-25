@@ -30,9 +30,9 @@ class PwaFoundationContractTest extends TestCase
         self::assertSame('rtl', $manifest['dir']);
         self::assertSame('ar', $manifest['lang']);
         self::assertCount(1, $manifest['icons']);
-        self::assertSame('/icons/carled.svg', $manifest['icons'][0]['src']);
+        self::assertSame('/carled.svg', $manifest['icons'][0]['src']);
         self::assertSame('image/svg+xml', $manifest['icons'][0]['type']);
-        self::assertFileExists($root.'/public/icons/carled.svg');
+        self::assertFileExists($root.'/public/carled.svg');
         self::assertFileDoesNotExist($root.'/public/icons/carled-192.png');
         self::assertFileDoesNotExist($root.'/public/icons/carled-512.png');
     }
@@ -41,10 +41,14 @@ class PwaFoundationContractTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
 
-        foreach (['resources/views/dashboard/app.blade.php', 'resources/views/layouts/auth.blade.php'] as $path) {
+        foreach ([
+            'resources/views/welcome.blade.php',
+            'resources/views/dashboard/app.blade.php',
+            'resources/views/layouts/auth.blade.php',
+        ] as $path) {
             $layout = file_get_contents($root.'/'.$path);
             self::assertStringContainsString('manifest.webmanifest', $layout);
-            self::assertStringContainsString('icons/carled.svg', $layout);
+            self::assertStringContainsString('carled.svg', $layout);
             self::assertStringNotContainsString('<style', $layout);
             self::assertStringNotContainsString('style="', $layout);
         }
@@ -74,8 +78,10 @@ class PwaFoundationContractTest extends TestCase
         $panel = file_get_contents($root.'/resources/views/components/pwa-install-panel.blade.php');
         $registration = file_get_contents($root.'/resources/js/features/pwa/register-service-worker.js');
         $layout = file_get_contents($root.'/resources/views/dashboard/app.blade.php');
+        $welcome = file_get_contents($root.'/resources/views/welcome.blade.php');
 
         self::assertStringContainsString('<x-pwa-install-panel />', $layout);
+        self::assertStringContainsString('<x-pwa-install-panel />', $welcome);
         self::assertStringContainsString('data-pwa-install', $panel);
         self::assertStringContainsString('data-pwa-update', $panel);
         self::assertStringNotContainsString('<style', $panel);
