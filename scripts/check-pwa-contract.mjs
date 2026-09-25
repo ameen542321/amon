@@ -11,6 +11,7 @@ const requiredFiles = [
     'public/js/offline.js',
     'public/carled.svg',
     'scripts/check-pwa-deployment.mjs',
+    'scripts/check-pwa-browser.mjs',
 ];
 
 for (const file of requiredFiles) {
@@ -54,6 +55,12 @@ if (!deploymentCheck.includes("manifest.display !== 'standalone'")) {
 if (!deploymentCheck.includes("await fetchPath(svgIcons[0].src")) {
     fail('deployment check does not fetch the icon declared by the live manifest');
 }
+
+const browserCheck = readFileSync('scripts/check-pwa-browser.mjs', 'utf8');
+if (!browserCheck.includes('navigator.serviceWorker.ready')) fail('browser check does not await service-worker activation');
+if (!browserCheck.includes('caches.keys()')) fail('browser check does not inspect browser Cache Storage');
+if (!browserCheck.includes('Network.emulateNetworkConditions')) fail('browser check does not emulate an offline browser');
+if (!browserCheck.includes("method: 'POST'")) fail('browser check does not verify network-only offline mutations');
 
 const worker = readFileSync('public/sw.js', 'utf8');
 for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']) {

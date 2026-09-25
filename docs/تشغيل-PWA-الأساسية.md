@@ -65,6 +65,7 @@ Worker تخزين مسارات التطبيق الخاصة، أو غاب ربط 
 
 ```bash
 npm run test:pwa:deployment -- https://carled.ddns.net
+npm run test:pwa:browser -- https://carled.ddns.net
 curl.exe -I https://carled.ddns.net/manifest.webmanifest
 curl.exe -I https://carled.ddns.net/sw.js
 curl.exe -I https://carled.ddns.net/offline.html
@@ -78,6 +79,16 @@ curl.exe -I https://carled.ddns.net/carled.svg
 تسجيل `/sw.js`؛ وبذلك يكشف نسيان `npm run build` أو نشر HTML دون حزمة التطبيق.
 ويتحقق من خصائص التثبيت الحية (`id` و`scope` و`start_url` و`standalone` واللغة
 والاتجاه)، ثم يجلب مسار أيقونة SVG المعلن داخل Manifest نفسه بدل افتراض مساره.
+
+الفحص الثاني يفتح Chrome أو Edge فعليًا بوضع Headless دون مكتبات أو ملفات ثنائية
+إضافية داخل المشروع، ثم يتحقق من تفعيل Service Worker ونطاقه، ومحتوى Cache
+Storage، وعدم تخزين مسارات التطبيق الخاصة، وظهور Offline shell عند قطع الشبكة،
+وبقاء طلبات POST دون Queue عند الانقطاع. إذا لم يكتشف المتصفح تلقائيًا على Windows:
+
+```bash
+set "CHROME_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe"
+npm run test:pwa:browser -- https://carled.ddns.net
+```
 
 المتطلبات:
 

@@ -97,9 +97,11 @@ class PwaFoundationContractTest extends TestCase
         $root = dirname(__DIR__, 2);
         $package = json_decode(file_get_contents($root.'/package.json'), true, flags: JSON_THROW_ON_ERROR);
         $checker = file_get_contents($root.'/scripts/check-pwa-deployment.mjs');
+        $browserChecker = file_get_contents($root.'/scripts/check-pwa-browser.mjs');
         $apache = file_get_contents($root.'/public/.htaccess');
 
         self::assertSame('node scripts/check-pwa-deployment.mjs', $package['scripts']['test:pwa:deployment']);
+        self::assertSame('node scripts/check-pwa-browser.mjs', $package['scripts']['test:pwa:browser']);
         self::assertStringContainsString("candidate.protocol !== 'https:'", $checker);
         self::assertStringContainsString("fetchPath('/manifest.webmanifest'", $checker);
         self::assertStringContainsString("fetchPath('/sw.js'", $checker);
@@ -108,6 +110,9 @@ class PwaFoundationContractTest extends TestCase
         self::assertStringContainsString("moduleSource.includes('/sw.js')", $checker);
         self::assertStringContainsString("manifest.display !== 'standalone'", $checker);
         self::assertStringContainsString('await fetchPath(svgIcons[0].src', $checker);
+        self::assertStringContainsString('navigator.serviceWorker.ready', $browserChecker);
+        self::assertStringContainsString('Network.emulateNetworkConditions', $browserChecker);
+        self::assertStringContainsString("method: 'POST'", $browserChecker);
         self::assertStringContainsString('AddType application/manifest+json .webmanifest', $apache);
         self::assertStringContainsString('no-cache, no-store, must-revalidate', $apache);
     }
