@@ -173,6 +173,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     window.addEventListener('pagehide', flushDraft);
+    window.addEventListener('carled:pwa-prepare-update', (event) => {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+        event.detail?.pending?.push(persistDraft());
+    });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') flushDraft();
     });

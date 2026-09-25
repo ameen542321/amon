@@ -18,5 +18,31 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "لوحة المالك",
+      "short_name": "المالك",
+      "url": "/user/dashboard",
+      "icons": [
+        {
+          "src": "/carled.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "لوحة المحاسب",
+      "short_name": "المحاسب",
+      "url": "/accountant/dashboard",
+      "icons": [
+        {
+          "src": "/carled.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
   ]
 }

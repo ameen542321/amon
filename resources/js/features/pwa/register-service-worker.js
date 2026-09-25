@@ -1,5 +1,6 @@
 const canRegister = 'serviceWorker' in navigator
     && (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname));
+const buildVersion = document.querySelector('meta[name="pwa-build-version"]')?.content ?? 'development';
 
 const panel = document.querySelector('[data-pwa-panel]');
 const title = panel?.querySelector('[data-pwa-title]');
@@ -84,7 +85,12 @@ installButton?.addEventListener('click', async () => {
     if (choice.outcome !== 'accepted') hidePanel();
 });
 
-updateButton?.addEventListener('click', () => {
+updateButton?.addEventListener('click', async () => {
+    updateButton.disabled = true;
+    message.textContent = 'جارٍ حفظ المسودة قبل تطبيق التحديث…';
+    const pending = [];
+    window.dispatchEvent(new CustomEvent('carled:pwa-prepare-update', { detail: { pending } }));
+    await Promise.allSettled(pending);
     activeRegistration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
 });
 
@@ -100,7 +106,7 @@ if (!navigator.onLine) showOffline();
 if (canRegister) {
     window.addEventListener('load', async () => {
         try {
-            activeRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            activeRegistration = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(buildVersion)}`, { scope: '/' });
             if (activeRegistration.waiting) showUpdate();
 
             activeRegistration.addEventListener('updatefound', () => {
@@ -110,7 +116,7 @@ if (canRegister) {
                 });
             });
         } catch (error) {
-            console.warn('تعذر تسجيل Service Worker.', error);
+            console.warn(`تعذر تسجيل Service Worker للإصدار ${buildVersion}.`, error);
         }
     });
 

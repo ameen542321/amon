@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'carled-shell-v3';
+const WORKER_VERSION = new URL(self.location.href).searchParams.get('v') || 'development';
+const CACHE_VERSION = `carled-shell-${WORKER_VERSION}`;
 const OFFLINE_ASSETS = [
     '/offline.html',
     '/css/offline.css',
@@ -35,16 +36,14 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    if (request.method !== 'GET' || url.origin !== self.location.origin || isPrivateApplicationRequest(url)) {
-        return;
-    }
+    if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
     if (request.mode === 'navigate') {
-        event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
+        event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => caches.match('/offline.html')));
         return;
     }
 
-    if (!isStaticAsset(url)) return;
+    if (isPrivateApplicationRequest(url) || !isStaticAsset(url)) return;
 
     event.respondWith(caches.match(request).then(async (cached) => {
         if (cached) return cached;

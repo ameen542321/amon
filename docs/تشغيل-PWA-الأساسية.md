@@ -198,3 +198,18 @@ npm run test:pwa:deployment -- https://carled.ddns.net
 - يدعم النطاق الأول الحساب والإعدادات والمتاجر والأجهزة والإشعارات فقط.
 - تبقى العمليات الحساسة وOutbox معطلة حتى اجتياز بوابة العزل على عميل تجريبي.
 - مرجع النشر والاختبار: [`تشغيل-API-الأجهزة-والتطبيقات.md`](تشغيل-API-الأجهزة-والتطبيقات.md).
+
+## إغلاق المرحلة الثالثة
+
+- يحدد `PWA_BUILD_VERSION` اسم Cache ورابط تسجيل Service Worker؛ غيّره مع كل نشر.
+- التنقل Network First ويعود إلى Offline shell فقط، ولا يخزن HTML الخاص.
+- `/api` ولوحات المالك والمحاسب والإدارة Network Only.
+- قبل `SKIP_WAITING` يرسل العميل `carled:pwa-prepare-update` وينتظر وعود حفظ المسودات.
+- يحتوي Manifest اختصاري لوحة المالك والمحاسب مع بقاء التحقق من الدخول على الخادم.
+
+```bash
+npm run test:pwa
+npm run test:pwa:phase3
+npm run build
+npm run test:pwa:deployment -- https://carled.ddns.net
+```
