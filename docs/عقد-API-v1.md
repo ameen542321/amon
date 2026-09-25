@@ -2,8 +2,9 @@
 
 ## النطاق
 
-هذا العقد خاص حاليًا بجلسات الويب للمالك والمحاسب. لا يعد مصادقة Token لتطبيق
-Flutter، ولا يسمح بتجاوز CSRF أو حراس الحساب والمتجر.
+يدعم العقد مسارين للمصادقة: جلسات الويب للـPWA عبر Cookie وCSRF، وBearer Token
+قابل للإبطال ومقيد بجهاز للعملاء المخصصين. كلاهما يطبق عزل الحساب والمتجر، ولا
+يسمح الرمز بتجاوز الصلاحيات أو حالة الاشتراك.
 
 المسارات الحالية:
 
@@ -11,6 +12,8 @@ Flutter، ولا يسمح بتجاوز CSRF أو حراس الحساب والم�
 - `GET /accountant/api/v1/app-context`
 - قائمة الإشعارات وعدد غير المقروء للمالك والمحاسب.
 - تعليم الإشعار كمقروء وإخفاؤه مع `Idempotency-Key`.
+- `/api/v1/auth/*` و`/api/v1/me` و`/api/v1/app-config` و`/api/v1/stores` و
+  `/api/v1/devices` ومركز إشعارات Bearer.
 
 ## استجابة النجاح
 
@@ -54,7 +57,9 @@ Flutter، ولا يسمح بتجاوز CSRF أو حراس الحساب والم�
 | 404 | `NOT_FOUND` |
 | 405 | `METHOD_NOT_ALLOWED` |
 | 419 | `SESSION_EXPIRED` |
+| 422 | `INVALID_CREDENTIALS` أو `CURRENT_DEVICE_REQUIRES_LOGOUT` |
 | 422 | `VALIDATION_FAILED` أو `IDEMPOTENCY_ERROR` |
+| 426 | `UPDATE_REQUIRED` |
 | 429 | `RATE_LIMITED` |
 | 500 | `INTERNAL_ERROR` |
 
@@ -95,3 +100,6 @@ IndexedDB. إعادة المحاولة قرار للميزة المستهلكة�
 3. لا تنشئ Controller شكل خطأ خاصًا بها؛ تضاف الحاجة المشتركة إلى العقد المركزي.
 4. أي Mutation قابلة لإعادة المحاولة تستخدم `idempotency` بعد مراجعة Transaction.
 5. لا تغير بنية `data` الحالية بصورة كاسرة داخل v1؛ أنشئ إصدارًا جديدًا عند الحاجة.
+
+مصادقة الأجهزة وأكواد `TOKEN_MISSING` و`TOKEN_INVALID` و`TOKEN_ABILITY_DENIED`
+موثقة تفصيليًا في [`تشغيل-API-الأجهزة-والتطبيقات.md`](تشغيل-API-الأجهزة-والتطبيقات.md).

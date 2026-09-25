@@ -7,6 +7,7 @@
     "test:visual": "node scripts/check-visual-identity.mjs",
     "test:contrast": "npm run build && node scripts/check-browser-contrast.mjs",
     "test:notifications": "node scripts/check-notification-readiness.mjs",
+    "test:mobile-api": "node scripts/check-mobile-api-readiness.mjs",
     "test:pwa": "node scripts/check-pwa-contract.mjs",
     "test:pwa:deployment": "node scripts/check-pwa-deployment.mjs",
     "test:pwa:browser": "node scripts/check-pwa-browser.mjs"

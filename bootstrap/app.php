@@ -61,6 +61,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // إعادة الطلبات API الحساسة بأمان عند ضعف الشبكة دون تكرار الأثر.
             'idempotency' => \App\Http\Middleware\EnsureIdempotentRequest::class,
             'api.contract' => \App\Http\Middleware\ApplyApiContract::class,
+            'auth.api-token' => \App\Http\Middleware\AuthenticateApiToken::class,
+            'ability' => \App\Http\Middleware\RequireApiAbility::class,
 
                'store.check' => \App\Http\Middleware\UnifiedStoreGuard::class,
         ]);
@@ -68,7 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Illuminate\Validation\ValidationException $exception, \Illuminate\Http\Request $request) {
-            if (!$request->is('*/api/v1/*')) {
+            if (!$request->is('api/v1/*', '*/api/v1/*')) {
                 return null;
             }
 
@@ -81,31 +83,31 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $exception, \Illuminate\Http\Request $request) {
-            return $request->is('*/api/v1/*')
+            return $request->is('api/v1/*', '*/api/v1/*')
                 ? \App\Support\Api\ApiResponse::error('UNAUTHENTICATED', 'انتهت جلسة الحساب أو أنها غير صالحة.', 401)
                 : null;
         });
 
         $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $exception, \Illuminate\Http\Request $request) {
-            return $request->is('*/api/v1/*')
+            return $request->is('api/v1/*', '*/api/v1/*')
                 ? \App\Support\Api\ApiResponse::error('FORBIDDEN', 'لا يملك الحساب صلاحية تنفيذ هذا الطلب.', 403)
                 : null;
         });
 
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $exception, \Illuminate\Http\Request $request) {
-            return $request->is('*/api/v1/*')
+            return $request->is('api/v1/*', '*/api/v1/*')
                 ? \App\Support\Api\ApiResponse::error('NOT_FOUND', 'السجل المطلوب غير موجود أو غير متاح لهذا الحساب.', 404)
                 : null;
         });
 
         $exceptions->render(function (\Illuminate\Session\TokenMismatchException $exception, \Illuminate\Http\Request $request) {
-            return $request->is('*/api/v1/*')
+            return $request->is('api/v1/*', '*/api/v1/*')
                 ? \App\Support\Api\ApiResponse::error('SESSION_EXPIRED', 'انتهت جلسة الحماية. حدّث الصفحة ثم أعد المحاولة.', 419)
                 : null;
         });
 
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $exception, \Illuminate\Http\Request $request) {
-            if (!$request->is('*/api/v1/*')) {
+            if (!$request->is('api/v1/*', '*/api/v1/*')) {
                 return null;
             }
 
@@ -127,7 +129,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\Throwable $exception, \Illuminate\Http\Request $request) {
-            if (!$request->is('*/api/v1/*')) {
+            if (!$request->is('api/v1/*', '*/api/v1/*')) {
                 return null;
             }
 

@@ -94,6 +94,8 @@ class NotificationController extends Controller
 
     private function currentAccount(): ?Authenticatable
     {
-        return Auth::guard('accountant')->user() ?? Auth::guard('web')->user();
+        return request()->attributes->get('api_actor')
+            ?? Auth::guard('accountant')->user()
+            ?? Auth::guard('web')->user();
     }
 }

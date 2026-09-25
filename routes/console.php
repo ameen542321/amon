@@ -16,3 +16,7 @@ Schedule::command('notifications:cleanup')
 Schedule::command('idempotency:cleanup')
     ->hourly()
     ->withoutOverlapping();
+
+Schedule::command('api-tokens:cleanup')
+    ->dailyAt('03:00')
+    ->withoutOverlapping();

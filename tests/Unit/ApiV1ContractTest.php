@@ -28,6 +28,7 @@ class ApiV1ContractTest extends TestCase
         self::assertStringContainsString('AuthorizationException', $bootstrap);
         self::assertStringContainsString('ModelNotFoundException', $bootstrap);
         self::assertStringContainsString('TokenMismatchException', $bootstrap);
+        self::assertStringContainsString("is('api/v1/*', '*/api/v1/*')", $bootstrap);
     }
 
     public function test_browser_client_preserves_idempotency_and_never_claims_offline_success(): void

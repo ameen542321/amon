@@ -23,7 +23,7 @@ class EnsureIdempotentRequest
             return $this->error('يلزم إرسال Idempotency-Key صالح بطول 8 إلى 255 حرفًا.', 422);
         }
 
-        $actor = $this->actor();
+        $actor = $this->actor($request);
         if (!$actor) {
             return $this->error('انتهت جلسة الحساب أو أنها غير صالحة.', 401);
         }
@@ -159,9 +159,11 @@ class EnsureIdempotentRequest
             ->all();
     }
 
-    private function actor(): ?Authenticatable
+    private function actor(Request $request): ?Authenticatable
     {
-        return Auth::guard('accountant')->user() ?? Auth::guard('web')->user();
+        return $request->attributes->get('api_actor')
+            ?? Auth::guard('accountant')->user()
+            ?? Auth::guard('web')->user();
     }
 
     private function identity(Authenticatable $actor): array

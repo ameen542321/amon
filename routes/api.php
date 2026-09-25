@@ -1,24 +1,34 @@
 <?php
 
+use App\Http\Controllers\Api\AuthTokenController;
+use App\Http\Controllers\Api\MobileContextController;
+use App\Http\Controllers\Api\NotificationController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Cashier\QuickSaleController;
 
-Route::get('/ping', function () {
-    return 'pong';
+// توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
+Route::get('/ping', fn (): string => 'pong');
+
+Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function (): void {
+    Route::post('/auth/login', [AuthTokenController::class, 'login'])
+        ->middleware('throttle:mobile-login')->name('auth.login');
+
+    Route::middleware(['auth.api-token', 'throttle:mobile-api'])->group(function (): void {
+        Route::post('/auth/logout', [AuthTokenController::class, 'logout'])->name('auth.logout');
+        Route::post('/auth/logout-all', [AuthTokenController::class, 'logoutAll'])->name('auth.logout-all');
+        Route::get('/me', [MobileContextController::class, 'me'])->middleware('ability:app:read')->name('me');
+        Route::get('/app-config', [MobileContextController::class, 'appConfig'])->middleware('ability:app:read')->name('app-config');
+        Route::get('/stores', [MobileContextController::class, 'stores'])->middleware('ability:app:read')->name('stores');
+        Route::get('/devices', [MobileContextController::class, 'devices'])->middleware('ability:devices:manage')->name('devices.index');
+        Route::delete('/devices/{token}', [MobileContextController::class, 'revokeDevice'])
+            ->middleware(['ability:devices:manage', 'idempotency'])->name('devices.destroy');
+
+        Route::prefix('notifications')->name('notifications.')->middleware('ability:notifications:read')->group(function (): void {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::patch('/{notification}/read', [NotificationController::class, 'markRead'])
+                ->middleware(['ability:notifications:write', 'idempotency'])->name('read');
+            Route::delete('/{notification}', [NotificationController::class, 'hide'])
+                ->middleware(['ability:notifications:write', 'idempotency'])->name('hide');
+        });
+    });
 });
-// Route::get('/products/search', function () {
-//     $query = request('query');
-//     $storeId = auth()->user()->store_id;
-
-//     return \App\Models\Product::where('store_id', $storeId)
-//         ->where(function ($q) use ($query) {
-//             $q->where('name', 'like', "%$query%")
-//               ->orWhere('barcode', 'like', "%$query%");
-//         })
-//         ->limit(10)
-//         ->get();
-// });
-
-// Route::get('/quick-sale/credit-persons', [QuickSaleController::class, 'creditPersons'])
-//     ->middleware('auth')
-//     ->name('quick-sale.credit-persons');
