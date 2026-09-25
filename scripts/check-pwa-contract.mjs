@@ -10,6 +10,7 @@ const requiredFiles = [
     'public/css/offline.css',
     'public/js/offline.js',
     'public/icons/carled.svg',
+    'scripts/check-pwa-deployment.mjs',
 ];
 
 for (const file of requiredFiles) {
@@ -31,6 +32,18 @@ if (manifest.icons?.length !== 1
 
 const icon = readFileSync('public/icons/carled.svg', 'utf8');
 if (!icon.includes('viewBox="0 0 512 512"')) fail('SVG icon viewBox is invalid');
+
+const apache = readFileSync('public/.htaccess', 'utf8');
+if (!apache.includes('AddType application/manifest+json .webmanifest')) {
+    fail('Apache manifest MIME type is missing');
+}
+if (!apache.includes('Header set Cache-Control "no-cache, no-store, must-revalidate"')) {
+    fail('Apache service-worker cache protection is missing');
+}
+
+const deploymentCheck = readFileSync('scripts/check-pwa-deployment.mjs', 'utf8');
+if (!deploymentCheck.includes("candidate.protocol !== 'https:'")) fail('deployment check does not require HTTPS');
+if (!deploymentCheck.includes("fetchPath('/sw.js'")) fail('deployment check does not inspect the service worker');
 
 const worker = readFileSync('public/sw.js', 'utf8');
 for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']) {

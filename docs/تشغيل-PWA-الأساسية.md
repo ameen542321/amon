@@ -61,19 +61,33 @@ Worker تخزين مسارات التطبيق الخاصة، أو غاب ربط 
 
 ## التحقق على الاستضافة
 
+بيئة الاختبار الحالية هي `https://carled.ddns.net/`. بعد نشر الملفات وبنائها نفذ:
+
 ```bash
-curl -I https://example.com/manifest.webmanifest
-curl -I https://example.com/sw.js
-curl -I https://example.com/offline.html
+npm run test:pwa:deployment -- https://carled.ddns.net
+curl.exe -I https://carled.ddns.net/manifest.webmanifest
+curl.exe -I https://carled.ddns.net/sw.js
+curl.exe -I https://carled.ddns.net/offline.html
 ```
+
+الفحص الأول يجري اتصال HTTPS حقيقيًا ويتحقق من الحالة وContent-Type وManifest
+وأيقونة SVG وسياسة Cache الخاصة بـService Worker. فشل الشهادة أو السلسلة أو اسم
+النطاق يؤدي إلى فشل طلب Node بدل تجاوز الخطأ.
 
 المتطلبات:
 
 - HTTPS صالح، باستثناء localhost في التطوير.
 - جذر الويب يشير إلى `public`.
 - `sw.js` متاح من جذر النطاق.
+- ملف `.env` على جهاز XAMPP يحتوي `APP_URL=https://carled.ddns.net` و
+  `SESSION_SECURE_COOKIE=true`، مع بقاء `SESSION_DOMAIN=null` للحصول على Cookie
+  مقيدة بالمضيف ما لم توجد حاجة موثقة لمشاركتها مع نطاق فرعي.
 - لا تقدم CDN نسخة قديمة طويلة العمر من `sw.js` أو Manifest.
 - بعد النشر نفذ `npm run build` ثم اختبر التثبيت والانقطاع على جهاز Android حقيقي.
+
+إذا كان HTTPS ينتهي في Reverse Proxy قبل Apache، تأكد أن Laravel يستقبل معلومات
+البروتوكول الآمن من Proxy موثوق؛ لا تثق بجميع Proxies دون حصرها. وبعد تعديل `.env`
+نفذ `php artisan optimize:clear` قبل إعادة الاختبار.
 
 ## حدود المرحلة
 

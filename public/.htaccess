@@ -24,6 +24,11 @@
     RewriteRule ^ index.php [L]
 </IfModule>
 
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+    AddType image/svg+xml .svg
+</IfModule>
+
 <IfModule mod_headers.c>
     <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
         Header set Cache-Control "no-cache, no-store, must-revalidate"

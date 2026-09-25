@@ -85,4 +85,20 @@ class PwaFoundationContractTest extends TestCase
         self::assertStringContainsString("'online'", $registration);
         self::assertStringContainsString("postMessage({ type: 'SKIP_WAITING' })", $registration);
     }
+
+    public function test_https_deployment_check_validates_public_pwa_contract(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $package = json_decode(file_get_contents($root.'/package.json'), true, flags: JSON_THROW_ON_ERROR);
+        $checker = file_get_contents($root.'/scripts/check-pwa-deployment.mjs');
+        $apache = file_get_contents($root.'/public/.htaccess');
+
+        self::assertSame('node scripts/check-pwa-deployment.mjs', $package['scripts']['test:pwa:deployment']);
+        self::assertStringContainsString("candidate.protocol !== 'https:'", $checker);
+        self::assertStringContainsString("fetchPath('/manifest.webmanifest'", $checker);
+        self::assertStringContainsString("fetchPath('/sw.js'", $checker);
+        self::assertStringContainsString("fetchPath('/offline.html'", $checker);
+        self::assertStringContainsString('AddType application/manifest+json .webmanifest', $apache);
+        self::assertStringContainsString('no-cache, no-store, must-revalidate', $apache);
+    }
 }
