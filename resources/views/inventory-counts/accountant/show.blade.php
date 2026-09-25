@@ -22,8 +22,8 @@
     @if(session('success'))<div class="ui-alert ui-alert-success" role="status">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="ui-alert ui-alert-danger" role="alert"><strong>تعذر إكمال العملية:</strong> {{ $errors->first() }}</div>@endif
     <div class="flex items-center gap-2">
-        <x-ui.badge variant="info"><span data-inventory-count-draft-status>تُحفظ مدخلاتك مؤقتًا في هذا المتصفح</span></x-ui.badge>
-        <x-ui.help title="حفظ الكميات" body="يحفظ المتصفح ما تكتبه تلقائيًا لتستكمل الجرد عند العودة. بعد إكمال المنتجات اضغط حفظ جميع الكميات لتثبيتها في الخادم قبل إرسال النتائج للمالك." />
+        <x-ui.badge variant="info"><span data-inventory-count-draft-status>تُحفظ مسودة الجرد محليًا في هذا الجهاز</span></x-ui.badge>
+        <x-ui.help title="حفظ الكميات" body="يحفظ المتصفح ما تكتبه في قاعدة IndexedDB المحلية لتستكمل الجرد عند العودة. المسودة لا تُرسل تلقائيًا ولا تغيّر المخزون؛ اضغط حفظ جميع الكميات عند توفر الإنترنت لتثبيتها في الخادم." />
     </div>
 
     <form method="POST" action="{{ route('accountant.inventory-counts.items.bulk-update', $session) }}" class="space-y-4"

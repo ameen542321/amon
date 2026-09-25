@@ -59,6 +59,18 @@ if (!panel.includes('data-pwa-install') || !panel.includes('data-pwa-update')) {
     fail('PWA panel install/update controls are missing');
 }
 
+const draftStore = readFileSync('resources/js/features/pwa/draft-store.js', 'utf8');
+const inventoryDraft = readFileSync('resources/js/features/accountant/inventory-count.js', 'utf8');
+if (!draftStore.includes('window.indexedDB.open(DATABASE_NAME')) fail('IndexedDB draft store is missing');
+if (!draftStore.includes("createObjectStore(DRAFT_STORE, { keyPath: 'key' })")) {
+    fail('IndexedDB drafts object store contract is missing');
+}
+if (inventoryDraft.includes('window.localStorage.setItem')) fail('inventory drafts must not write to localStorage');
+if (!inventoryDraft.includes('migrateLegacyDraft')) fail('legacy localStorage draft migration is missing');
+if (!inventoryDraft.includes('draft.serverVersion === serverVersion')) {
+    fail('inventory drafts must reject stale server versions');
+}
+
 for (const layoutPath of ['resources/views/dashboard/app.blade.php', 'resources/views/layouts/auth.blade.php']) {
     const layout = readFileSync(layoutPath, 'utf8');
     if (!layout.includes('manifest.webmanifest')) fail(`${layoutPath} does not link the manifest`);

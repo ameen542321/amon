@@ -922,7 +922,9 @@ API v1 Controller ────┘
 
 أُنجز أساس PWA النصي الآمن: Manifest عربي RTL، وأيقونة SVG واحدة بدل ملفات PNG
 الثنائية، وOffline shell عامة، وService Worker يستبعد المسارات الخاصة والعمليات
-التعديلية من التخزين، وApp Context محمي بالجلسة مع Request ID. تبقى IndexedDB
-والمزامنة وPush subscription وToken الخاص بـFlutter خارج هذه الدفعة.
+التعديلية من التخزين، وApp Context محمي بالجلسة مع Request ID. تستخدم مسودة جرد
+المحاسب الآن IndexedDB مع ترحيل مسودة `localStorage` القديمة والتحقق من إصدار
+الخادم، بينما تبقى المزامنة التلقائية وPush subscription وToken الخاص بـFlutter
+خارج هذه الدفعة.
 
 مرجع التشغيل والاختبار: [`تشغيل-PWA-الأساسية.md`](تشغيل-PWA-الأساسية.md).
