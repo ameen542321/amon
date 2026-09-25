@@ -5,10 +5,10 @@ namespace App\Http\Middleware;
 use App\Models\Accountant;
 use App\Models\ApiIdempotencyKey;
 use App\Models\User;
+use App\Support\Api\ApiResponse;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\QueryException;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -177,16 +177,8 @@ class EnsureIdempotentRequest
         return in_array((string) ($exception->errorInfo[0] ?? $exception->getCode()), ['23000', '23505', '19'], true);
     }
 
-    private function error(string $message, int $status): JsonResponse
+    private function error(string $message, int $status): Response
     {
-        return response()->json([
-            'error' => [
-                'code' => 'IDEMPOTENCY_ERROR',
-                'message' => $message,
-            ],
-        ], $status)->withHeaders([
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return ApiResponse::error('IDEMPOTENCY_ERROR', $message, $status);
     }
 }

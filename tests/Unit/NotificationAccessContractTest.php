@@ -119,12 +119,13 @@ class NotificationAccessContractTest extends TestCase
 
         self::assertStringContainsString('->visibleTo($recipient)', $controller);
         self::assertStringContainsString('->cursorPaginate(', $controller);
+        self::assertStringContainsString('ApiResponse::success', $controller);
         self::assertStringContainsString("Auth::guard('accountant')->user()", $controller);
         self::assertStringContainsString("Auth::guard('web')->user()", $controller);
         self::assertStringContainsString("prefix('api/v1/notifications')", $ownerRoutes);
-        self::assertStringContainsString("middleware('throttle:120,1')", $ownerRoutes);
+        self::assertStringContainsString("middleware(['api.contract', 'throttle:120,1'])", $ownerRoutes);
         self::assertStringContainsString("prefix('api/v1/notifications')", $accountantRoutes);
-        self::assertStringContainsString("middleware('throttle:120,1')", $accountantRoutes);
+        self::assertStringContainsString("middleware(['api.contract', 'throttle:120,1'])", $accountantRoutes);
         self::assertStringNotContainsString('notifications', $publicApiRoutes);
     }
 

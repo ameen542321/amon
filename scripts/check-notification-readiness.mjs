@@ -17,6 +17,8 @@ const requiredFiles = [
     'app/Support/Notifications/NotificationRecipient.php',
     'app/Support/Notifications/NotificationPayload.php',
     'app/Http/Controllers/Api/NotificationController.php',
+    'app/Support/Api/ApiResponse.php',
+    'app/Http/Middleware/ApplyApiContract.php',
     'app/Http/Middleware/EnsureIdempotentRequest.php',
     'app/Console/Commands/CleanupApiIdempotencyKeys.php',
     'app/Models/ApiIdempotencyKey.php',
@@ -73,13 +75,17 @@ if (notificationModel.includes('scopeVisibleTo') && notificationModel.includes('
 } else fail('recipient-scoped notification visibility is missing');
 
 const api = source('app/Http/Controllers/Api/NotificationController.php');
-if (api.includes('->visibleTo($recipient)') && api.includes('private, no-store')) {
+const apiResponse = source('app/Support/Api/ApiResponse.php');
+if (api.includes('->visibleTo($recipient)')
+    && api.includes('ApiResponse::success')
+    && apiResponse.includes("'Cache-Control' => 'private, no-store'")) {
     pass('notification API scopes records and disables shared caching');
 } else fail('notification API scoping or cache protection changed');
 
 for (const routeFile of ['routes/user.php', 'routes/accountant.php']) {
     const routes = source(routeFile);
-    if (routes.includes("prefix('api/v1/notifications')") && routes.includes("middleware('throttle:120,1')")) {
+    if (routes.includes("prefix('api/v1/notifications')")
+        && routes.includes("middleware(['api.contract', 'throttle:120,1'])")) {
         pass(`notification API is throttled in ${routeFile}`);
     } else fail(`notification API throttle or prefix is missing in ${routeFile}`);
     if (routes.includes("middleware('idempotency')->name('read')")
@@ -98,6 +104,16 @@ if (schedule.includes("Schedule::command('idempotency:cleanup')")
     && schedule.includes('->hourly()')) {
     pass('idempotency retention cleanup is scheduled hourly');
 } else fail('idempotency cleanup schedule is missing');
+
+const apiContract = source('app/Http/Middleware/ApplyApiContract.php');
+const bootstrap = source('bootstrap/app.php');
+if (apiResponse.includes("'api_version' => 'v1'")
+    && apiResponse.includes("'request_id' => request()->attributes->get('request_id')")
+    && apiContract.includes("'X-API-Version', 'v1'")
+    && bootstrap.includes('VALIDATION_FAILED')
+    && bootstrap.includes('RATE_LIMITED')) {
+    pass('API v1 uses a versioned response and standardized error contract');
+} else fail('API v1 response/error contract is incomplete');
 
 const phpunit = source('phpunit.xml');
 if (phpunit.includes('name="DB_CONNECTION" value="sqlite" force="true"')

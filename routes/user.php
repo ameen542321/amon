@@ -44,11 +44,11 @@ Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
 Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(function () {
 
     Route::get('/api/v1/app-context', AppContextController::class)
-        ->middleware('throttle:60,1')
+        ->middleware(['api.contract', 'throttle:60,1'])
         ->name('api.app-context');
 
     // API جلسة الويب للـPWA؛ لا يستخدم Token ولا يفتح وصولاً عامًا لتطبيق Flutter.
-    Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
+    Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware(['api.contract', 'throttle:120,1'])->group(function () {
         Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
         Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
         Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->middleware('idempotency')->name('read');

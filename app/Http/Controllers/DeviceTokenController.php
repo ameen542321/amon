@@ -31,6 +31,9 @@ class DeviceTokenController extends Controller
             $data
         );
 
-        return response()->json(['status' => 'saved']);
+        return response()->json(['status' => 'saved'])->withHeaders([
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

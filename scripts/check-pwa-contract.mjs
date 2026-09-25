@@ -12,6 +12,7 @@ const requiredFiles = [
     'public/carled.svg',
     'scripts/check-pwa-deployment.mjs',
     'scripts/check-pwa-browser.mjs',
+    'resources/js/features/pwa/api-client.js',
 ];
 
 for (const file of requiredFiles) {
@@ -61,6 +62,14 @@ if (!browserCheck.includes('navigator.serviceWorker.ready')) fail('browser check
 if (!browserCheck.includes('caches.keys()')) fail('browser check does not inspect browser Cache Storage');
 if (!browserCheck.includes('Network.emulateNetworkConditions')) fail('browser check does not emulate an offline browser');
 if (!browserCheck.includes("method: 'POST'")) fail('browser check does not verify network-only offline mutations');
+
+const apiClient = readFileSync('resources/js/features/pwa/api-client.js', 'utf8');
+if (!apiClient.includes("headers.set('Idempotency-Key', options.idempotencyKey)")) {
+    fail('PWA API client does not preserve idempotency keys');
+}
+if (!apiClient.includes("code: 'NETWORK_ERROR'") || apiClient.includes('caches.open')) {
+    fail('PWA API client must report network failure without offline mutation caching');
+}
 
 const worker = readFileSync('public/sw.js', 'utf8');
 for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']) {
