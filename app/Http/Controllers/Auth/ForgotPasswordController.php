@@ -31,26 +31,22 @@ class ForgotPasswordController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (! $user) {
-            return back()->withErrors([
-                'email' => 'لا يوجد مستخدم مسجل بهذا البريد.',
-            ]);
+        if ($user) {
+            // إنشاء توكن وحفظه في جدول password_resets للمستخدم الموجود فقط.
+            $token = Str::random(64);
+
+            DB::table('password_resets')->updateOrInsert(
+                ['email' => $user->email],
+                [
+                    'token'      => bcrypt($token),
+                    'created_at' => Carbon::now(),
+                ]
+            );
+
+            $user->notify(new ResetPasswordNotification($token, $user->email));
         }
 
-        // إنشاء توكن وحفظه في جدول password_resets
-        $token = Str::random(64);
-
-        DB::table('password_resets')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token'      => bcrypt($token),
-                'created_at' => Carbon::now(),
-            ]
-        );
-
-        // إرسال الإشعار
-        $user->notify(new ResetPasswordNotification($token, $user->email));
-
-        return back()->with('status', 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.');
+        // الرسالة الموحدة تمنع كشف ما إذا كان البريد مسجلاً في النظام.
+        return back()->with('status', 'إذا كان البريد مسجلاً فسيصلك رابط إعادة تعيين كلمة المرور.');
     }
 }

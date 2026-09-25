@@ -22,6 +22,7 @@ use App\Http\Controllers\Cashier\InvoiceController;
 use App\Http\Controllers\Tools\StockMovementDateCorrectionController;
 use App\Http\Controllers\InventoryCountController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,7 +30,10 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::post('/user/logout', [LoginController::class, 'logout'])->name('logout');
-Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])->name('user.employees.checkEmail');
+// يبقى المسار بنفس الرابط لحماية توافق الواجهة، لكنه لا يكشف وجود حسابات إلا لمالك مصرح.
+Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
+    ->middleware(['owner.unified', 'throttle:20,1'])
+    ->name('user.employees.checkEmail');
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +41,14 @@ Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(function () {
+
+    // API جلسة الويب للـPWA؛ لا يستخدم Token ولا يفتح وصولاً عامًا لتطبيق Flutter.
+    Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
+        Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->name('read');
+        Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->name('hide');
+    });
 
     // أداة مؤقتة ومقصورة على المالك/الأدمن لمراجعة تاريخ حركات التوريد قبل تعديله.
     Route::get('/tools/stock-movement-dates', [StockMovementDateCorrectionController::class, 'index'])
@@ -131,6 +143,8 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
             Route::post('/{store}/shift-gaps/zero-close', [StoreController::class, 'zeroCloseShiftGap'])->name('shift-gaps.zero-close');
             Route::get('/{store}/reports', [StoreController::class, 'reportsIndex'])->name('reports.index');
             Route::get('/{store}/reports/search', [StoreController::class, 'reportsComprehensiveSearch'])->name('reports.search');
+            Route::get('/{store}/reports/store-transfers', [StoreController::class, 'reportsStoreTransfers'])->name('reports.store-transfers');
+            Route::get('/{store}/reports/store-transfers/pdf', [StoreController::class, 'reportsStoreTransfersPdf'])->name('reports.store-transfers.pdf');
             Route::get('/{store}/reports/last-10-days', [StoreController::class, 'reportsLastTenDays'])->name('reports.last-ten-days');
             Route::get('/{store}/reports/monthly', [StoreController::class, 'reportsMonthly'])->name('reports.monthly');
             Route::get('/{store}/reports/monthly/pdf', [StoreController::class, 'reportsMonthlyPdf'])->name('reports.monthly.pdf');
