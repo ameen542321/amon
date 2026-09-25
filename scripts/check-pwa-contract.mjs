@@ -48,6 +48,12 @@ if (!deploymentCheck.includes('sameOriginModuleScripts')) fail('deployment check
 if (!deploymentCheck.includes("moduleSource.includes('/sw.js')")) {
     fail('deployment check does not verify the deployed service-worker registration contract');
 }
+if (!deploymentCheck.includes("manifest.display !== 'standalone'")) {
+    fail('deployment check does not validate the live manifest display contract');
+}
+if (!deploymentCheck.includes("await fetchPath(svgIcons[0].src")) {
+    fail('deployment check does not fetch the icon declared by the live manifest');
+}
 
 const worker = readFileSync('public/sw.js', 'utf8');
 for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']) {

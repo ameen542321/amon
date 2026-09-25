@@ -70,14 +70,32 @@ try {
     }
 
     const manifestResult = await fetchPath('/manifest.webmanifest', ['application/manifest+json', 'application/json']);
+    let manifest = null;
     try {
-        const manifest = JSON.parse(manifestResult.body);
-        if (manifest.scope !== '/' || manifest.start_url !== '/') fail('manifest scope/start_url must target the domain root');
-        else pass('manifest scope and start_url target the domain root');
-        if (!manifest.icons?.some((icon) => icon.type === 'image/svg+xml')) fail('manifest SVG icon is missing');
-        else pass('manifest exposes the SVG icon');
+        manifest = JSON.parse(manifestResult.body);
     } catch {
         fail('manifest response is not valid JSON');
+    }
+
+    if (manifest) {
+        if (manifest.id !== '/' || manifest.scope !== '/' || manifest.start_url !== '/') {
+            fail('manifest id/scope/start_url must target the domain root');
+        } else pass('manifest id, scope and start_url target the domain root');
+
+        if (!manifest.name || !manifest.short_name) fail('manifest application names are missing');
+        else pass('manifest exposes full and short application names');
+
+        if (manifest.display !== 'standalone' || manifest.lang !== 'ar' || manifest.dir !== 'rtl') {
+            fail('manifest must expose the standalone Arabic RTL contract');
+        } else pass('manifest exposes the standalone Arabic RTL contract');
+
+        const svgIcons = manifest.icons?.filter((icon) => icon.type === 'image/svg+xml') ?? [];
+        if (svgIcons.length !== 1 || svgIcons[0].sizes !== 'any') {
+            fail('manifest must expose exactly one scalable SVG icon');
+        } else {
+            pass('manifest exposes exactly one scalable SVG icon');
+            await fetchPath(svgIcons[0].src, ['image/svg+xml']);
+        }
     }
 
     const worker = await fetchPath('/sw.js', ['javascript', 'text/plain']);
@@ -88,7 +106,6 @@ try {
     else pass('sw.js response contains the CARLED worker contract');
 
     await fetchPath('/offline.html', ['text/html']);
-    await fetchPath('/carled.svg', ['image/svg+xml']);
 } catch (error) {
     fail(`HTTPS request failed: ${error.message}`);
 }

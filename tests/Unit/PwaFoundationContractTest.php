@@ -106,6 +106,8 @@ class PwaFoundationContractTest extends TestCase
         self::assertStringContainsString("fetchPath('/offline.html'", $checker);
         self::assertStringContainsString('sameOriginModuleScripts', $checker);
         self::assertStringContainsString("moduleSource.includes('/sw.js')", $checker);
+        self::assertStringContainsString("manifest.display !== 'standalone'", $checker);
+        self::assertStringContainsString('await fetchPath(svgIcons[0].src', $checker);
         self::assertStringContainsString('AddType application/manifest+json .webmanifest', $apache);
         self::assertStringContainsString('no-cache, no-store, must-revalidate', $apache);
     }
