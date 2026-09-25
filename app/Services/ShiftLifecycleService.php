@@ -96,7 +96,7 @@ class ShiftLifecycleService
 
     private function activeAccountantGapDate(Store $store, Carbon $operationTime): ?string
     {
-        if (app()->runningInConsole() || ! auth('accountant')->check()) {
+        if (app()->runningInConsole() || ! request()->hasSession() || ! auth('accountant')->check()) {
             return null;
         }
 

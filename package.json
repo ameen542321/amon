@@ -14,7 +14,8 @@
     "test:mobile-sessions": "node scripts/check-mobile-session-lifecycle.mjs",
     "test:mobile-catalog": "node scripts/check-mobile-catalog-readiness.mjs",
     "test:mysql-migrations": "node scripts/check-mysql-migration-compatibility.mjs",
-    "test:mobile-inventory": "node scripts/check-mobile-inventory-readiness.mjs"
+    "test:mobile-inventory": "node scripts/check-mobile-inventory-readiness.mjs",
+    "test:mobile-shifts": "node scripts/check-mobile-shift-readiness.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 // توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
@@ -33,6 +34,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/summary', [InventoryController::class, 'summary'])->name('summary');
             Route::get('/movements', [InventoryController::class, 'movements'])->name('movements');
             Route::get('/integrity', [InventoryController::class, 'integrity'])->name('integrity');
+        });
+        Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
+            Route::get('/current', [ShiftController::class, 'current'])->name('current');
+            Route::get('/history', [ShiftController::class, 'history'])->name('history');
+            Route::get('/gaps', [ShiftController::class, 'gaps'])->name('gaps');
         });
         Route::put('/push-subscription', [PushSubscriptionController::class, 'store'])
             ->middleware(['ability:push:manage', 'idempotency'])->name('push.store');

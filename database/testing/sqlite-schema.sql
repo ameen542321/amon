@@ -1366,3 +1366,5 @@ CREATE INDEX "categories_store_updated_sync_index" ON "categories" ("store_id", 
 CREATE INDEX "stock_movements_store_cursor_index" ON "stock_movements" ("store_id", "id");
 CREATE INDEX "stock_movements_product_cursor_index" ON "stock_movements" ("store_id", "product_id", "id");
 CREATE INDEX "stock_movements_mobile_business_date_index" ON "stock_movements" ("store_id", "business_date", "id");
+CREATE INDEX "daily_balances_mobile_history_index" ON "daily_balances" ("store_id", "business_date", "id");
+CREATE INDEX "daily_balances_mobile_closed_index" ON "daily_balances" ("store_id", "end_time", "id");
