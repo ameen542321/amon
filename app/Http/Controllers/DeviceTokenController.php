@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DeviceToken;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DeviceTokenController extends Controller
 {
@@ -13,22 +14,20 @@ class DeviceTokenController extends Controller
             'token' => 'required|string',
         ]);
 
-        $user = auth()->user();
+        $accountant = Auth::guard('accountant')->user();
+        $user = Auth::guard('web')->user();
+        abort_unless($accountant || $user, 401);
 
-        // تحديد نوع المستخدم
-        $data = ['token' => $request->token];
-
-        if ($user->role === 'user') {
-            $data['user_id'] = $user->id;
-        }
-
-        if ($user->role === 'accountant') {
-            $data['accountant_id'] = $user->id;
-        }
+        // يملك الرمز حسابًا واحدًا فقط حتى لا ينتقل Push بين الحارسين.
+        $data = [
+            'token' => $request->string('token')->toString(),
+            'user_id' => $user?->id,
+            'accountant_id' => $accountant?->id,
+        ];
 
         // منع التكرار
         DeviceToken::updateOrCreate(
-            ['token' => $request->token],
+            ['token' => $data['token']],
             $data
         );
 

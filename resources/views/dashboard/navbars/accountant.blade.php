@@ -89,7 +89,7 @@
                         <div data-notif-list class="max-h-[400px] overflow-y-auto custom-scroll">
                             @forelse($latestNotifications as $n)
                                 <a href="{{ route('accountant.notifications.show', $n->id) }}"
-                                   class="ui-notification-item {{ $n->isReadBy($auth->id) ? 'opacity-60' : 'ui-notification-item-unread' }}">
+                                   class="ui-notification-item {{ $n->isReadByRecipient($notificationRecipient) ? 'opacity-60' : 'ui-notification-item-unread' }}">
                                     <div class="ui-notification-icon">
                                         <i class="fa-solid fa-circle-info"></i>
                                     </div>

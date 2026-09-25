@@ -15,6 +15,7 @@ use App\Http\Controllers\Accountant\ProductSearchController;
 use App\Http\Controllers\Accountant\StoreTransferController as AccountantStoreTransferController;
 use App\Modules\PurchaseOrders\Controllers\AccountantPurchaseOrderController;
 use App\Http\Controllers\Accountant\InventoryCountController;
+use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +34,9 @@ Route::get('/view-report/{filename}', function ($filename) {
     abort_unless($path && str_starts_with($path, $reportsDir . DIRECTORY_SEPARATOR) && is_file($path), 404, 'الملف غير موجود');
 
     return response()->file($path);
-})->where('filename', '[^/]+')->name('pdf.report.view');
+})->where('filename', '[^/]+')
+    ->middleware('accountant.unified')
+    ->name('pdf.report.view');
 
 // صفحة الإيقاف
 Route::get('/suspended', fn() => view('accountant.suspended'))
@@ -74,6 +77,7 @@ Route::middleware(['accountant.unified'])->group(function () {
         Route::prefix('inventory-counts')->name('inventory-counts.')->group(function () {
             Route::get('/', [InventoryCountController::class, 'index'])->name('index');
             Route::get('/{inventoryCount}', [InventoryCountController::class, 'show'])->name('show');
+            Route::put('/{inventoryCount}/items', [InventoryCountController::class, 'bulkUpdate'])->name('items.bulk-update');
             Route::put('/{inventoryCount}/items/{item}', [InventoryCountController::class, 'update'])->name('items.update');
             Route::post('/{inventoryCount}/submit', [InventoryCountController::class, 'submit'])->name('submit');
         });
@@ -167,6 +171,14 @@ Route::middleware(['accountant.unified'])->group(function () {
             Route::post('/{employee}/debt', [App\Http\Controllers\EmployeeActionsController::class, 'storeDebt'])->name('debt.store');
         });
 
+        // API جلسة الويب للـPWA؛ يستخدم حارس المحاسب الحالي ولا يقبل Token عامًا.
+        Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
+            Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->name('read');
+            Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->name('hide');
+        });
+
         // --- مسارات الإشعارات ---
         Route::prefix('notifications')->name('notifications.')->group(function () {
             Route::get('/', [NotificationController::class, 'index'])->name('index');
@@ -176,9 +188,7 @@ Route::middleware(['accountant.unified'])->group(function () {
             Route::post('/mark-all', [NotificationController::class, 'markAll'])->name('markAll');
             Route::post('/mark-selected', [NotificationController::class, 'markSelected'])->name('markSelected');
 
-            // تم تمييز روابط دالات الحذف لتعمل بشكل منفصل وبدون تعارض
             Route::delete('/{id}/delete', [NotificationController::class, 'delete'])->name('delete');
-            Route::delete('/{id}/remove', [NotificationController::class, 'remov'])->name('remov');
         });
     });
 });
