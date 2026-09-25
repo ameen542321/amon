@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ShiftController;
+use App\Http\Controllers\Api\SaleController;
 use Illuminate\Support\Facades\Route;
 
 // توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
@@ -39,6 +40,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/current', [ShiftController::class, 'current'])->name('current');
             Route::get('/history', [ShiftController::class, 'history'])->name('history');
             Route::get('/gaps', [ShiftController::class, 'gaps'])->name('gaps');
+        });
+        Route::prefix('sales')->name('sales.')->middleware('ability:sales:read')->group(function (): void {
+            Route::get('/', [SaleController::class, 'index'])->name('index');
+            Route::get('/summary', [SaleController::class, 'summary'])->name('summary');
+            Route::get('/{sale}', [SaleController::class, 'show'])->whereNumber('sale')->name('show');
         });
         Route::put('/push-subscription', [PushSubscriptionController::class, 'store'])
             ->middleware(['ability:push:manage', 'idempotency'])->name('push.store');

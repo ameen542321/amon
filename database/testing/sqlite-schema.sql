@@ -1368,3 +1368,6 @@ CREATE INDEX "stock_movements_product_cursor_index" ON "stock_movements" ("store
 CREATE INDEX "stock_movements_mobile_business_date_index" ON "stock_movements" ("store_id", "business_date", "id");
 CREATE INDEX "daily_balances_mobile_history_index" ON "daily_balances" ("store_id", "business_date", "id");
 CREATE INDEX "daily_balances_mobile_closed_index" ON "daily_balances" ("store_id", "end_time", "id");
+CREATE INDEX "sales_mobile_business_date_index" ON "sales" ("store_id", "business_date", "id");
+CREATE INDEX "sales_mobile_type_index" ON "sales" ("store_id", "sale_type", "id");
+CREATE INDEX "sales_mobile_invoice_index" ON "sales" ("store_id", "has_invoice", "id");

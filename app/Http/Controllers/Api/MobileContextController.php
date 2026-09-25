@@ -42,6 +42,8 @@ class MobileContextController extends Controller
                 'inventory_integrity' => true,
                 'shift_read' => true,
                 'shift_gap_read' => true,
+                'sales_read' => true,
+                'sales_write' => false,
                 'offline_sensitive_mutations' => false,
                 'inventory_outbox' => false,
                 'store_transfer_outbox' => false,
