@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Store;
 use App\Models\Accountant;
 use App\Models\Notification;
+use App\Support\Notifications\NotificationPayload;
 
 class NotificationService
 {
@@ -29,6 +30,7 @@ class NotificationService
             'target_ids'   => $resolvedTargets,
             'title'        => $data['title'],
             'message'      => $data['message'],
+            'data'         => NotificationPayload::normalize($data['data'] ?? []),
             'template_key' => $data['template_key'] ?? null,
             'channel'      => $data['channel'] ?? 'site',
             'read_by'      => [],
@@ -79,6 +81,7 @@ class NotificationService
             'message'      => $template['message'],
             'template_key' => $templateKey,
             'channel'      => $data['channel'] ?? 'site',
+            'data'         => $data['data'] ?? [],
         ]);
     }
 
