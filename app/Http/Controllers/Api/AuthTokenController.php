@@ -66,7 +66,7 @@ class AuthTokenController extends Controller
                 'device_name' => $validated['device_name'],
                 'platform' => $validated['platform'],
                 'app_version' => $validated['app_version'],
-                'abilities' => ['app:read', 'devices:manage', 'notifications:read', 'notifications:write', 'push:manage'],
+                'abilities' => $this->defaultAbilities(),
                 'last_ip' => $request->ip(),
                 'last_user_agent' => mb_substr((string) $request->userAgent(), 0, 500),
                 'last_used_at' => now(),
@@ -132,6 +132,7 @@ class AuthTokenController extends Controller
                 'token_hash' => hash('sha256', $plainToken),
                 'refresh_token_hash' => hash('sha256', $plainRefreshToken),
                 'app_version' => $validated['app_version'],
+                'abilities' => $this->defaultAbilities(),
                 'last_ip' => $request->ip(),
                 'last_user_agent' => mb_substr((string) $request->userAgent(), 0, 500),
                 'last_used_at' => now(),
@@ -187,6 +188,11 @@ class AuthTokenController extends Controller
     private function newTokenPair(): array
     {
         return ['carled_'.Str::random(64), 'carled_refresh_'.Str::random(80)];
+    }
+
+    private function defaultAbilities(): array
+    {
+        return ['app:read', 'catalog:read', 'devices:manage', 'notifications:read', 'notifications:write', 'push:manage'];
     }
 
     private function findActor(string $type, string $email): ?Authenticatable

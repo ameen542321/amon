@@ -1356,3 +1356,10 @@ CREATE INDEX "security_events_target_type_target_id_index" ON "security_events" 
 CREATE INDEX "security_events_fingerprint_index" ON "security_events" ("fingerprint");
 
 CREATE INDEX "security_events_grouping_index" ON "security_events" ("fingerprint", "status", "last_seen_at");
+
+CREATE INDEX "products_mobile_catalog_index" ON "products" ("store_id", "status", "usage_type", "id");
+CREATE INDEX "products_store_barcode_index" ON "products" ("store_id", "barcode");
+CREATE INDEX "products_store_category_status_index" ON "products" ("store_id", "category_id", "status");
+CREATE INDEX "products_store_updated_sync_index" ON "products" ("store_id", "updated_at", "id");
+CREATE INDEX "categories_mobile_catalog_index" ON "categories" ("store_id", "status", "name");
+CREATE INDEX "categories_store_updated_sync_index" ON "categories" ("store_id", "updated_at", "id");

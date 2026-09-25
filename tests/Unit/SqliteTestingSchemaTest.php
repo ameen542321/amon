@@ -45,4 +45,16 @@ class SqliteTestingSchemaTest extends TestCase
         self::assertStringContainsString('device_tokens_api_access_token_id_index', $schema);
     }
 
+    public function test_mobile_catalog_indexes_match_the_runtime_migration(): void
+    {
+        $schema = file_get_contents(dirname(__DIR__, 2).'/database/testing/sqlite-schema.sql');
+
+        self::assertStringContainsString('products_mobile_catalog_index', $schema);
+        self::assertStringContainsString('products_store_barcode_index', $schema);
+        self::assertStringContainsString('products_store_category_status_index', $schema);
+        self::assertStringContainsString('products_store_updated_sync_index', $schema);
+        self::assertStringContainsString('categories_mobile_catalog_index', $schema);
+        self::assertStringContainsString('categories_store_updated_sync_index', $schema);
+    }
+
 }

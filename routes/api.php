@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthTokenController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
@@ -21,6 +22,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
         Route::get('/me', [MobileContextController::class, 'me'])->middleware('ability:app:read')->name('me');
         Route::get('/app-config', [MobileContextController::class, 'appConfig'])->middleware('ability:app:read')->name('app-config');
         Route::get('/stores', [MobileContextController::class, 'stores'])->middleware('ability:app:read')->name('stores');
+        Route::prefix('catalog')->name('catalog.')->middleware('ability:catalog:read')->group(function (): void {
+            Route::get('/categories', [CatalogController::class, 'categories'])->name('categories');
+            Route::get('/products', [CatalogController::class, 'products'])->name('products.index');
+            Route::get('/products/{product}', [CatalogController::class, 'show'])->whereNumber('product')->name('products.show');
+            Route::get('/sync', [CatalogController::class, 'sync'])->name('sync');
+        });
         Route::put('/push-subscription', [PushSubscriptionController::class, 'store'])
             ->middleware(['ability:push:manage', 'idempotency'])->name('push.store');
         Route::delete('/push-subscription', [PushSubscriptionController::class, 'destroy'])

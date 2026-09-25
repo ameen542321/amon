@@ -11,6 +11,7 @@ Tokens قابلة للإبطال ومقيدة بجهاز، ولا تعتمد Coo
 - بيانات الحساب الحالي.
 - إعدادات التطبيق وFeature flags.
 - المتاجر المسموحة للحساب.
+- كتالوج المنتجات والأقسام والبحث والمزامنة التزايدية.
 - إدارة جلسات الأجهزة.
 - مركز الإشعارات مع Idempotency للقراءة والإخفاء.
 
@@ -33,6 +34,7 @@ php artisan optimize:clear
 php artisan api-tokens:cleanup --dry-run
 php artisan schedule:list
 npm run test:mobile-api
+npm run test:mobile-catalog
 ```
 
 ## تسجيل الدخول
@@ -115,6 +117,7 @@ Accept: application/json
 | Ability | الاستخدام |
 | --- | --- |
 | `app:read` | الحساب والإعدادات والمتاجر |
+| `catalog:read` | المنتجات والأقسام والبحث والمزامنة |
 | `devices:manage` | عرض الأجهزة وإلغاء جهاز آخر |
 | `notifications:read` | قائمة الإشعارات والعداد |
 | `notifications:write` | تعليم القراءة والإخفاء |
