@@ -16,7 +16,17 @@
     <title>@yield('title', 'CARLED - تسجيل الدخول')</title>
 </head>
 
+@php
+    $clientAccount = auth('accountant')->user() ?? auth('web')->user();
+    $clientAccountType = auth('accountant')->check() ? 'accountant' : (auth('web')->check() ? 'user' : null);
+    $clientAccountScope = $clientAccountType && $clientAccount
+        ? $clientAccountType.':'.$clientAccount->getAuthIdentifier()
+        : null;
+@endphp
 <body class="auth-page auth-page-center">
+    @if($clientAccountScope)
+        <div hidden data-client-account-scope="{{ $clientAccountScope }}" aria-hidden="true"></div>
+    @endif
     <x-ui.page-loader />
     <main class="w-full max-w-md">
         @yield('content')

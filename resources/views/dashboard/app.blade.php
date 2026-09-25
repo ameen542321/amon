@@ -22,7 +22,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="ui-page min-h-screen">
+@php
+    $clientAccount = auth('accountant')->user() ?? auth('web')->user();
+    $clientAccountType = auth('accountant')->check() ? 'accountant' : (auth('web')->check() ? 'user' : null);
+    $clientAccountScope = $clientAccountType && $clientAccount
+        ? $clientAccountType.':'.$clientAccount->getAuthIdentifier()
+        : null;
+@endphp
+<body class="ui-page min-h-screen" @if($clientAccountScope) data-client-account-scope="{{ $clientAccountScope }}" @endif>
 <x-ui.page-loader />
 @php
     $role = auth('web')->check() ? (auth('web')->user()->role ?? 'user') : null;

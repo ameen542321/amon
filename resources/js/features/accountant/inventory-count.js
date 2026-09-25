@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!form) return;
 
     const storageKey = form.dataset.inventoryCountStorageKey;
+    const legacyStorageKey = form.dataset.inventoryCountLegacyStorageKey;
+    const accountScope = form.dataset.inventoryCountAccountScope;
+    const storeId = form.dataset.inventoryCountStoreId;
     const serverVersion = form.dataset.inventoryCountVersion;
     const draftStatus = document.querySelector('[data-inventory-count-draft-status]');
     const draftFields = [...form.querySelectorAll('[name^="items["]')];
@@ -50,16 +53,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const migrateLegacyDraft = async () => {
         try {
-            const legacyValue = window.localStorage.getItem(storageKey);
+            const legacyValue = window.localStorage.getItem(legacyStorageKey);
             if (!legacyValue) return null;
 
             const legacyDraft = JSON.parse(legacyValue);
-            await putDraft(storageKey, legacyDraft);
-            window.localStorage.removeItem(storageKey);
-            return { key: storageKey, ...legacyDraft };
+            const migratedDraft = {
+                ...legacyDraft,
+                schemaVersion: 2,
+                accountScope,
+                accountType: 'accountant',
+                storeId,
+                draftType: 'inventory-count',
+            };
+            await putDraft(storageKey, migratedDraft);
+            window.localStorage.removeItem(legacyStorageKey);
+            return { key: storageKey, ...migratedDraft };
         } catch {
             try {
-                window.localStorage.removeItem(storageKey);
+                if (legacyStorageKey) window.localStorage.removeItem(legacyStorageKey);
             } catch {
                 // قد يمنع المتصفح التخزين القديم؛ تبقى IndexedDB هي المسار الأساسي.
             }
@@ -72,8 +83,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             await pruneDrafts(Date.now() - maxDraftAge);
+            const previousIndexedDraft = legacyStorageKey ? await getDraft(legacyStorageKey) : null;
+            if (previousIndexedDraft) {
+                await putDraft(storageKey, {
+                    ...previousIndexedDraft,
+                    schemaVersion: 2,
+                    accountScope,
+                    accountType: 'accountant',
+                    storeId,
+                    draftType: 'inventory-count',
+                });
+                await deleteDraft(legacyStorageKey);
+            }
             const draft = await getDraft(storageKey) ?? await migrateLegacyDraft();
             const isCurrent = draft
+                && draft.accountScope === accountScope
+                && String(draft.storeId) === String(storeId)
                 && draft.serverVersion === serverVersion
                 && draft.values
                 && typeof draft.values === 'object'
@@ -97,6 +122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!storageKey) return Promise.resolve();
 
         const draft = {
+            schemaVersion: 2,
+            accountScope,
+            accountType: 'accountant',
+            storeId,
+            draftType: 'inventory-count',
             serverVersion,
             savedAt: Date.now(),
             values: valuesSnapshot(),

@@ -92,6 +92,28 @@ class PwaFoundationContractTest extends TestCase
         self::assertStringContainsString("postMessage({ type: 'SKIP_WAITING' })", $registration);
     }
 
+    public function test_local_drafts_are_scoped_limited_and_cleaned_on_logout(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $store = file_get_contents($root.'/resources/js/features/pwa/draft-store.js');
+        $inventory = file_get_contents($root.'/resources/js/features/accountant/inventory-count.js');
+        $lifecycle = file_get_contents($root.'/resources/js/features/pwa/client-storage-lifecycle.js');
+        $layout = file_get_contents($root.'/resources/views/dashboard/app.blade.php');
+        $inventoryView = file_get_contents($root.'/resources/views/inventory-counts/accountant/show.blade.php');
+
+        self::assertStringContainsString('const DATABASE_VERSION = 2', $store);
+        self::assertStringContainsString("createIndex('accountScope', 'accountScope')", $store);
+        self::assertStringContainsString('MAX_DRAFT_BYTES', $store);
+        self::assertStringContainsString('MAX_DRAFTS_PER_ACCOUNT', $store);
+        self::assertStringContainsString('deleteDraftsForAccount', $store);
+        self::assertStringContainsString('draft.accountScope === accountScope', $inventory);
+        self::assertStringContainsString('String(draft.storeId) === String(storeId)', $inventory);
+        self::assertStringContainsString('deleteDraftsForAccount(accountScope)', $lifecycle);
+        self::assertStringContainsString('data-client-account-scope', $layout);
+        self::assertStringContainsString('data-inventory-count-account-scope', $inventoryView);
+        self::assertStringContainsString('data-inventory-count-store-id', $inventoryView);
+    }
+
     public function test_https_deployment_check_validates_public_pwa_contract(): void
     {
         $root = dirname(__DIR__, 2);

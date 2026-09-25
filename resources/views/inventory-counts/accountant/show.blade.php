@@ -28,7 +28,10 @@
 
     <form method="POST" action="{{ route('accountant.inventory-counts.items.bulk-update', $session) }}" class="space-y-4"
           data-inventory-count-form
-          data-inventory-count-storage-key="inventory-count:{{ auth('accountant')->id() }}:{{ $session->id }}"
+          data-inventory-count-storage-key="accountant:{{ auth('accountant')->id() }}:store:{{ $session->store_id }}:inventory-count:{{ $session->id }}"
+          data-inventory-count-legacy-storage-key="inventory-count:{{ auth('accountant')->id() }}:{{ $session->id }}"
+          data-inventory-count-account-scope="accountant:{{ auth('accountant')->id() }}"
+          data-inventory-count-store-id="{{ $session->store_id }}"
           data-inventory-count-version="{{ $browserDraftVersion }}">
         @csrf
         @method('PUT')

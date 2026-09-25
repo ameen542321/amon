@@ -95,11 +95,22 @@ if (!draftStore.includes('window.indexedDB.open(DATABASE_NAME')) fail('IndexedDB
 if (!draftStore.includes("createObjectStore(DRAFT_STORE, { keyPath: 'key' })")) {
     fail('IndexedDB drafts object store contract is missing');
 }
+if (!draftStore.includes("createIndex('accountScope', 'accountScope')")) fail('IndexedDB drafts are not account scoped');
+if (!draftStore.includes('MAX_DRAFT_BYTES') || !draftStore.includes('MAX_DRAFTS_PER_ACCOUNT')) {
+    fail('IndexedDB draft size/count limits are missing');
+}
+if (!draftStore.includes('deleteDraftsForAccount')) fail('account draft cleanup is missing');
 if (inventoryDraft.includes('window.localStorage.setItem')) fail('inventory drafts must not write to localStorage');
 if (!inventoryDraft.includes('migrateLegacyDraft')) fail('legacy localStorage draft migration is missing');
 if (!inventoryDraft.includes('draft.serverVersion === serverVersion')) {
     fail('inventory drafts must reject stale server versions');
 }
+if (!inventoryDraft.includes('draft.accountScope === accountScope')) fail('inventory drafts are not isolated by account');
+if (!inventoryDraft.includes('String(draft.storeId) === String(storeId)')) fail('inventory drafts are not isolated by store');
+
+const storageLifecycle = readFileSync('resources/js/features/pwa/client-storage-lifecycle.js', 'utf8');
+if (!storageLifecycle.includes('deleteDraftsForAccount(accountScope)')) fail('logout does not clear account drafts');
+if (!app.includes("./features/pwa/client-storage-lifecycle")) fail('client storage lifecycle is not imported');
 
 for (const layoutPath of [
     'resources/views/welcome.blade.php',
