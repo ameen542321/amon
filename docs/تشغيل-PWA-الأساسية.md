@@ -205,6 +205,12 @@ npm run test:pwa:deployment -- https://carled.ddns.net
 - التنقل Network First ويعود إلى Offline shell فقط، ولا يخزن HTML الخاص.
 - `/api` ولوحات المالك والمحاسب والإدارة Network Only.
 - قبل `SKIP_WAITING` يرسل العميل `carled:pwa-prepare-update` وينتظر وعود حفظ المسودات.
+- الانتظار محدود بعشر ثوانٍ؛ فشل أو تعليق أي مهمة تحضير يمنع تفعيل العامل الجديد بدل
+  إعادة تحميل الصفحة مع احتمال فقد حالة محلية.
+- يجيب العامل عن `GET_VERSION` برقم الإصدار واسم Cache، ويتحقق العميل من مطابقتهما
+  لـ`PWA_BUILD_VERSION` ويطلب فحص تحديث عند عودة الاتصال أو ظهور الصفحة مجددًا.
+- تتحقق بوابة المتصفح من هوية العامل، ومن وجود Cache الإصدار النشط وحده، ومن عدم
+  بقاء Cache قديم بعد `activate`.
 - يحتوي Manifest اختصاري لوحة المالك والمحاسب مع بقاء التحقق من الدخول على الخادم.
 
 ```bash
@@ -212,4 +218,9 @@ npm run test:pwa
 npm run test:pwa:phase3
 npm run build
 npm run test:pwa:deployment -- https://carled.ddns.net
+npm run test:pwa:browser -- https://carled.ddns.net
 ```
+
+بهذه البوابات تعد المرحلة الثالثة مكتملة من جهة العقد البرمجي والنشر والمتصفح.
+يبقى اختبار التثبيت من أيقونة Android/iOS اختبار قبول تشغيلي خاص بالجهاز، ولا يفتح
+ذلك باب Background Sync أو كتابة العمليات المالية والمخزنية دون موافقة مستقلة.

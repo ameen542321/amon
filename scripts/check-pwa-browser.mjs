@@ -109,9 +109,29 @@ try {
     }
     pass('service worker is activated with root scope');
 
+    const workerIdentity = await evaluate(`navigator.serviceWorker.ready.then((readyRegistration) => new Promise((resolve, reject) => {
+        const worker = navigator.serviceWorker.controller || readyRegistration.active;
+        if (!worker) { reject(new Error('active worker is unavailable')); return; }
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => reject(new Error('worker identity timed out')), 3000);
+        channel.port1.onmessage = ({ data }) => { clearTimeout(timer); resolve(data); };
+        worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+    }))`);
+    if (!workerIdentity?.version || workerIdentity.cache !== `carled-shell-${workerIdentity.version}`) {
+        fail(`invalid service worker identity: ${JSON.stringify(workerIdentity)}`);
+    }
+    pass(`service worker reports coherent version ${workerIdentity.version}`);
+
     const cacheSnapshot = await evaluate(`(async () => Promise.all((await caches.keys()).map(async (name) => ({
         name, urls: (await (await caches.open(name)).keys()).map((request) => request.url),
     }))))()`);
+    if (!cacheSnapshot.some(({ name }) => name === workerIdentity.cache)) {
+        fail(`active worker cache ${workerIdentity.cache} is absent`);
+    }
+    if (cacheSnapshot.some(({ name }) => name.startsWith('carled-shell-') && name !== workerIdentity.cache)) {
+        fail('a stale CARLED shell cache remains after worker activation');
+    }
+    pass('only the active build shell cache remains');
     const cachedUrls = cacheSnapshot.flatMap(({ urls }) => urls);
     if (!cachedUrls.includes(`${origin}/offline.html`)) fail('offline shell is absent from browser Cache Storage');
     pass('offline shell is present in browser Cache Storage');

@@ -54,6 +54,9 @@ try {
     const home = await fetchPath('/', ['text/html']);
     if (!home.body.includes('manifest.webmanifest')) fail('main page does not expose the web manifest');
     else pass('main page exposes the web manifest');
+    const buildVersion = home.body.match(/<meta\s+name=["']pwa-build-version["']\s+content=["']([^"']+)["']/i)?.[1];
+    if (!buildVersion) fail('main page does not expose the PWA build version');
+    else pass(`main page exposes PWA build version ${buildVersion}`);
 
     const moduleScripts = sameOriginModuleScripts(home.body);
     if (!moduleScripts.length) {
@@ -98,12 +101,15 @@ try {
         }
     }
 
-    const worker = await fetchPath('/sw.js', ['javascript', 'text/plain']);
+    const worker = await fetchPath(`/sw.js${buildVersion ? `?v=${encodeURIComponent(buildVersion)}` : ''}`, ['javascript', 'text/plain']);
     const workerCache = worker.response.headers.get('cache-control') ?? '';
     if (!/no-cache|no-store|max-age=0/i.test(workerCache)) fail(`sw.js Cache-Control is unsafe: ${workerCache || 'missing'}`);
     else pass(`sw.js Cache-Control prevents a stale worker: ${workerCache}`);
     if (!worker.body.includes("const CACHE_VERSION = 'carled-shell-")) fail('sw.js response is not the CARLED worker');
     else pass('sw.js response contains the CARLED worker contract');
+    if (!worker.body.includes("event.data?.type === 'GET_VERSION'") || !worker.body.includes('event.ports[0]?.postMessage')) {
+        fail('sw.js does not expose the runtime version probe');
+    } else pass('sw.js exposes the runtime version probe');
 
     await fetchPath('/offline.html', ['text/html']);
 } catch (error) {

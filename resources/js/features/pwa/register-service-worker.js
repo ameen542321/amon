@@ -1,6 +1,8 @@
 const canRegister = 'serviceWorker' in navigator
     && (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname));
 const buildVersion = document.querySelector('meta[name="pwa-build-version"]')?.content ?? 'development';
+const UPDATE_PREPARATION_TIMEOUT = 10000;
+const VERSION_PROBE_TIMEOUT = 3000;
 
 const panel = document.querySelector('[data-pwa-panel]');
 const title = panel?.querySelector('[data-pwa-title]');
@@ -13,6 +15,40 @@ let deferredInstallPrompt = null;
 let activeRegistration = null;
 let reloadingForUpdate = false;
 let onlineTimer = null;
+
+const withTimeout = (promise, milliseconds, label) => new Promise((resolve, reject) => {
+    const timer = window.setTimeout(
+        () => reject(new Error(`${label} timed out after ${milliseconds}ms`)),
+        milliseconds,
+    );
+
+    Promise.resolve(promise).then(
+        (value) => {
+            window.clearTimeout(timer);
+            resolve(value);
+        },
+        (error) => {
+            window.clearTimeout(timer);
+            reject(error);
+        },
+    );
+});
+
+const workerVersion = (worker) => {
+    if (!worker) return Promise.resolve(null);
+
+    return withTimeout(new Promise((resolve, reject) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = ({ data }) => resolve(data ?? null);
+        channel.port1.onmessageerror = () => reject(new Error('invalid service-worker version response'));
+        worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+    }), VERSION_PROBE_TIMEOUT, 'service-worker version probe');
+};
+
+const announceStatus = (status, detail = {}) => window.dispatchEvent(new CustomEvent(
+    'carled:pwa-status',
+    { detail: { status, buildVersion, ...detail } },
+));
 
 const setHidden = (element, hidden) => element?.classList.toggle('hidden', hidden);
 const showPanel = () => panel?.classList.remove('hidden');
@@ -90,8 +126,29 @@ updateButton?.addEventListener('click', async () => {
     message.textContent = 'جارٍ حفظ المسودة قبل تطبيق التحديث…';
     const pending = [];
     window.dispatchEvent(new CustomEvent('carled:pwa-prepare-update', { detail: { pending } }));
-    await Promise.allSettled(pending);
-    activeRegistration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    const results = await Promise.allSettled(pending.map((task) => withTimeout(
+        task,
+        UPDATE_PREPARATION_TIMEOUT,
+        'PWA update preparation',
+    )));
+    const failures = results.filter(({ status }) => status === 'rejected');
+
+    if (failures.length) {
+        message.textContent = 'تعذر حفظ البيانات المحلية. لم يُطبّق التحديث؛ حاول مرة أخرى.';
+        updateButton.disabled = false;
+        announceStatus('update-blocked', { failures: failures.length });
+        return;
+    }
+
+    const waitingWorker = activeRegistration?.waiting;
+    if (!waitingWorker) {
+        updateButton.disabled = false;
+        announceStatus('update-worker-missing');
+        return;
+    }
+
+    announceStatus('update-approved', { preparedTasks: results.length });
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
 });
 
 retryButton?.addEventListener('click', () => window.location.reload());
@@ -107,6 +164,13 @@ if (canRegister) {
     window.addEventListener('load', async () => {
         try {
             activeRegistration = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(buildVersion)}`, { scope: '/' });
+            const deployedWorker = activeRegistration.active ?? activeRegistration.waiting;
+            const deployedVersion = await workerVersion(deployedWorker).catch(() => null);
+            announceStatus('registered', { workerVersion: deployedVersion?.version ?? null });
+            if (deployedVersion?.version && deployedVersion.version !== buildVersion) {
+                announceStatus('version-mismatch', { workerVersion: deployedVersion.version });
+                await activeRegistration.update();
+            }
             if (activeRegistration.waiting) showUpdate();
 
             activeRegistration.addEventListener('updatefound', () => {
@@ -115,7 +179,13 @@ if (canRegister) {
                     if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdate();
                 });
             });
+
+            window.addEventListener('online', () => activeRegistration?.update());
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && navigator.onLine) activeRegistration?.update();
+            });
         } catch (error) {
+            announceStatus('registration-failed');
             console.warn(`تعذر تسجيل Service Worker للإصدار ${buildVersion}.`, error);
         }
     });
