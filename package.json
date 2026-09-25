@@ -12,7 +12,8 @@
     "test:pwa:deployment": "node scripts/check-pwa-deployment.mjs",
     "test:pwa:browser": "node scripts/check-pwa-browser.mjs",
     "test:mobile-sessions": "node scripts/check-mobile-session-lifecycle.mjs",
-    "test:mobile-catalog": "node scripts/check-mobile-catalog-readiness.mjs"
+    "test:mobile-catalog": "node scripts/check-mobile-catalog-readiness.mjs",
+    "test:mysql-migrations": "node scripts/check-mysql-migration-compatibility.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

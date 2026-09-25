@@ -35,7 +35,24 @@ php artisan api-tokens:cleanup --dry-run
 php artisan schedule:list
 npm run test:mobile-api
 npm run test:mobile-catalog
+npm run test:mysql-migrations
 ```
+
+### توافق MySQL/MariaDB المحلي
+
+حقول انتهاء الرموز والتجديد وIdempotency تستخدم `DATETIME` لأنها قيم يكتبها
+التطبيق. تجنب `TIMESTAMP NOT NULL` هنا مهم للإصدارات المحلية القديمة أو إعدادات
+`NO_ZERO_DATE` التي ترفض إنشاء العمود بلا قيمة افتراضية ضمنية.
+
+إذا توقفت migration `2026_09_25_000002` برسالة
+`Invalid default value for 'expires_at'`، حدّث الملفات ثم نفذ فقط:
+
+```bash
+php artisan migrate
+```
+
+لا تستخدم `migrate:fresh` ولا تحذف قاعدة البيانات. أمر `CREATE TABLE` الفاشل لا
+يسجل migration كمكتملة، ولذلك يعيد Laravel تشغيلها بعد تطبيق الإصلاح.
 
 ## تسجيل الدخول
 

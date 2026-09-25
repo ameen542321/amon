@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('device_tokens', function (Blueprint $table): void {
             $table->unsignedBigInteger('api_access_token_id')->nullable()->after('accountant_id')->index();
             $table->string('provider', 32)->default('onesignal')->after('token');
-            $table->timestamp('last_seen_at')->nullable()->after('provider');
+            $table->dateTime('last_seen_at')->nullable()->after('provider');
         });
     }
 

@@ -20,9 +20,12 @@ return new class extends Migration
             $table->json('abilities');
             $table->string('last_ip', 45)->nullable();
             $table->string('last_user_agent', 500)->nullable();
-            $table->timestamp('last_used_at')->nullable();
-            $table->timestamp('expires_at')->index();
-            $table->timestamp('revoked_at')->nullable()->index();
+            // These values are application-managed. DATETIME remains compatible with
+            // older MySQL/MariaDB installations that reject required TIMESTAMP columns
+            // without an implicit default value.
+            $table->dateTime('last_used_at')->nullable();
+            $table->dateTime('expires_at')->index();
+            $table->dateTime('revoked_at')->nullable()->index();
             $table->timestamps();
 
             $table->index(['actor_type', 'actor_id', 'revoked_at'], 'api_tokens_actor_active_index');

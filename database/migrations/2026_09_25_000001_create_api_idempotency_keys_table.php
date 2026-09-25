@@ -19,7 +19,8 @@ return new class extends Migration
             $table->unsignedSmallInteger('response_status')->nullable();
             $table->json('response_headers')->nullable();
             $table->mediumText('response_body')->nullable();
-            $table->timestamp('expires_at')->index();
+            // DATETIME avoids the implicit TIMESTAMP defaults required by older MySQL/MariaDB.
+            $table->dateTime('expires_at')->index();
             $table->timestamps();
 
             $table->unique(['actor_type', 'actor_id', 'key_hash'], 'api_idempotency_actor_key_unique');

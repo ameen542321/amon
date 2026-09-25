@@ -64,4 +64,18 @@ class MobileApiTokenContractTest extends TestCase
         self::assertStringNotContainsString('invoices', $routes);
         self::assertStringNotContainsString('quick-sale', $routes);
     }
+
+    public function test_application_managed_token_dates_are_compatible_with_older_mysql(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $idempotency = file_get_contents($root.'/database/migrations/2026_09_25_000001_create_api_idempotency_keys_table.php');
+        $accessTokens = file_get_contents($root.'/database/migrations/2026_09_25_000002_create_api_access_tokens_table.php');
+        $refresh = file_get_contents($root.'/database/migrations/2026_09_25_000003_add_refresh_lifecycle_to_api_access_tokens.php');
+
+        self::assertStringContainsString("dateTime('expires_at')->index()", $idempotency);
+        self::assertStringContainsString("dateTime('expires_at')->index()", $accessTokens);
+        self::assertStringContainsString("dateTime('refresh_expires_at')", $refresh);
+        self::assertStringNotContainsString("timestamp('expires_at')", $idempotency.$accessTokens);
+        self::assertStringNotContainsString("timestamp('refresh_expires_at')", $refresh);
+    }
 }
