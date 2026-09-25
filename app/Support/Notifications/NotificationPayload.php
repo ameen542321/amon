@@ -14,8 +14,15 @@ final class NotificationPayload
         $normalized = ['version' => self::VERSION];
 
         foreach ($data as $key => $value) {
-            if (!is_string($key) || !self::isSafeValue($value)) {
+            if (!is_string($key) || $key === 'version' || !self::isSafeValue($value)) {
                 continue;
+            }
+
+            if ($key === 'url') {
+                $value = self::safeWebUrl(['url' => $value]);
+                if ($value === null) {
+                    continue;
+                }
             }
 
             $normalized[$key] = $value;

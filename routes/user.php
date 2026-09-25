@@ -22,6 +22,7 @@ use App\Http\Controllers\Cashier\InvoiceController;
 use App\Http\Controllers\Tools\StockMovementDateCorrectionController;
 use App\Http\Controllers\InventoryCountController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,14 @@ Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(function () {
+
+    // API جلسة الويب للـPWA؛ لا يستخدم Token ولا يفتح وصولاً عامًا لتطبيق Flutter.
+    Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
+        Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->name('read');
+        Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->name('hide');
+    });
 
     // أداة مؤقتة ومقصورة على المالك/الأدمن لمراجعة تاريخ حركات التوريد قبل تعديله.
     Route::get('/tools/stock-movement-dates', [StockMovementDateCorrectionController::class, 'index'])

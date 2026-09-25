@@ -15,6 +15,7 @@ use App\Http\Controllers\Accountant\ProductSearchController;
 use App\Http\Controllers\Accountant\StoreTransferController as AccountantStoreTransferController;
 use App\Modules\PurchaseOrders\Controllers\AccountantPurchaseOrderController;
 use App\Http\Controllers\Accountant\InventoryCountController;
+use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -168,6 +169,14 @@ Route::middleware(['accountant.unified'])->group(function () {
             Route::get('/{employee}/actions', [App\Http\Controllers\EmployeeActionsController::class, 'index'])->name('actions');
             Route::post('/{employee}/absence', [App\Http\Controllers\EmployeeActionsController::class, 'storeAbsence'])->name('absence.store');
             Route::post('/{employee}/debt', [App\Http\Controllers\EmployeeActionsController::class, 'storeDebt'])->name('debt.store');
+        });
+
+        // API جلسة الويب للـPWA؛ يستخدم حارس المحاسب الحالي ولا يقبل Token عامًا.
+        Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
+            Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
+            Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->name('read');
+            Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->name('hide');
         });
 
         // --- مسارات الإشعارات ---

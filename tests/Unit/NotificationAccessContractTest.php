@@ -35,6 +35,7 @@ class NotificationAccessContractTest extends TestCase
 
         self::assertStringContainsString("Auth::guard('accountant')->user()", $controller);
         self::assertStringContainsString("Auth::guard('web')->user()", $controller);
+        self::assertStringContainsString("'Cache-Control' => 'private, no-store'", $controller);
         self::assertSame(1, substr_count($webRoutes.$adminRoutes, "Route::post('/device-token'"));
     }
 
@@ -107,5 +108,23 @@ class NotificationAccessContractTest extends TestCase
         self::assertStringContainsString('hash_equals', $payload);
         self::assertStringContainsString('safeWebUrl', $view);
         self::assertStringNotContainsString("href=\"{{ \$notification->data['url'] }}\"", $view);
+    }
+
+    public function test_pwa_notification_api_uses_existing_session_guards_and_scoped_queries(): void
+    {
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Api/NotificationController.php');
+        $ownerRoutes = file_get_contents(dirname(__DIR__, 2).'/routes/user.php');
+        $accountantRoutes = file_get_contents(dirname(__DIR__, 2).'/routes/accountant.php');
+        $publicApiRoutes = file_get_contents(dirname(__DIR__, 2).'/routes/api.php');
+
+        self::assertStringContainsString('->visibleTo($recipient)', $controller);
+        self::assertStringContainsString('->cursorPaginate(', $controller);
+        self::assertStringContainsString("Auth::guard('accountant')->user()", $controller);
+        self::assertStringContainsString("Auth::guard('web')->user()", $controller);
+        self::assertStringContainsString("prefix('api/v1/notifications')", $ownerRoutes);
+        self::assertStringContainsString("middleware('throttle:120,1')", $ownerRoutes);
+        self::assertStringContainsString("prefix('api/v1/notifications')", $accountantRoutes);
+        self::assertStringContainsString("middleware('throttle:120,1')", $accountantRoutes);
+        self::assertStringNotContainsString('notifications', $publicApiRoutes);
     }
 }
