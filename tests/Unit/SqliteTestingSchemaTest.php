@@ -32,4 +32,17 @@ class SqliteTestingSchemaTest extends TestCase
             $schema
         );
     }
+
+    public function test_mobile_api_tables_match_the_runtime_migrations(): void
+    {
+        $schema = file_get_contents(dirname(__DIR__, 2).'/database/testing/sqlite-schema.sql');
+
+        self::assertStringContainsString('CREATE TABLE "api_idempotency_keys"', $schema);
+        self::assertStringContainsString('CREATE TABLE "api_access_tokens"', $schema);
+        self::assertStringContainsString('"refresh_token_hash" varchar(64) DEFAULT NULL UNIQUE', $schema);
+        self::assertStringContainsString('"refresh_expires_at" timestamp NULL DEFAULT NULL', $schema);
+        self::assertStringContainsString('"api_access_token_id" INTEGER DEFAULT NULL', $schema);
+        self::assertStringContainsString('device_tokens_api_access_token_id_index', $schema);
+    }
+
 }

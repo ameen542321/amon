@@ -20,12 +20,14 @@ export const createIdempotencyKey = () => {
 };
 
 export const apiRequest = async (url, options = {}) => {
+    const { accessToken, ...requestOptions } = options;
     const method = (options.method ?? 'GET').toUpperCase();
     const timeout = options.timeout ?? DEFAULT_TIMEOUT;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), timeout);
     const headers = new Headers(options.headers ?? {});
     headers.set('Accept', 'application/json');
+    if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     if (csrf && UNSAFE_METHODS.has(method)) headers.set('X-CSRF-TOKEN', csrf);
@@ -33,7 +35,7 @@ export const apiRequest = async (url, options = {}) => {
 
     try {
         const response = await fetch(url, {
-            ...options,
+            ...requestOptions,
             method,
             headers,
             credentials: 'same-origin',

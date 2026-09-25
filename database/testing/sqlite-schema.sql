@@ -162,7 +162,10 @@ CREATE TABLE "device_tokens" (
     "id" INTEGER NOT NULL,
     "user_id" INTEGER DEFAULT NULL,
     "accountant_id" INTEGER DEFAULT NULL,
+    "api_access_token_id" INTEGER DEFAULT NULL,
     "token" varchar(255) NOT NULL,
+    "provider" varchar(32) NOT NULL DEFAULT 'onesignal',
+    "last_seen_at" timestamp NULL DEFAULT NULL,
     "created_at" timestamp NULL DEFAULT NULL,
     "updated_at" timestamp NULL DEFAULT NULL,
     PRIMARY KEY ("id")
@@ -1081,6 +1084,56 @@ CREATE TABLE "security_event_activities" (
     FOREIGN KEY ("security_event_id") REFERENCES "security_events" ("id") ON DELETE CASCADE,
     FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE SET NULL
 );
+
+CREATE TABLE "api_idempotency_keys" (
+    "id" INTEGER NOT NULL,
+    "actor_type" varchar(32) NOT NULL,
+    "actor_id" INTEGER NOT NULL,
+    "key_hash" varchar(64) NOT NULL,
+    "request_hash" varchar(64) NOT NULL,
+    "route_name" varchar(255) NOT NULL,
+    "status" varchar(16) NOT NULL DEFAULT 'processing',
+    "response_status" INTEGER DEFAULT NULL,
+    "response_headers" TEXT DEFAULT NULL,
+    "response_body" text DEFAULT NULL,
+    "expires_at" timestamp NOT NULL,
+    "created_at" timestamp NULL DEFAULT NULL,
+    "updated_at" timestamp NULL DEFAULT NULL,
+    PRIMARY KEY ("id"),
+    CONSTRAINT "api_idempotency_actor_key_unique" UNIQUE ("actor_type", "actor_id", "key_hash")
+);
+
+CREATE TABLE "api_access_tokens" (
+    "id" INTEGER NOT NULL,
+    "actor_type" varchar(32) NOT NULL,
+    "actor_id" INTEGER NOT NULL,
+    "token_hash" varchar(64) NOT NULL UNIQUE,
+    "refresh_token_hash" varchar(64) DEFAULT NULL UNIQUE,
+    "device_uuid" varchar(128) NOT NULL,
+    "device_name" varchar(128) NOT NULL,
+    "platform" varchar(32) NOT NULL,
+    "app_version" varchar(32) DEFAULT NULL,
+    "abilities" TEXT NOT NULL,
+    "last_ip" varchar(45) DEFAULT NULL,
+    "last_user_agent" varchar(500) DEFAULT NULL,
+    "last_used_at" timestamp NULL DEFAULT NULL,
+    "last_refreshed_at" timestamp NULL DEFAULT NULL,
+    "expires_at" timestamp NOT NULL,
+    "refresh_expires_at" timestamp NULL DEFAULT NULL,
+    "revoked_at" timestamp NULL DEFAULT NULL,
+    "created_at" timestamp NULL DEFAULT NULL,
+    "updated_at" timestamp NULL DEFAULT NULL,
+    PRIMARY KEY ("id")
+);
+
+CREATE INDEX "api_idempotency_keys_expires_at_index" ON "api_idempotency_keys" ("expires_at");
+CREATE INDEX "api_idempotency_keys_status_created_at_index" ON "api_idempotency_keys" ("status", "created_at");
+CREATE INDEX "api_access_tokens_expires_at_index" ON "api_access_tokens" ("expires_at");
+CREATE INDEX "api_access_tokens_refresh_expires_at_index" ON "api_access_tokens" ("refresh_expires_at");
+CREATE INDEX "api_access_tokens_revoked_at_index" ON "api_access_tokens" ("revoked_at");
+CREATE INDEX "api_tokens_actor_active_index" ON "api_access_tokens" ("actor_type", "actor_id", "revoked_at");
+CREATE INDEX "api_tokens_actor_device_index" ON "api_access_tokens" ("actor_type", "actor_id", "device_uuid");
+CREATE INDEX "device_tokens_api_access_token_id_index" ON "device_tokens" ("api_access_token_id");
 
 CREATE INDEX IF NOT EXISTS "accountants_user_id_foreign" ON "accountants" ("user_id");
 

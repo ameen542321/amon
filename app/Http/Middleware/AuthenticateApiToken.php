@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Accountant;
 use App\Models\ApiAccessToken;
+use App\Models\DeviceToken;
 use App\Models\User;
 use App\Services\ApiAccountAccessService;
 use App\Support\Api\ApiResponse;
@@ -41,6 +42,7 @@ class AuthenticateApiToken
             : User::query()->find($token->actor_id);
         if (!$actor || ($denial = $this->access->denialCode($actor))) {
             $token->forceFill(['revoked_at' => now()])->save();
+            DeviceToken::query()->where('api_access_token_id', $token->id)->delete();
 
             return ApiResponse::error($denial ?? 'ACCOUNT_INVALID', 'الحساب غير متاح حاليًا.', 403);
         }

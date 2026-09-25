@@ -28,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('mobile-login', fn (Request $request): Limit => Limit::perMinute(5)->by(
             'mobile-login:'.$request->ip().':'.sha1(mb_strtolower((string) $request->input('email'))),
         ));
+        RateLimiter::for('mobile-refresh', fn (Request $request): Limit => Limit::perMinute(10)->by(
+            'mobile-refresh:'.$request->ip().':'.sha1((string) $request->input('device_uuid')),
+        ));
         RateLimiter::for('mobile-api', fn (Request $request): Limit => Limit::perMinute(120)->by(
             'mobile-api:'.($request->bearerToken() ? hash('sha256', $request->bearerToken()) : $request->ip()),
         ));

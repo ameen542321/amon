@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Accountant;
+use App\Models\DeviceToken;
 use App\Services\ApiAccountAccessService;
 use App\Support\Api\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +34,8 @@ class MobileContextController extends Controller
                 'token_authentication' => true,
                 'notifications' => true,
                 'device_sessions' => true,
+                'refresh_token_rotation' => true,
+                'push_registration' => true,
                 'offline_sensitive_mutations' => false,
                 'inventory_outbox' => false,
                 'store_transfer_outbox' => false,
@@ -61,7 +64,7 @@ class MobileContextController extends Controller
         $tokens = \App\Models\ApiAccessToken::query()->where([
             'actor_type' => $this->access->actorType($actor),
             'actor_id' => (int) $actor->getAuthIdentifier(),
-        ])->whereNull('revoked_at')->where('expires_at', '>', now())->orderByDesc('last_used_at')->get();
+        ])->whereNull('revoked_at')->where('refresh_expires_at', '>', now())->orderByDesc('last_used_at')->get();
 
         return ApiResponse::success($tokens->map(static fn ($token): array => [
             'id' => (int) $token->id,
@@ -84,7 +87,8 @@ class MobileContextController extends Controller
         if ($record->is($request->attributes->get('api_access_token'))) {
             return ApiResponse::error('CURRENT_DEVICE_REQUIRES_LOGOUT', 'استخدم مسار تسجيل الخروج لإلغاء الجهاز الحالي.', 422);
         }
-        $record->forceFill(['revoked_at' => now()])->save();
+        $record->forceFill(['revoked_at' => now(), 'refresh_token_hash' => null])->save();
+        DeviceToken::query()->where('api_access_token_id', $record->id)->delete();
 
         return ApiResponse::success(['revoked' => true]);
     }

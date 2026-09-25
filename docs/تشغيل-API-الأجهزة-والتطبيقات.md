@@ -20,6 +20,7 @@ Tokens قابلة للإبطال ومقيدة بجهاز، ولا تعتمد Coo
 
 ```dotenv
 MOBILE_API_TOKEN_LIFETIME_DAYS=30
+MOBILE_API_REFRESH_TOKEN_LIFETIME_DAYS=90
 MOBILE_API_MAX_DEVICES_PER_ACCOUNT=10
 MOBILE_API_MINIMUM_APP_VERSION=1.0.0
 ```
@@ -53,10 +54,28 @@ Content-Type: application/json
 ```
 
 القيمة `account_type` إما `user` أو `accountant`. رسالة فشل كلمة المرور عامة ولا
-تكشف وجود البريد. يعاد الرمز الصريح مرة واحدة فقط، وتخزن قاعدة البيانات SHA-256.
+تكشف وجود البريد. يعاد رمزا الوصول والتجديد الصريحان مرة واحدة فقط، وتخزن قاعدة البيانات بصمتي SHA-256 فقط.
 يرفض الخادم الإصدار الأدنى من `MOBILE_API_MINIMUM_APP_VERSION` بالرمز
 `UPDATE_REQUIRED` وحالة `426`، مع بقاء `/app-config` متاحًا للرمز القديم حتى يقرأ
 الحد الأدنى المطلوب.
+
+## تجديد الجلسة دون إعادة كلمة المرور
+
+```http
+POST /api/v1/auth/refresh
+Accept: application/json
+Content-Type: application/json
+
+{
+  "refresh_token": "carled_refresh_...",
+  "device_uuid": "stable-installation-uuid",
+  "app_version": "1.0.0"
+}
+```
+
+يبدل المسار **رمز الوصول ورمز التجديد معًا** داخل معاملة وقفل قاعدة بيانات. لا
+يقبل رمز التجديد القديم بعد نجاح التبديل، ولا يقبل الرمز من `device_uuid` مختلف.
+يخزن تطبيق الهاتف الرمزَين في Secure Storage ولا يرسلهما إلى Logs أو Analytics.
 
 ## استخدام الرمز
 
@@ -82,10 +101,14 @@ Accept: application/json
 - `DELETE /api/v1/devices/{id}`: إلغاء جهاز آخر، ويتطلب Idempotency-Key.
 - `POST /api/v1/auth/logout`: إلغاء الجهاز الحالي.
 - `POST /api/v1/auth/logout-all`: إلغاء جميع أجهزة الحساب.
+- `PUT /api/v1/push-subscription`: ربط OneSignal بالجهاز الحالي.
+- `DELETE /api/v1/push-subscription`: إلغاء Push للجهاز الحالي.
 
 إعادة تسجيل الجهاز نفسه تلغي جلسته السابقة وتنشئ رمزًا جديدًا. الحد الافتراضي عشر
-جلسات نشطة؛ تلغى الأقدم عند تجاوزه. يحتفظ بسجلات الإبطال سبعة أيام للتشخيص، ثم
-يحذفها `api-tokens:cleanup` مع الرموز المنتهية.
+جلسات نشطة؛ تلغى الأقدم عند تجاوزه. يلغي الخروج أو الإبطال البعيد رمز التجديد
+واشتراك Push معًا. يحتفظ بسجلات الإبطال سبعة أيام للتشخيص، ثم يحذفها
+`api-tokens:cleanup`. الجلسة ذات Access Token منتهٍ لا تحذف ما دام Refresh Token
+صالحًا.
 
 ## الصلاحيات الحالية
 
@@ -95,6 +118,7 @@ Accept: application/json
 | `devices:manage` | عرض الأجهزة وإلغاء جهاز آخر |
 | `notifications:read` | قائمة الإشعارات والعداد |
 | `notifications:write` | تعليم القراءة والإخفاء |
+| `push:manage` | تسجيل أو إلغاء Push للجهاز الموثق |
 
 لا يعني امتلاك Ability تجاوز عزل المستلم أو المتجر؛ Controllers ما زالت تستخدم
 استعلامات recipient-scoped وحالة الحساب الموثقة.
@@ -117,6 +141,8 @@ Accept: application/json
 5. إلغاء جهاز يمنع رمزه فورًا ولا يلغي جهازًا لحساب آخر.
 6. إعادة Notification mutation بالمفتاح نفسه لا تكرر الأثر.
 7. لا تظهر Tokens صريحة في قاعدة البيانات أو السجلات.
+8. تدوير Refresh Token يبطل القيمة السابقة ولا يعمل من جهاز UUID مختلف.
+9. الخروج أو الإبطال البعيد يوقف Push المرتبط بالجلسة نفسها.
 
 ## الرجوع
 
