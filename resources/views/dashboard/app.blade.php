@@ -90,6 +90,7 @@
 @if($usesAdminSidebar)
     </div>
 @endif
+<x-pwa-install-panel />
 <x-ui.help-modal />
 @yield('scripts')
 

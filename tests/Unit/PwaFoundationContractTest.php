@@ -18,7 +18,7 @@ class PwaFoundationContractTest extends TestCase
         self::assertStringContainsString('isStaticAsset(url)', $worker);
         self::assertStringContainsString("caches.match('/offline.html')", $worker);
         self::assertStringContainsString("request.method !== 'GET'", $worker);
-        self::assertStringNotContainsString('skipWaiting', $worker);
+        self::assertStringContainsString("event.data?.type === 'SKIP_WAITING'", $worker);
     }
 
     public function test_manifest_uses_only_the_text_based_svg_icon(): void
@@ -66,5 +66,23 @@ class PwaFoundationContractTest extends TestCase
         self::assertStringContainsString('AttachRequestId::class', $bootstrap);
         self::assertStringContainsString("'/api/v1/app-context'", $ownerRoutes);
         self::assertStringContainsString("'/api/v1/app-context'", $accountantRoutes);
+    }
+
+    public function test_install_update_and_connection_experience_requires_user_actions(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $panel = file_get_contents($root.'/resources/views/components/pwa-install-panel.blade.php');
+        $registration = file_get_contents($root.'/resources/js/features/pwa/register-service-worker.js');
+        $layout = file_get_contents($root.'/resources/views/dashboard/app.blade.php');
+
+        self::assertStringContainsString('<x-pwa-install-panel />', $layout);
+        self::assertStringContainsString('data-pwa-install', $panel);
+        self::assertStringContainsString('data-pwa-update', $panel);
+        self::assertStringNotContainsString('<style', $panel);
+        self::assertStringNotContainsString('style="', $panel);
+        self::assertStringContainsString("'beforeinstallprompt'", $registration);
+        self::assertStringContainsString("'offline'", $registration);
+        self::assertStringContainsString("'online'", $registration);
+        self::assertStringContainsString("postMessage({ type: 'SKIP_WAITING' })", $registration);
     }
 }

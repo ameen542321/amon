@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'carled-shell-v1';
+const CACHE_VERSION = 'carled-shell-v2';
 const OFFLINE_ASSETS = [
     '/offline.html',
     '/css/offline.css',
@@ -27,6 +27,10 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
@@ -43,22 +47,12 @@ self.addEventListener('fetch', (event) => {
     if (!isStaticAsset(url)) return;
 
     event.respondWith(caches.match(request).then(async (cached) => {
-        if (cached) {
-            event.waitUntil(
-                fetch(request)
-                    .then((response) => response.ok && response.type === 'basic'
-                        ? caches.open(CACHE_VERSION).then((cache) => cache.put(request, response))
-                        : undefined)
-                    .catch(() => undefined),
-            );
-
-            return cached;
-        }
+        if (cached) return cached;
 
         const response = await fetch(request);
         if (response.ok && response.type === 'basic') {
             const copy = response.clone();
-            event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy)));
+            await caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
         }
 
         return response;

@@ -38,10 +38,26 @@ for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']
 }
 if (!worker.includes("caches.match('/offline.html')")) fail('offline navigation fallback is missing');
 if (!worker.includes('isStaticAsset')) fail('runtime cache is not limited to static assets');
-if (worker.includes('skipWaiting')) fail('worker must not replace an active form session immediately');
+if (!worker.includes("event.data?.type === 'SKIP_WAITING'")) {
+    fail('worker updates must require an explicit user action');
+}
 
 const app = readFileSync('resources/js/app.js', 'utf8');
 if (!app.includes("./features/pwa/register-service-worker")) fail('service worker registration is not imported');
+
+const registration = readFileSync('resources/js/features/pwa/register-service-worker.js', 'utf8');
+for (const eventName of ['beforeinstallprompt', 'appinstalled', 'offline', 'online', 'controllerchange']) {
+    if (!registration.includes(`'${eventName}'`)) fail(`PWA lifecycle event is missing: ${eventName}`);
+}
+if (!registration.includes("postMessage({ type: 'SKIP_WAITING' })")) {
+    fail('service worker update must wait for an explicit user action');
+}
+
+const panel = readFileSync('resources/views/components/pwa-install-panel.blade.php', 'utf8');
+if (panel.includes('<style') || panel.includes('style="')) fail('PWA panel contains inline CSS');
+if (!panel.includes('data-pwa-install') || !panel.includes('data-pwa-update')) {
+    fail('PWA panel install/update controls are missing');
+}
 
 for (const layoutPath of ['resources/views/dashboard/app.blade.php', 'resources/views/layouts/auth.blade.php']) {
     const layout = readFileSync(layoutPath, 'utf8');
