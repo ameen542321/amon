@@ -58,6 +58,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // حارس المحاسب
             'accountant.unified' => \App\Http\Middleware\UnifiedAccountantGuard::class,
 
+            // إعادة الطلبات API الحساسة بأمان عند ضعف الشبكة دون تكرار الأثر.
+            'idempotency' => \App\Http\Middleware\EnsureIdempotentRequest::class,
+
                'store.check' => \App\Http\Middleware\UnifiedStoreGuard::class,
         ]);
     })

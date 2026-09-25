@@ -33,6 +33,7 @@ class AppContextController extends Controller
                 ])->values(),
                 'features' => [
                     'notifications_api' => true,
+                    'idempotency_keys' => true,
                     'offline_sensitive_mutations' => false,
                 ],
                 'request_id' => request()->attributes->get('request_id'),

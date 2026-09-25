@@ -17,6 +17,11 @@ const requiredFiles = [
     'app/Support/Notifications/NotificationRecipient.php',
     'app/Support/Notifications/NotificationPayload.php',
     'app/Http/Controllers/Api/NotificationController.php',
+    'app/Http/Middleware/EnsureIdempotentRequest.php',
+    'app/Console/Commands/CleanupApiIdempotencyKeys.php',
+    'app/Models/ApiIdempotencyKey.php',
+    'config/idempotency.php',
+    'database/migrations/2026_09_25_000001_create_api_idempotency_keys_table.php',
     'routes/console.php',
     'routes/user.php',
     'routes/accountant.php',
@@ -77,7 +82,22 @@ for (const routeFile of ['routes/user.php', 'routes/accountant.php']) {
     if (routes.includes("prefix('api/v1/notifications')") && routes.includes("middleware('throttle:120,1')")) {
         pass(`notification API is throttled in ${routeFile}`);
     } else fail(`notification API throttle or prefix is missing in ${routeFile}`);
+    if (routes.includes("middleware('idempotency')->name('read')")
+        && routes.includes("middleware('idempotency')->name('hide')")) {
+        pass(`notification API mutations require idempotency in ${routeFile}`);
+    } else fail(`notification API mutation idempotency is missing in ${routeFile}`);
 }
+
+const idempotency = source('app/Http/Middleware/EnsureIdempotentRequest.php');
+if (idempotency.includes("header('Idempotency-Key')")
+    && idempotency.includes('hash_equals($record->request_hash, $requestHash)')
+    && idempotency.includes("'X-Idempotent-Replayed', 'true'")) {
+    pass('API idempotency validates request identity and replays completed responses');
+} else fail('API idempotency request/replay contract is incomplete');
+if (schedule.includes("Schedule::command('idempotency:cleanup')")
+    && schedule.includes('->hourly()')) {
+    pass('idempotency retention cleanup is scheduled hourly');
+} else fail('idempotency cleanup schedule is missing');
 
 const phpunit = source('phpunit.xml');
 if (phpunit.includes('name="DB_CONNECTION" value="sqlite" force="true"')

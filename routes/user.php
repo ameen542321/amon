@@ -51,8 +51,8 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
     Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
         Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
         Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
-        Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->name('read');
-        Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->name('hide');
+        Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->middleware('idempotency')->name('read');
+        Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->middleware('idempotency')->name('hide');
     });
 
     // أداة مؤقتة ومقصورة على المالك/الأدمن لمراجعة تاريخ حركات التوريد قبل تعديله.
