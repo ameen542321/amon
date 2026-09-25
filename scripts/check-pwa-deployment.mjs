@@ -41,10 +41,33 @@ const fetchPath = async (path, expectedContentTypes) => {
     return { response, body: await response.text() };
 };
 
+const sameOriginModuleScripts = (html) => [...html.matchAll(/<script\b[^>]*>/gi)]
+    .map(([tag]) => ({
+        type: tag.match(/\btype=["']([^"']+)["']/i)?.[1],
+        src: tag.match(/\bsrc=["']([^"']+)["']/i)?.[1],
+    }))
+    .filter(({ type, src }) => type === 'module' && src)
+    .map(({ src }) => new URL(src, origin))
+    .filter((url) => url.origin === origin);
+
 try {
     const home = await fetchPath('/', ['text/html']);
     if (!home.body.includes('manifest.webmanifest')) fail('main page does not expose the web manifest');
     else pass('main page exposes the web manifest');
+
+    const moduleScripts = sameOriginModuleScripts(home.body);
+    if (!moduleScripts.length) {
+        fail('main page does not expose a same-origin JavaScript module bundle');
+    } else {
+        pass(`main page exposes ${moduleScripts.length} same-origin JavaScript module bundle(s)`);
+        const deployedModules = await Promise.all(moduleScripts.map((url) => fetchPath(url.href, ['javascript'])));
+        const moduleSource = deployedModules.map(({ body }) => body).join('\n');
+        if (!moduleSource.includes('serviceWorker') || !moduleSource.includes('/sw.js')) {
+            fail('deployed JavaScript bundle does not contain the service-worker registration contract');
+        } else {
+            pass('deployed JavaScript bundle contains the service-worker registration contract');
+        }
+    }
 
     const manifestResult = await fetchPath('/manifest.webmanifest', ['application/manifest+json', 'application/json']);
     try {

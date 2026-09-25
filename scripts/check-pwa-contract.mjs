@@ -44,6 +44,10 @@ if (!apache.includes('Header set Cache-Control "no-cache, no-store, must-revalid
 const deploymentCheck = readFileSync('scripts/check-pwa-deployment.mjs', 'utf8');
 if (!deploymentCheck.includes("candidate.protocol !== 'https:'")) fail('deployment check does not require HTTPS');
 if (!deploymentCheck.includes("fetchPath('/sw.js'")) fail('deployment check does not inspect the service worker');
+if (!deploymentCheck.includes('sameOriginModuleScripts')) fail('deployment check does not inspect deployed module bundles');
+if (!deploymentCheck.includes("moduleSource.includes('/sw.js')")) {
+    fail('deployment check does not verify the deployed service-worker registration contract');
+}
 
 const worker = readFileSync('public/sw.js', 'utf8');
 for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']) {
