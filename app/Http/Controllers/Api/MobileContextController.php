@@ -38,6 +38,8 @@ class MobileContextController extends Controller
                 'push_registration' => true,
                 'catalog_read' => true,
                 'catalog_delta_sync' => true,
+                'inventory_read' => true,
+                'inventory_integrity' => true,
                 'offline_sensitive_mutations' => false,
                 'inventory_outbox' => false,
                 'store_transfer_outbox' => false,

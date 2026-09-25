@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthTokenController;
 use App\Http\Controllers\Api\CatalogController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
@@ -27,6 +28,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/products', [CatalogController::class, 'products'])->name('products.index');
             Route::get('/products/{product}', [CatalogController::class, 'show'])->whereNumber('product')->name('products.show');
             Route::get('/sync', [CatalogController::class, 'sync'])->name('sync');
+        });
+        Route::prefix('inventory')->name('inventory.')->middleware('ability:inventory:read')->group(function (): void {
+            Route::get('/summary', [InventoryController::class, 'summary'])->name('summary');
+            Route::get('/movements', [InventoryController::class, 'movements'])->name('movements');
+            Route::get('/integrity', [InventoryController::class, 'integrity'])->name('integrity');
         });
         Route::put('/push-subscription', [PushSubscriptionController::class, 'store'])
             ->middleware(['ability:push:manage', 'idempotency'])->name('push.store');
