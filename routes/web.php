@@ -7,7 +7,6 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\OneSignalController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DeviceTokenController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Cashier\InvoiceController;
 use App\Http\Controllers\Cashier\QuickSaleController;
