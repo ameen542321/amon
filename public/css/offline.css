@@ -1,0 +1,48 @@
+@font-face {
+  font-family: Cairo;
+  src: url('/fonts/cairo/cairo-arabic-wght-normal.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: Cairo, sans-serif;
+  background: #020617;
+  color: #f8fafc;
+}
+
+* { box-sizing: border-box; }
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: #020617;
+}
+.offline-card {
+  width: min(100%, 32rem);
+  padding: 2rem;
+  border: 1px solid #334155;
+  border-radius: 1.25rem;
+  background: #0f172a;
+  text-align: center;
+  box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, .3);
+}
+.offline-logo { border-radius: 1.25rem; }
+.offline-kicker { color: #00c4b4; font-weight: 800; letter-spacing: .12em; }
+h1 { margin: .5rem 0; font-size: clamp(1.5rem, 6vw, 2.25rem); }
+p { line-height: 1.9; color: #cbd5e1; }
+button {
+  margin-top: 1rem;
+  min-height: 2.75rem;
+  padding: .65rem 1.25rem;
+  border: 0;
+  border-radius: .75rem;
+  background: #00c4b4;
+  color: #020617;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+button:focus-visible { outline: 3px solid #f8fafc; outline-offset: 3px; }

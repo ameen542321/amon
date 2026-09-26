@@ -23,7 +23,8 @@ document.addEventListener('alpine:init', () => {
             };
         },
         addItem() {
-            this.items.push(this.makeItem());
+            // يبقى أحدث بند في أعلى القائمة حتى لا يضطر المستخدم للتمرير عند كثرة المنتجات.
+            this.items.unshift(this.makeItem());
         },
         removeItem(index) {
             if (this.items.length > 1) this.items.splice(index, 1);
@@ -95,6 +96,8 @@ document.addEventListener('input', (event) => {
     const productPicker = pickerInput.closest('[data-transfer-product-picker]');
     const hiddenInput = document.getElementById(productPicker.dataset.hiddenInput);
     if (hiddenInput) hiddenInput.value = '';
+    const matchText = productPicker.querySelector('[data-picker-match]');
+    if (matchText) matchText.textContent = 'اختر المنتج المطابق من نتائج المتجر المستلم.';
     filterProductPicker(productPicker);
 });
 
@@ -104,9 +107,11 @@ document.addEventListener('click', (event) => {
         const productPicker = selectedOption.closest('[data-transfer-product-picker]');
         const pickerInput = productPicker.querySelector('[data-picker-input]');
         const hiddenInput = document.getElementById(productPicker.dataset.hiddenInput);
+        const matchText = productPicker.querySelector('[data-picker-match]');
         if (pickerInput && hiddenInput) {
             pickerInput.value = selectedOption.dataset.label;
             hiddenInput.value = selectedOption.dataset.id;
+            if (matchText) matchText.textContent = `هل المنتج المستلم هو: ${selectedOption.dataset.label}؟ — الوحدة: ${selectedOption.dataset.unitLabel}`;
             closeProductPicker(productPicker);
         }
         return;

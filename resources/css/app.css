@@ -3092,3 +3092,26 @@ html.ui-font-loading body > :not(.ui-page-loader) {
         }
     }
 }
+
+@layer components {
+    .pwa-install-panel {
+        position: fixed;
+        inset-inline-end: 1rem;
+        bottom: 1rem;
+        z-index: 70;
+        width: min(calc(100% - 2rem), 24rem);
+        padding: 1rem;
+    }
+
+    .pwa-install-panel__icon {
+        display: inline-flex;
+        width: 2.5rem;
+        height: 2.5rem;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        border-radius: .75rem;
+        background: var(--ui-info-bg);
+        color: var(--ui-brand);
+    }
+}

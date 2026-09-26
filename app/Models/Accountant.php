@@ -95,30 +95,4 @@ class Accountant extends Authenticatable
         }
     }
 
-    public function notificationsForAccountant()
-    {
-        return \App\Models\Notification::where(function ($query) {
-                $query->where('target_type', 'all')
-                      ->orWhere('target_type', 'all_accountants')
-                      ->orWhere(function ($subQuery) {
-                          $subQuery->whereIn('target_type', ['accountant', 'accountants'])
-                                   ->where(function ($jsonQuery) {
-                                       $jsonQuery->whereJsonContains('target_ids', (int) $this->id)
-                                                 ->orWhereJsonContains('target_ids', (string) $this->id);
-                                   });
-                      });
-            })
-            ->orderBy('created_at', 'desc');
-    }
-
-    /**
-     * عدد الإشعارات غير المقروءة للمحاسب (مشابه لـ unreadCountFor)
-     */
-    public function unreadNotificationsCountForAccountant()
-    {
-        return $this->notificationsForAccountant()
-            ->get()
-            ->filter(fn ($notification) => !$notification->isReadBy($this->id))
-            ->count();
-    }
 }

@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter; // لإدارة محاولات الدخول
-use App\Models\User; // أو موديول المحاسب حسب الحاجة
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use App\Services\SupportSessionService;
 use App\Services\SecurityEventService;
@@ -23,14 +22,6 @@ class LoginController extends Controller
 
         // مفتاح مركب يمنع التحايل على الحد، دون تمكين مهاجم من إيقاف حساب الضحية.
         $throttleKey = hash('sha256', Str::lower($request->input('email')).'|'.$request->ip());
-
-        // فحص الحالة قبل كل شيء
-        $user = \App\Models\User::where('email', $request->email)->first()
-                ?? \App\Models\Accountant::where('email', $request->email)->first();
-
-        if ($user && $user->status === 'suspended') {
-            return back()->withErrors(['email' => 'حسابك موقوف، راجع مالك المتجر.']);
-        }
 
         // فحص عدد المحاولات
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
@@ -71,30 +62,6 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
-    // public function login(Request $request)
-    // {
-    //     $credentials = $request->validate([
-    //         'email'    => ['required', 'email'],
-    //         'password' => ['required'],
-    //     ]);
-
-    //     $remember = $request->boolean('remember');
-
-    //     // 1) محاولة دخول المحاسب
-    //     if (Auth::guard('accountant')->attempt($credentials, $remember)) {
-    //         return $this->handleLoginSuccess($request, 'accountant');
-    //     }
-
-    //     // 2) محاولة دخول المستخدم (مالك أو أدمن)
-    //     if (Auth::guard('web')->attempt($credentials, $remember)) {
-    //         return $this->handleLoginSuccess($request, 'web');
-    //     }
-
-    //     return back()
-    //         ->withErrors(['email' => 'بيانات الدخول غير صحيحة'])
-    //         ->onlyInput('email');
-    // }
-
     /**
      * دالة موحدة للتعامل مع نجاح الدخول وتوجيه كل رتبة لمكانها
      */
@@ -110,6 +77,17 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::guard($guard)->user();
+
+        // لا نكشف حالة الحساب قبل نجاح كلمة المرور؛ هذا يمنع استخدام الدخول لتعداد الحسابات الموقوفة.
+        if (! $user || $user->status !== 'active') {
+            Auth::guard($guard)->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'تعذر تسجيل الدخول بهذا الحساب. راجع مسؤول النظام.',
+            ]);
+        }
 
         if ($user?->must_reset_password) {
             Auth::guard($guard)->logout();

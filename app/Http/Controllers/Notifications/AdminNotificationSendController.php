@@ -12,8 +12,8 @@ class AdminNotificationSendController extends Controller
 {
     public function create()
     {
-        $users = User::all();
-        $accountants = Accountant::all();
+        $users = User::users()->where('status', User::STATUS_ACTIVE)->get();
+        $accountants = Accountant::where('status', 'active')->get();
 
         return view('admin.notifications.send', compact('users', 'accountants'));
     }
@@ -35,10 +35,35 @@ class AdminNotificationSendController extends Controller
             'message'     => 'required|string|max:2000',
         ]);
 
+        $targetIds = collect($request->input('target_ids', []))
+            ->map(static fn ($id): int => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($request->target_type === 'users') {
+            $targetIds = User::users()
+                ->where('status', User::STATUS_ACTIVE)
+                ->whereKey($targetIds)
+                ->pluck('id');
+        }
+
+        if ($request->target_type === 'accountants') {
+            $targetIds = Accountant::where('status', 'active')
+                ->whereKey($targetIds)
+                ->pluck('id');
+        }
+
+        if ($request->target_type !== 'all' && $targetIds->isEmpty()) {
+            return back()->withErrors([
+                'target_ids' => 'اختر مستلمًا فعالًا واحدًا على الأقل.',
+            ])->withInput();
+        }
+
         NotificationService::send([
             'sender_type' => 'admin',
             'target_type' => $request->target_type,
-            'target_ids'  => $request->target_ids,
+            'target_ids'  => $targetIds->all(),
             'title'       => $request->title,
             'message'     => $request->message,
         ]);

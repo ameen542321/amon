@@ -17,7 +17,8 @@
         ? route($routePrefix . $name, $id)
         : route($routePrefix . $name);
 
-    $isRead = $notification->isReadBy($currentUser->id);
+    $isRead = $notification->isReadByRecipient($recipient);
+    $safeNotificationUrl = \App\Support\Notifications\NotificationPayload::safeWebUrl($notification->data ?? []);
 @endphp
 
 <div class="max-w-4xl mx-auto px-4 py-6 space-y-5">
@@ -46,7 +47,6 @@
                   data-ui-confirm-title="تأكيد حذف الإشعار">
                 @csrf
                 @method('DELETE')
-                <input type="hidden" name="redirect_to" value="{{ $notifRoute('index') }}">
                 <button class="px-4 py-2 rounded-lg ui-btn ui-btn-danger ui-title text-sm font-bold transition">
                     حذف
                 </button>
@@ -91,9 +91,9 @@
             {{ $notification->message }}
         </div>
 
-        @if(isset($notification->data['url']) && $notification->data['url'])
+        @if($safeNotificationUrl)
             <div class="mt-4">
-                <a href="{{ $notification->data['url'] }}"
+                <a href="{{ $safeNotificationUrl }}"
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg ui-btn ui-btn-primary ui-title text-sm font-bold transition">
                     <i class="fa-solid fa-link"></i>
                     فتح الرابط المرتبط

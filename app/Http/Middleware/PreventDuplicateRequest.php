@@ -28,6 +28,12 @@ class PreventDuplicateRequest
 
     private function shouldProtect(Request $request): bool
     {
+        // المسارات التي تملك عقد Idempotency دائم تتولى التكرار وإعادة الاستجابة
+        // بدل قفل Cache القصير الذي لا يستطيع إعادة نتيجة الطلب الأصلي.
+        if (in_array('idempotency', $request->route()?->gatherMiddleware() ?? [], true)) {
+            return false;
+        }
+
         // يملك فحص مركز الأمن قفلًا أطول خاصًا به ويعيد status=skipped بنجاح عند التكرار.
         // تركه هنا يحوّل الطلب الثاني إلى 409 قبل وصوله إلى عقد الفحص الآمن في الـController.
         if ($request->routeIs('admin.security.maintenance.check')) {

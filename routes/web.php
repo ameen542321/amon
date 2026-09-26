@@ -21,6 +21,11 @@ Route::middleware('web')->group(function () {
     require base_path('routes/user.php');
      require base_path('routes/accountant.php');
 
+    Route::get('/notifications/open/{notification}', [NotificationController::class, 'open'])
+        ->whereNumber('notification')
+        ->middleware('throttle:120,1')
+        ->name('notifications.open');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -80,12 +85,14 @@ Route::middleware('web')->group(function () {
             ->name('password.request');
 
         Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+            ->middleware('throttle:5,1')
             ->name('password.email');
 
         Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
             ->name('password.reset');
 
         Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
+            ->middleware('throttle:5,1')
             ->name('password.update');
     });
 
@@ -139,32 +146,6 @@ Route::prefix('accountant')->group(function () {
 
 });
 
-// Route::middleware(['auth:web'])->prefix('user')->group(function () {
-
-//     Route::get('/notifications', [NotificationController::class, 'index'])
-//         ->name('user.notifications.index');
-
-//     Route::get('/notifications/{id}', [NotificationController::class, 'show'])
-//         ->name('user.notifications.show');
-
-//     Route::post('/notifications/{id}/toggle', [NotificationController::class, 'toggle'])
-//         ->name('user.notifications.toggle');
-
-//     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
-//         ->name('user.notifications.read');
-
-//     Route::post('/notifications/read-all', [NotificationController::class, 'markAll'])
-//         ->name('user.notifications.readAll');
-//         //  Route::delete('/{id}', [NotificationController::class, 'remov'])->name('remov');
-
-//     Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])
-//         ->name('user.notifications.delete');
-//     Route::post('/notifications/delete-selected', [NotificationController::class, 'deleteSelected'])
-//         ->name('user.notifications.deleteSelected');
-
-// });
-
-
 // مسار عام لمعاينة الفاتورة لا يتطلب guard معين
 Route::get('/invoice/view/{id}', [InvoiceController::class, 'publicShow'])
      ->name('public.invoice.show');
@@ -172,31 +153,9 @@ Route::get('/invoice/view/{id}', [InvoiceController::class, 'publicShow'])
 
 
 Route::post('/device-token', [DeviceTokenController::class, 'store'])
-    ->name('device.token.store')
-    ->middleware('auth');
+    ->middleware(['web', 'throttle:20,1'])
+    ->name('device.token.store');
 
-// في ملف routes/web.php
-// Route::group(['middleware' => ['auth']], function () {
-//     // ... Routes الأخرى
-
-//     // Routes الإشعارات
-//     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])
-//         ->name('user.notifications.index');
-
-//     Route::post('/notifications/mark-selected', [App\Http\Controllers\NotificationController::class, 'markSelected'])
-//         ->name('user.notifications.markSelected');
-
-//     Route::post('/notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllRead'])
-//         ->name('user.notifications.markAllRead');
-
-//     Route::delete('/notifications/{notification}', [App\Http\Controllers\NotificationController::class, 'destroy'])
-//         ->name('user.notifications.destroy');
-// });
-
-
-// Route::post('/save-player-id', [OneSignalController::class, 'savePlayerId'])
-//     ->middleware('auth')
-//     ->name('onesignal.save');
 // Route::get('/db-structure', function () {
 //     $tables = DB::select('SHOW TABLES');
 //     $structure = [];
@@ -223,4 +182,3 @@ Route::post('/device-token', [DeviceTokenController::class, 'store'])
         'Content-Disposition' => 'inline; filename="' . $filename . '"'
     ]);
 })->name('public.report.view');
-
