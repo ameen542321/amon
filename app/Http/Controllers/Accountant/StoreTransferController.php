@@ -46,7 +46,7 @@ class StoreTransferController extends Controller
         $receiverProducts = Product::where('store_id', $storeId)
             ->sellable()
             ->orderBy('name')
-            ->get(['id', 'name', 'quantity', 'barcode', 'category_id']);
+            ->get(['id', 'name', 'quantity', 'barcode', 'category_id', 'product_type', 'is_splittable', 'items_per_unit', 'roll_length']);
 
         $incoming->getCollection()->each(function (StoreTransfer $transfer) use ($receiverProducts) {
             $transfer->items->each(function ($item) use ($receiverProducts) {
@@ -95,7 +95,6 @@ class StoreTransferController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.001',
             'items.*.unit_type' => 'required|string|in:unit,roll,meter,meters,piece,kit,default,normalized',
             'notes' => 'nullable|string|max:1000',
-            'business_date' => $this->currentMonthDateRules(),
         ]);
 
         $transfer = $this->transfers->createTransfer(
@@ -103,8 +102,7 @@ class StoreTransferController extends Controller
             Store::findOrFail($validated['receiver_store_id']),
             $validated['items'],
             $validated['notes'] ?? null,
-            $accountant,
-            $validated['business_date']
+            $accountant
         );
 
         return redirect()
@@ -118,10 +116,9 @@ class StoreTransferController extends Controller
         $validated = $request->validate([
             'receiver_product_id' => 'required|array',
             'receiver_product_id.*' => ['required', Rule::exists('products', 'id')->where(fn ($query) => $query->where('store_id', $accountant->store_id))],
-            'business_date' => $this->currentMonthDateRules(),
         ]);
 
-        $this->transfers->approveTransfer($transfer, $validated['receiver_product_id'], $accountant, false, $validated['business_date']);
+        $this->transfers->approveTransfer($transfer, $validated['receiver_product_id'], $accountant);
 
         return back()->with('success', 'تم استلام النقل وإضافة الكمية لمخزون متجرك.');
     }
@@ -131,9 +128,8 @@ class StoreTransferController extends Controller
         $accountant = auth('accountant')->user();
         $validated = $request->validate([
             'reason' => 'required|string|max:1000',
-            'business_date' => $this->currentMonthDateRules(),
         ]);
-        $this->transfers->rejectTransfer($transfer, $validated['reason'], $accountant, $validated['business_date']);
+        $this->transfers->rejectTransfer($transfer, $validated['reason'], $accountant);
 
         return back()->with('success', 'تم رفض النقل وإرجاع الكمية للمتجر المرسل.');
     }
@@ -141,8 +137,7 @@ class StoreTransferController extends Controller
     public function cancel(Request $request, StoreTransfer $transfer)
     {
         $accountant = auth('accountant')->user();
-        $validated = $request->validate(['business_date' => $this->currentMonthDateRules()]);
-        $this->transfers->cancelTransfer($transfer, $accountant, $validated['business_date']);
+        $this->transfers->cancelTransfer($transfer, $accountant);
 
         return back()->with('success', 'تم إلغاء النقل وإرجاع الكمية للمتجر المرسل.');
     }
@@ -159,13 +154,4 @@ class StoreTransferController extends Controller
         return (string) app(ShiftLifecycleService::class)->currentShiftContext($store)['business_date'];
     }
 
-    private function currentMonthDateRules(): array
-    {
-        return [
-            'required',
-            'date',
-            'after_or_equal:'.now()->startOfMonth()->toDateString(),
-            'before_or_equal:'.now()->endOfMonth()->toDateString(),
-        ];
-    }
 }

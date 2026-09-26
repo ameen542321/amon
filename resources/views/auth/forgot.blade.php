@@ -10,13 +10,13 @@
     </p>
 
     @if ($errors->any())
-        <div class="ui-alert ui-badge-danger mb-5 text-sm">
+        <div class="ui-alert ui-alert-danger mb-5 text-sm" role="alert">
             @foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach
         </div>
     @endif
 
     @if (session('status'))
-        <div class="ui-alert ui-badge-success mb-5 text-sm">{{ session('status') }}</div>
+        <div class="ui-alert ui-alert-success mb-5 text-sm" role="status">{{ session('status') }}</div>
     @endif
 
     <form method="POST" action="{{ route('password.email') }}">
@@ -30,6 +30,8 @@
                    value="{{ old('email') }}"
                    class="ui-input"
                    placeholder="example@email.com"
+                   autocomplete="email"
+                   inputmode="email"
                    required>
         </div>
 

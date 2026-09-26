@@ -5,7 +5,21 @@
     "dev": "vite",
     "build": "vite build",
     "test:visual": "node scripts/check-visual-identity.mjs",
-    "test:contrast": "npm run build && node scripts/check-browser-contrast.mjs"
+    "test:contrast": "npm run build && node scripts/check-browser-contrast.mjs",
+    "test:notifications": "node scripts/check-notification-readiness.mjs",
+    "test:mobile-api": "node scripts/check-mobile-api-readiness.mjs",
+    "test:pwa": "node scripts/check-pwa-contract.mjs",
+    "test:pwa:deployment": "node scripts/check-pwa-deployment.mjs",
+    "test:pwa:browser": "node scripts/check-pwa-browser.mjs",
+    "test:mobile-sessions": "node scripts/check-mobile-session-lifecycle.mjs",
+    "test:mobile-catalog": "node scripts/check-mobile-catalog-readiness.mjs",
+    "test:mysql-migrations": "node scripts/check-mysql-migration-compatibility.mjs",
+    "test:mobile-inventory": "node scripts/check-mobile-inventory-readiness.mjs",
+    "test:mobile-shifts": "node scripts/check-mobile-shift-readiness.mjs",
+    "test:mobile-sales": "node scripts/check-mobile-sales-readiness.mjs",
+    "test:mobile-purchase-orders": "node scripts/check-mobile-purchase-orders-readiness.mjs",
+    "test:mobile-store-transfers": "node scripts/check-mobile-store-transfers-readiness.mjs",
+    "test:pwa:phase3": "node scripts/check-pwa-phase3-readiness.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

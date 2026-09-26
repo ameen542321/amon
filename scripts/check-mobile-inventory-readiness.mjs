@@ -1,0 +1,13 @@
+import { existsSync, readFileSync } from 'node:fs';
+const failures=[]; const passes=[]; const src=p=>existsSync(p)?readFileSync(p,'utf8'):''; const check=(v,m)=>(v?passes:failures).push(m);
+const required=['app/Http/Controllers/Api/InventoryController.php','app/Support/Api/InventoryResource.php','database/migrations/2026_09_25_000006_add_mobile_inventory_indexes.php','tests/Unit/MobileInventoryApiContractTest.php'];
+required.forEach(f=>check(existsSync(f),`required file exists: ${f}`));
+const routes=src('routes/api.php'), controller=src(required[0]), resource=src(required[1]), migration=src(required[2]), auth=src('app/Http/Controllers/Api/AuthTokenController.php');
+check(routes.includes("prefix('inventory')")&&routes.includes('ability:inventory:read'),'inventory routes require read ability');
+check(!routes.includes("Route::post('/inventory")&&!routes.includes("Route::patch('/inventory"),'inventory API is read only');
+check(controller.includes('cursorPaginate')&&controller.includes("'max:100'"),'movements use bounded cursor pagination');
+check(controller.includes('latest_balance_mismatches')&&controller.includes('movements_missing_balances'),'integrity endpoint checks balances and incomplete audit rows');
+check(!resource.includes('cost_price_snapshot')&&resource.includes("'balance_before'"),'movement resource omits historical cost while exposing balances');
+check(auth.includes("'inventory:read'"),'new and refreshed sessions receive inventory ability');
+check(migration.includes('stock_movements_product_cursor_index')&&migration.includes('stock_movements_mobile_business_date_index'),'movement indexes support product and business-date queries');
+passes.forEach(m=>console.log(`PASS: ${m}`)); failures.forEach(m=>console.error(`FAIL: ${m}`)); if(failures.length) process.exit(1); console.log(`Mobile inventory readiness passed (${passes.length} checks).`);
