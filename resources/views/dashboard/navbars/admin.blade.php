@@ -76,7 +76,7 @@
         <div data-notif-list class="max-h-72 overflow-y-auto custom-scroll px-1">
             @forelse($latestNotifications as $n)
                 <a href="{{ route('admin.notifications.show', $n->id) }}"
-                   class="ui-notification-item {{ $n->isReadBy($auth->id) ? 'opacity-60' : 'ui-notification-item-unread' }}">
+                   class="ui-notification-item {{ $n->isReadByRecipient($notificationRecipient) ? 'opacity-60' : 'ui-notification-item-unread' }}">
                     <div class="flex items-start gap-3">
                         {{-- أيقونة --}}
                         <div class="ui-notification-icon">

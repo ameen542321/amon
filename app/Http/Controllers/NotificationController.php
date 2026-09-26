@@ -3,179 +3,140 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Support\Notifications\NotificationRecipient;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
-    /**
-     * تحديد المستخدم الحالي حسب نوع الحساب
-     */
-    private function currentUser()
+    public function index(): View
     {
-        if (Auth::guard('accountant')->check()) {
-            return Auth::guard('accountant')->user();
-        }
-
-        if (Auth::guard('web')->check()) {
-            return Auth::guard('web')->user();
-        }
-
-        return null;
-    }
-
-    /**
-     * عرض جميع الإشعارات
-     */
-    public function index()
-    {
-        $user = $this->currentUser();
-
-        $notifications = Notification::where(function ($query) use ($user) {
-            $query->where('target_type', 'all')
-                ->orWhereJsonContains('target_ids', $user->id);
-        })
-            ->orderByDesc('created_at')
+        $recipient = $this->recipient();
+        $notifications = Notification::query()
+            ->visibleTo($recipient)
+            ->latest()
             ->paginate(10);
 
-        return view('notifications.index', compact('notifications'));
+        return view('notifications.index', compact('notifications', 'recipient'));
     }
 
-    /**
-     * عرض إشعار واحد
-     */
-    public function show($id)
+    public function show(int $id): View
     {
-        $user = $this->currentUser();
-        $notification = Notification::findOrFail($id);
+        $recipient = $this->recipient();
+        $notification = $this->notificationFor($recipient, $id);
 
-        if (
-            $notification->target_type !== 'all' &&
-            !in_array($user->id, $notification->target_ids ?? [])
-        ) {
-            abort(403, 'غير مصرح لك بعرض هذا الإشعار');
-        }
-
-        return view('notifications.show', compact('notification'));
+        return view('notifications.show', compact('notification', 'recipient'));
     }
 
-    /**
-     * تبديل حالة الإشعار (مقروء ↔ غير مقروء)
-     */
-    public function toggle($id)
+    public function open(int $notification): RedirectResponse
     {
-        $user = $this->currentUser();
-        $n = Notification::findOrFail($id);
-
-        $read = $n->read_by ?? [];
-
-        if (in_array($user->id, $read)) {
-            $read = array_diff($read, [$user->id]);
-        } else {
-            $read[] = $user->id;
+        if (!$this->currentAccount()) {
+            return redirect()->guest(route('login'));
         }
 
-        $n->update(['read_by' => array_values($read)]);
+        $recipient = $this->recipient();
+        $record = $this->notificationFor($recipient, $notification);
+        $record->markAsReadByRecipient($recipient);
+
+        return redirect()->route($this->showRouteName(), ['id' => $record->id]);
+    }
+
+    public function toggle(int $id): RedirectResponse
+    {
+        $recipient = $this->recipient();
+        $notification = $this->notificationFor($recipient, $id);
+
+        $notification->isReadByRecipient($recipient)
+            ? $notification->markAsUnreadByRecipient($recipient)
+            : $notification->markAsReadByRecipient($recipient);
 
         return back();
     }
 
-    /**
-     * تعليم كل الإشعارات كمقروءة
-     */
-    public function markAll()
+    public function markAsRead(int $id): RedirectResponse
     {
-        $user = $this->currentUser();
-
-        $notifications = Notification::where(function ($q) use ($user) {
-            $q->where('target_type', 'all')
-              ->orWhereJsonContains('target_ids', $user->id);
-        })->get();
-
-        foreach ($notifications as $n) {
-            $n->markAsRead($user->id);
-        }
+        $recipient = $this->recipient();
+        $this->notificationFor($recipient, $id)->markAsReadByRecipient($recipient);
 
         return back();
     }
 
-    /**
-     * تعليم الإشعارات المحددة كمقروءة
-     */
-    public function markSelected(Request $request)
+    public function markAll(): RedirectResponse
     {
-        
-        $user = $this->currentUser();
-        $ids = $request->selected ?? [];
+        $recipient = $this->recipient();
 
-        if (empty($ids)) {
-            return back()->with('error', 'لم يتم تحديد أي إشعار');
-        }
+        Notification::query()->visibleTo($recipient)->eachById(
+            static fn (Notification $notification) => $notification->markAsReadByRecipient($recipient),
+        );
 
-        $notifications = Notification::whereIn('id', $ids)->get();
+        return back();
+    }
 
-        foreach ($notifications as $n) {
-            $n->markAsRead($user->id);
-        }
+    public function markSelected(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'selected' => ['required', 'array', 'min:1'],
+            'selected.*' => ['integer', 'distinct'],
+        ]);
+        $recipient = $this->recipient();
+
+        Notification::query()
+            ->visibleTo($recipient)
+            ->whereKey($validated['selected'])
+            ->eachById(static fn (Notification $notification) => $notification->markAsReadByRecipient($recipient));
 
         return back()->with('success', 'تم تعليم الإشعارات المحددة كمقروءة');
     }
 
-    /**
-     * حذف إشعار واحد
-     */
-    public function delete(Request $request, $id)
+    public function delete(int $id): RedirectResponse
     {
-        $user = $this->currentUser();
-        $n = Notification::findOrFail($id);
+        $recipient = $this->recipient();
+        $this->notificationFor($recipient, $id)->hideFromRecipient($recipient);
 
-        $targets = $n->target_ids ?? [];
+        return redirect()->route($this->indexRouteName());
+    }
 
-        if (in_array($user->id, $targets)) {
-            $targets = array_diff($targets, [$user->id]);
-            $n->update(['target_ids' => array_values($targets)]);
+    private function notificationFor(NotificationRecipient $recipient, int $id): Notification
+    {
+        // استخدام الاستعلام نفسه في كل العمليات يمنع تعديل إشعار لا يخص الحساب.
+        return Notification::query()->visibleTo($recipient)->findOrFail($id);
+    }
+
+    private function recipient(): NotificationRecipient
+    {
+        $account = $this->currentAccount();
+        abort_unless($account, 401);
+
+        return NotificationRecipient::fromAccount($account);
+    }
+
+    private function currentAccount(): ?Authenticatable
+    {
+        return Auth::guard('accountant')->user() ?? Auth::guard('web')->user();
+    }
+
+    private function showRouteName(): string
+    {
+        if (Auth::guard('accountant')->check()) {
+            return 'accountant.notifications.show';
         }
 
-        if (empty($targets) && $n->target_type !== 'all') {
-            $n->delete();
+        return Auth::guard('web')->user()?->isAdmin()
+            ? 'admin.notifications.show'
+            : 'user.notifications.show';
+    }
+
+    private function indexRouteName(): string
+    {
+        if (Auth::guard('accountant')->check()) {
+            return 'accountant.notifications.index';
         }
 
-       return redirect($request->redirect_to);
+        return Auth::guard('web')->user()?->isAdmin()
+            ? 'admin.notifications.index'
+            : 'user.notifications.index';
     }
-  public function remov(Request $request, $id)
-{
-    $user = $this->currentUser();
-    $n = Notification::findOrFail($id);
-
-    // إذا الإشعار عام (all) → لا نحذفه من قاعدة البيانات
-    if ($n->target_type === 'all') {
-
-        $hidden = $n->read_by ?? [];
-
-        // نضيف علامة إخفاء خاصة بهذا المستخدم
-        $hidden[] = "hidden_by_{$user->id}";
-
-        $n->update(['read_by' => $hidden]);
-
-        return back();
-    }
-
-    // إذا الإشعار لمستخدمين محددين
-    $targets = $n->target_ids ?? [];
-
-    // احذف المستخدم من القائمة
-    $targets = array_values(array_diff($targets, [$user->id]));
-
-    // إذا لم يبقَ أحد → احذف الإشعار
-    if (empty($targets)) {
-        $n->delete();
-    } else {
-        $n->update(['target_ids' => $targets]);
-    }
-
-    return back();
-}
-
-
-
 }

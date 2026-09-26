@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\StoreTransfer;
+use App\Services\ShiftLifecycleService;
 use App\Services\StoreTransferService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Carbon\Carbon;
 
 class StoreTransferController extends Controller
 {
@@ -35,7 +35,7 @@ class StoreTransferController extends Controller
         $receiverProductsByStore = Product::whereIn('store_id', $receiverStoreIds)
             ->sellable()
             ->orderBy('name')
-            ->get(['id', 'store_id', 'name', 'quantity', 'barcode', 'category_id'])
+            ->get(['id', 'store_id', 'name', 'quantity', 'barcode', 'category_id', 'product_type', 'is_splittable', 'items_per_unit', 'roll_length'])
             ->groupBy('store_id');
 
         $transfers->getCollection()->each(function (StoreTransfer $transfer) use ($receiverProductsByStore) {
@@ -46,7 +46,7 @@ class StoreTransferController extends Controller
             });
         });
 
-        $currentBusinessDate = now()->toDateString();
+        $currentBusinessDate = $this->currentBusinessDate($store);
         return view('user.store-transfers.index', compact('store', 'transfers', 'status', 'statuses', 'currentBusinessDate'));
     }
 
@@ -60,7 +60,7 @@ class StoreTransferController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'quantity', 'product_type', 'is_splittable']);
 
-        $currentBusinessDate = now()->toDateString();
+        $currentBusinessDate = $this->currentBusinessDate($store);
         return view('user.store-transfers.create', compact('store', 'stores', 'products', 'currentBusinessDate'));
     }
 
@@ -77,7 +77,6 @@ class StoreTransferController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.001',
             'items.*.unit_type' => 'required|string|in:unit,roll,meter,meters,piece,kit,default,normalized',
             'notes' => 'nullable|string|max:1000',
-            'business_date' => $this->currentMonthDateRules(),
         ]);
 
         $transfer = $this->transfers->createTransfer(
@@ -85,8 +84,7 @@ class StoreTransferController extends Controller
             Store::findOrFail($validated['receiver_store_id']),
             $validated['items'],
             $validated['notes'] ?? null,
-            $user,
-            Carbon::parse($validated['business_date'])->toDateString()
+            $user
         );
 
         return redirect()
@@ -101,10 +99,9 @@ class StoreTransferController extends Controller
         $validated = $request->validate([
             'receiver_product_id' => 'required|array',
             'receiver_product_id.*' => ['required', Rule::exists('products', 'id')->where(fn ($query) => $query->where('store_id', $transfer->receiver_store_id))],
-            'business_date' => $this->currentMonthDateRules(),
         ]);
 
-        $this->transfers->approveTransfer($transfer, $validated['receiver_product_id'], auth('web')->user(), false, $validated['business_date']);
+        $this->transfers->approveTransfer($transfer, $validated['receiver_product_id'], auth('web')->user());
 
         return back()->with('success', 'تم اعتماد النقل وإضافة الكمية للمتجر المستلم.');
     }
@@ -116,10 +113,9 @@ class StoreTransferController extends Controller
         $validated = $request->validate([
             'receiver_product_id' => 'required|array',
             'receiver_product_id.*' => ['required', Rule::exists('products', 'id')->where(fn ($query) => $query->where('store_id', $transfer->receiver_store_id))],
-            'business_date' => $this->currentMonthDateRules(),
         ]);
 
-        $this->transfers->approveTransfer($transfer, $validated['receiver_product_id'], auth('web')->user(), true, $validated['business_date']);
+        $this->transfers->approveTransfer($transfer, $validated['receiver_product_id'], auth('web')->user(), true);
 
         return back()->with('success', 'تم اعتماد النقل بواسطة المالك نيابة عن المستلم.');
     }
@@ -128,8 +124,8 @@ class StoreTransferController extends Controller
     {
         $this->authorizeOwnerStore($store);
         $this->authorizeTransferForStore($store, $transfer, 'receive');
-        $validated = $request->validate(['reason' => 'required|string|max:1000', 'business_date' => $this->currentMonthDateRules()]);
-        $this->transfers->rejectTransfer($transfer, $validated['reason'], auth('web')->user(), $validated['business_date']);
+        $validated = $request->validate(['reason' => 'required|string|max:1000']);
+        $this->transfers->rejectTransfer($transfer, $validated['reason'], auth('web')->user());
 
         return back()->with('success', 'تم رفض طلب النقل وإرجاع الكمية للمتجر المرسل.');
     }
@@ -138,8 +134,7 @@ class StoreTransferController extends Controller
     {
         $this->authorizeOwnerStore($store);
         $this->authorizeTransferForStore($store, $transfer, 'send');
-        $validated = $request->validate(['business_date' => $this->currentMonthDateRules()]);
-        $this->transfers->cancelTransfer($transfer, auth('web')->user(), $validated['business_date']);
+        $this->transfers->cancelTransfer($transfer, auth('web')->user());
 
         return back()->with('success', 'تم إلغاء طلب النقل وإرجاع الكمية للمتجر المرسل.');
     }
@@ -159,13 +154,8 @@ class StoreTransferController extends Controller
         abort_unless((int) $store->id === (int) $expectedStoreId, 403);
     }
 
-    private function currentMonthDateRules(): array
+    private function currentBusinessDate(Store $store): string
     {
-        return [
-            'required',
-            'date',
-            'after_or_equal:'.now()->startOfMonth()->toDateString(),
-            'before_or_equal:'.now()->endOfMonth()->toDateString(),
-        ];
+        return (string) app(ShiftLifecycleService::class)->currentShiftContext($store)['business_date'];
     }
 }

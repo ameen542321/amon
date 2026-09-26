@@ -1,0 +1,16 @@
+import { existsSync, readFileSync } from 'node:fs';
+const passed=[],failed=[],read=f=>existsSync(f)?readFileSync(f,'utf8'):'',check=(c,m)=>(c?passed:failed).push(m);
+const required=['app/Http/Controllers/Api/PurchaseOrderController.php','app/Support/Api/PurchaseOrderResource.php','tests/Unit/MobilePurchaseOrderApiContractTest.php'];
+required.forEach(f=>check(existsSync(f),`required file exists: ${f}`));
+const routes=read('routes/api.php'),controller=read(required[0]),resource=read(required[1]),auth=read('app/Http/Controllers/Api/AuthTokenController.php'),context=read('app/Http/Controllers/Api/MobileContextController.php');
+check(routes.includes("prefix('purchase-orders')")&&routes.includes('ability:purchase-orders:read'),'purchase-order routes require a dedicated read ability');
+check(!routes.includes("Route::post('/purchase-orders")&&!routes.includes("Route::patch('/purchase-orders")&&!routes.includes("Route::delete('/purchase-orders"),'mobile purchase-order API is read only');
+check(controller.includes('ApiStoreScopeService')&&controller.includes('visibleQuery($request, (int) $store->id)'),'all order reads are scoped to an authorized store');
+check(controller.includes("where('accountant_id', $actor->getAuthIdentifier())")&&controller.includes("orWhereNull('accountant_id')")&&controller.includes("where('user_id', $actor->getAuthIdentifier())"),'order visibility matches owner and accountant web rules');
+check(controller.includes('cursorPaginate')&&controller.includes('PurchaseOrderWorkflow::labels()'),'list supports bounded cursor pagination and canonical statuses');
+check(resource.includes('approved_business_date')&&resource.includes('consistency_issues'),'details expose accounting date and workflow consistency diagnostics');
+check(resource.includes('cost_price_at_order')&&resource.includes('cost_price_at_receipt'),'authorized details preserve supply cost snapshots');
+check(!resource.includes("'stock_quantity_before'")&&!resource.includes("'stock_quantity_after'"),'mobile response omits internal stock snapshots');
+check(auth.includes("'purchase-orders:read'"),'sessions receive purchase-order read ability');
+check(context.includes("'purchase_orders_read' => true")&&context.includes("'purchase_orders_write' => false"),'feature flags declare read-only support');
+passed.forEach(m=>console.log(`PASS: ${m}`)); failed.forEach(m=>console.error(`FAIL: ${m}`)); if(failed.length)process.exit(1); console.log(`Mobile purchase-order readiness passed (${passed.length} checks).`);
