@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryCountController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\ShiftController;
@@ -46,6 +47,13 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
                 ->whereNumber('session')
                 ->middleware(['ability:inventory-counts:write', 'idempotency'])
                 ->name('draft.save');
+        });
+        Route::prefix('people')->name('people.')->middleware('ability:people:read')->group(function (): void {
+            Route::get('/summary', [PeopleController::class, 'summary'])->name('summary');
+            Route::get('/employees', [PeopleController::class, 'employees'])->name('employees.index');
+            Route::get('/employees/{employee}', [PeopleController::class, 'employee'])->whereNumber('employee')->name('employees.show');
+            Route::get('/accountants', [PeopleController::class, 'accountants'])->name('accountants.index');
+            Route::get('/accountants/{accountant}', [PeopleController::class, 'accountant'])->whereNumber('accountant')->name('accountants.show');
         });
         Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
             Route::get('/current', [ShiftController::class, 'current'])->name('current');
