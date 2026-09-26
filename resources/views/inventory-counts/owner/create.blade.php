@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             <h1 class="ui-title text-2xl font-bold">اختيار منتجات الجرد</h1>
-            <x-ui.help title="اختيار منتجات الجرد" body="تظهر المنتجات التي لم تُجرد أولًا. احفظ اختيار الصفحة قبل الانتقال إلى صفحة أخرى. خلال الاختبار الحالي يسمح النظام بإنشاء الجلسة من منتج واحد مؤقتًا." />
+            <x-ui.help title="اختيار منتجات الجرد" body="تظهر المنتجات التي لم تُجرد من قبل أولًا، ثم المنتجات المجرودة من تاريخ الجرد الأقدم إلى الأحدث. احفظ اختيار الصفحة قبل الانتقال إلى صفحة أخرى. خلال الاختبار الحالي يسمح النظام بإنشاء الجلسة من منتج واحد مؤقتًا." />
         </div>
         <a class="ui-btn ui-btn-secondary" href="{{ route('user.stores.inventory-counts.index', $store) }}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> رجوع</a>
     </div>
@@ -40,6 +40,7 @@
                         'green' => 'ui-dot-success',
                     ][$audit['color']] ?? 'ui-surface-muted-bg';
                 @endphp
+                {{-- ترسل معرفات الصفحة الحالية للخادم حتى يبقى التحديد الجماعي محصورًا في المنتجات الظاهرة فقط. --}}
                 <input type="hidden" name="page_product_ids[]" value="{{ $product->id }}">
                 <label class="ui-card p-4 cursor-pointer">
                     <span class="flex items-start justify-between gap-3">
@@ -62,8 +63,9 @@
             @empty<div class="md:col-span-2 xl:col-span-3 ui-empty-state">لا توجد نتائج.</div>@endforelse
         </div>
         <div class="flex flex-wrap gap-2">
+            {{-- الإجراء الأول يحفظ المربعات المختارة، والثاني يضيف جميع منتجات الصفحة الحالية دون التأثير في الصفحات الأخرى. --}}
             <button class="ui-btn ui-btn-secondary" name="selection_action" value="page">حفظ اختيارات هذه الصفحة</button>
-            <button class="ui-btn ui-btn-primary" name="selection_action" value="all">تحديد كل المنتجات المتاحة</button>
+            <button class="ui-btn ui-btn-primary" name="selection_action" value="select_page">تحديد جميع منتجات هذه الصفحة</button>
         </div>
         {{ $products->links() }}
     </form>

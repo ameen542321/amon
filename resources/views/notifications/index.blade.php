@@ -17,7 +17,7 @@
         ? route($routePrefix . $name, $id)
         : route($routePrefix . $name);
 
-    $unreadCount = $notifications->getCollection()->filter(fn ($notification) => !$notification->isReadBy($currentUser->id))->count();
+    $unreadCount = $notifications->getCollection()->filter(fn ($notification) => !$notification->isReadByRecipient($recipient))->count();
 @endphp
 
 <div class="max-w-6xl mx-auto px-4 py-6 space-y-5">
@@ -67,7 +67,7 @@
 
     <div class="space-y-3">
         @forelse($notifications as $n)
-            @php $isRead = $n->isReadBy($currentUser->id); @endphp
+            @php $isRead = $n->isReadByRecipient($recipient); @endphp
             <div class="ui-card {{ $isRead ? 'ui-border' : 'ui-border' }} rounded-2xl p-4 shadow-sm">
                 <div class="flex flex-col lg:flex-row gap-4 lg:items-start lg:justify-between">
                     <div class="flex items-start gap-3 min-w-0">
@@ -104,7 +104,6 @@
                               data-ui-confirm-title="تأكيد حذف الإشعار">
                             @csrf
                             @method('DELETE')
-                            <input type="hidden" name="redirect_to" value="{{ url()->current() }}">
                             <button class="ui-btn ui-btn-danger px-3 py-2 ui-text-caption w-full">
                                 حذف
                             </button>

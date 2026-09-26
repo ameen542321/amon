@@ -41,17 +41,25 @@ class InventoryCountController extends Controller
         }
         $selected = session($this->selectionKey($store), []);
         $search = trim((string) $request->query('q'));
-        $auditCutoff = now()->startOfDay()->subDays(30);
         $baseProducts = Product::query()->where('store_id', $store->id)->where(fn ($q) => $q->where('usage_type', '!=', Product::USAGE_TYPE_OWNER_PURCHASE)->orWhereNull('usage_type'));
-        $eligibleProducts = (clone $baseProducts)->whereDoesntHave('inventoryLogs', function ($query) use ($auditCutoff) {
-            $query->where('type', Product::INVENTORY_AUDIT_CONFIRMED_TYPE)
-                ->whereRaw('COALESCE(business_date, DATE(created_at)) > ?', [$auditCutoff->toDateString()]);
-        });
-        $products = $eligibleProducts
+        $auditCutoff = now()->startOfDay()->subDays(30);
+        // نبقي أعمدة المنتج كاملة؛ لأن selectSub وحده يستبدل قائمة SELECT، ثم نحسب آخر جرد مع دعم السجلات القديمة بلا business_date.
+        $products = $this->eligibleProductsQuery($store)
             ->when($search, fn ($q) => $q->where(fn ($x) => $x->where('name', 'like', "%{$search}%")->orWhere('description', 'like', "%{$search}%")))
             ->with('category')
-            ->withMax(['inventoryLogs as last_audit_date' => fn ($q) => $q->where('type', Product::INVENTORY_AUDIT_CONFIRMED_TYPE)], 'business_date')
-            ->orderByRaw('last_audit_date IS NOT NULL')->orderBy('last_audit_date')->orderBy('name')->paginate(20)->withQueryString();
+            ->select('products.*')
+            ->selectSub(
+                InventoryLog::query()
+                    ->selectRaw('MAX(COALESCE(business_date, DATE(created_at)))')
+                    ->whereColumn('inventory_logs.product_id', 'products.id')
+                    ->where('type', Product::INVENTORY_AUDIT_CONFIRMED_TYPE),
+                'last_audit_date'
+            )
+            ->orderByRaw('last_audit_date IS NOT NULL')
+            ->orderBy('last_audit_date')
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
         $recentlyAuditedMatches = collect();
         if ($search !== '') {
             $recentlyAuditedMatches = (clone $baseProducts)
@@ -91,28 +99,29 @@ class InventoryCountController extends Controller
     {
         $this->ownerStore($store);
         $data = $request->validate([
-            'selection_action' => ['nullable', Rule::in(['page', 'all'])],
+            'selection_action' => ['nullable', Rule::in(['page', 'select_page'])],
             'q' => 'nullable|string|max:255',
             'page_product_ids' => 'array',
             'page_product_ids.*' => 'integer',
             'selected_ids' => 'array',
             'selected_ids.*' => 'integer',
         ]);
-        if (($data['selection_action'] ?? 'page') === 'all') {
-            $search = trim((string) ($data['q'] ?? ''));
+        $existing = collect(session($this->selectionKey($store), []));
+        $pageIds = collect($data['page_product_ids'] ?? [])->map(fn ($id) => (int) $id);
+        if (($data['selection_action'] ?? 'page') === 'select_page') {
+            // لا نعيد بناء التحديد من كامل المتجر؛ نضيف فقط المعرّفات المعروضة في الصفحة الحالية بعد التحقق من أهليتها.
             $ids = $this->eligibleProductsQuery($store)
-                ->when($search, fn ($query) => $query->where(fn ($nested) => $nested->where('name', 'like', "%{$search}%")->orWhere('description', 'like', "%{$search}%")))
+                ->whereIn('id', $pageIds)
                 ->pluck('id')
                 ->map(fn ($id) => (int) $id)
                 ->all();
-            session([$this->selectionKey($store) => $ids]);
+            session([$this->selectionKey($store) => $existing->merge($ids)->unique()->values()->all()]);
 
-            return back()->with('success', 'تم تحديد جميع المنتجات المتاحة للجرد.');
+            return back()->with('success', 'تم تحديد جميع المنتجات الموجودة في هذه الصفحة فقط.');
         }
-        $existing = collect(session($this->selectionKey($store), []));
-        $pageIds = collect($data['page_product_ids'] ?? [])->map(fn ($id) => (int) $id);
-        $chosen = collect($data['selected_ids'] ?? [])->map(fn ($id) => (int) $id);
-        $valid = Product::where('store_id', $store->id)->whereIn('id', $chosen)->pluck('id');
+        // عند الحفظ العادي نستبدل اختيارات الصفحة الحالية فقط، ونترك اختيارات الصفحات الأخرى محفوظة في الجلسة.
+        $chosen = collect($data['selected_ids'] ?? [])->map(fn ($id) => (int) $id)->intersect($pageIds);
+        $valid = $this->eligibleProductsQuery($store)->whereIn('id', $chosen)->pluck('id');
         session([$this->selectionKey($store) => $existing->diff($pageIds)->merge($valid)->unique()->values()->all()]);
         return back()->with('success', 'تم حفظ المنتجات المحددة. يمكنك الانتقال إلى صفحة أخرى دون فقدها.');
     }
