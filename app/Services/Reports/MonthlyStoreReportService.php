@@ -293,12 +293,13 @@ class MonthlyStoreReportService
     {
         $transfers = StoreTransfer::with('items')
             ->where('status', 'completed')
-            ->whereBetween('completed_at', [$start, $end])
+            // التقارير الشهرية للنقل تعتمد يوم عمل الاستلام، لا وقت تنفيذ الطلب على الخادم.
+            ->whereBetween('action_business_date', [$start->toDateString(), $end->toDateString()])
             ->where(function ($query) use ($storeId) {
                 $query->where('sender_store_id', $storeId)
                     ->orWhere('receiver_store_id', $storeId);
             })
-            ->get(['id', 'sender_store_id', 'receiver_store_id', 'status', 'completed_at']);
+            ->get(['id', 'sender_store_id', 'receiver_store_id', 'status', 'action_business_date']);
 
         $outgoing = $transfers->where('sender_store_id', $storeId);
         $incoming = $transfers->where('receiver_store_id', $storeId);
@@ -329,12 +330,10 @@ class MonthlyStoreReportService
                     ->orWhere('receiver_store_id', $storeId);
             })
             ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('created_at', [$start, $end])
-                    ->orWhereBetween('completed_at', [$start, $end])
-                    ->orWhereBetween('rejected_at', [$start, $end])
-                    ->orWhereBetween('cancelled_at', [$start, $end]);
+                $query->whereBetween('request_business_date', [$start->toDateString(), $end->toDateString()])
+                    ->orWhereBetween('action_business_date', [$start->toDateString(), $end->toDateString()]);
             })
-            ->orderByRaw('COALESCE(completed_at, acted_at, created_at) asc')
+            ->orderByRaw('COALESCE(action_business_date, request_business_date) asc')
             ->get()
             ->flatMap(function (StoreTransfer $transfer) use ($storeId) {
                 $direction = (int) $transfer->sender_store_id === (int) $storeId ? 'صادر' : 'وارد';
@@ -342,8 +341,8 @@ class MonthlyStoreReportService
 
                 return $transfer->items->map(function ($item) use ($transfer, $direction, $otherStore) {
                     return [
-                        'date' => optional($transfer->completed_at ?? $transfer->acted_at ?? $transfer->created_at)->format('Y-m-d'),
-                        'request_date' => optional($transfer->created_at)->format('Y-m-d'),
+                        'date' => $transfer->action_business_date?->format('Y-m-d') ?? $transfer->request_business_date?->format('Y-m-d'),
+                        'request_date' => $transfer->request_business_date?->format('Y-m-d'),
                         'transfer_id' => $transfer->id,
                         'direction' => $direction,
                         'other_store' => $otherStore,

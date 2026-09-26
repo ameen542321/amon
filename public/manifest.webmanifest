@@ -1,0 +1,48 @@
+{
+  "id": "/",
+  "name": "CARLED لإدارة المتاجر",
+  "short_name": "CARLED",
+  "description": "إدارة المتاجر والمحاسبة والمخزون من CARLED",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#00C4B4",
+  "icons": [
+    {
+      "src": "/carled.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "لوحة المالك",
+      "short_name": "المالك",
+      "url": "/user/dashboard",
+      "icons": [
+        {
+          "src": "/carled.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "لوحة المحاسب",
+      "short_name": "المحاسب",
+      "url": "/accountant/dashboard",
+      "icons": [
+        {
+          "src": "/carled.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+import { existsSync, readFileSync } from 'node:fs';
+const passed=[],failed=[],read=f=>existsSync(f)?readFileSync(f,'utf8'):'',check=(c,m)=>(c?passed:failed).push(m);
+const required=['app/Http/Controllers/Api/StoreTransferController.php','app/Support/Api/StoreTransferResource.php','tests/Unit/MobileStoreTransferApiContractTest.php'];
+required.forEach(f=>check(existsSync(f),`required file exists: ${f}`));
+const routes=read('routes/api.php'),controller=read(required[0]),resource=read(required[1]),auth=read('app/Http/Controllers/Api/AuthTokenController.php'),context=read('app/Http/Controllers/Api/MobileContextController.php');
+check(routes.includes("prefix('store-transfers')")&&routes.includes('ability:store-transfers:read'),'transfer routes require a dedicated read ability');
+check(!routes.includes("Route::post('/store-transfers")&&!routes.includes("Route::patch('/store-transfers")&&!routes.includes("Route::delete('/store-transfers"),'mobile transfer API is read only');
+check(controller.includes('ApiStoreScopeService')&&controller.includes('sender_store_id')&&controller.includes('receiver_store_id'),'reads are scoped to an authorized participating store');
+check(controller.includes('cursorPaginate')&&controller.includes('request_business_date')&&controller.includes('action_business_date'),'list is cursor paginated and accounting-date aware');
+check(resource.includes("'direction'")&&resource.includes("'counterparty_store'"),'resource describes direction and counterparty');
+check(resource.includes('product_name_snapshot')&&resource.includes('unit_label_snapshot'),'item history uses transfer snapshots');
+check(!resource.includes("'sender_stock_before'")&&!resource.includes("'receiver_stock_after'"),'internal stock snapshots are not exposed');
+check(auth.includes("'store-transfers:read'"),'sessions receive transfer read ability');
+check(context.includes("'store_transfers_read' => true")&&context.includes("'store_transfers_write' => false"),'feature flags declare read-only support');
+passed.forEach(m=>console.log(`PASS: ${m}`)); failed.forEach(m=>console.error(`FAIL: ${m}`)); if(failed.length)process.exit(1); console.log(`Mobile store-transfer readiness passed (${passed.length} checks).`);

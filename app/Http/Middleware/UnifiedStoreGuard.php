@@ -31,7 +31,8 @@ class UnifiedStoreGuard
 
         // 3. فحص ملكية المتجر (للمالك) أو تبعيته (للمحاسب)
         $isOwner = auth()->guard('web')->check() && $store->user_id === auth()->id();
-        $isAccountant = auth()->guard('accountant')->check() && $store->id === auth()->user()->store_id;
+        $isAccountant = auth()->guard('accountant')->check()
+            && (int) $store->id === (int) auth()->guard('accountant')->user()?->store_id;
 
         if (!$isOwner && !$isAccountant) {
             abort(403, 'غير مصرح لك بالوصول لهذا المتجر.');

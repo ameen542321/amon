@@ -45,6 +45,15 @@
             </div>
             <p class="ui-text-soft text-sm">رواتب وسحوبات ومديونيات وغيابات الموظفين حسب الشهر.</p>
         </a>
+
+        <a href="{{ route('user.stores.reports.store-transfers', $store->id) }}"
+           class="block ui-card border ui-border rounded-2xl p-5 transition">
+            <div class="flex items-center gap-3 mb-3">
+                <i class="fas fa-right-left ui-status-info text-xl"></i>
+                <h2 class="ui-title font-bold">تقرير النقل المخزني</h2>
+            </div>
+            <p class="ui-text-soft text-sm">الصادر والوارد والمتجر المقابل والمنتجات والملاحظات وحالات الرفض ضمن فترة تحددها.</p>
+        </a>
     </div>
 </div>
 @endsection
