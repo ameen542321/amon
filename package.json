@@ -26,7 +26,8 @@
     "test:mobile-purchase-orders": "node scripts/check-mobile-purchase-orders-readiness.mjs",
     "test:mobile-store-transfers": "node scripts/check-mobile-store-transfers-readiness.mjs",
     "test:pwa:phase3": "node scripts/check-pwa-phase3-readiness.mjs",
-    "test:pwa:outbox": "node scripts/check-pwa-outbox-readiness.mjs"
+    "test:pwa:outbox": "node scripts/check-pwa-outbox-readiness.mjs",
+    "test:roadmap-scope": "node scripts/check-roadmap-scope.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
