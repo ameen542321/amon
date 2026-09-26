@@ -1,5 +1,7 @@
 import './bootstrap';
 import './features/font-readiness';
+import './features/pwa/register-service-worker';
+import './features/pwa/client-storage-lifecycle';
 import './features/dashboard-navigation';
 import './features/dashboard/owner-dashboard';
 import './features/dashboard-notifications';
@@ -32,6 +34,7 @@ import './features/accountant/balance-confirmation';
 import './features/accountant/credit-collection';
 // سلوك المديونيات مستخرج من Blade، وتبقى المسارات في عقد إعداد الصفحة فقط.
 import './features/accountant/debt-operations';
+import './features/accountant/inventory-count';
 // سلوك المبيعات اليومية مستخرج من Blade مع عقد إعداد يحفظ بيانات الصفحة الحالية.
 import './features/stores/daily-sales';
 import './features/stores/store-sales-chart';

@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Jobs\SendOneSignalNotification;
 use App\Models\Accountant;
-use Illuminate\Http\Request;
-use App\Services\OneSignalService;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminPushNotificationController extends Controller
 {
     public function create()
     {
-        $users = User::all();
-        $accountants = Accountant::all();
+        $users = User::users()->where('status', User::STATUS_ACTIVE)->get();
+        $accountants = Accountant::where('status', 'active')->get();
 
         return view('admin.notifications.push', compact('users', 'accountants'));
     }
@@ -25,7 +25,7 @@ class AdminPushNotificationController extends Controller
         if (is_string($request->target_ids)) {
             $decoded = json_decode($request->target_ids, true);
             $request->merge([
-                'target_ids' => is_array($decoded) ? $decoded : []
+                'target_ids' => is_array($decoded) ? $decoded : [],
             ]);
         }
 
@@ -36,41 +36,75 @@ class AdminPushNotificationController extends Controller
             'message'     => 'required|string|max:2000',
         ]);
 
-        // تحديد الأجهزة المستهدفة
-        $deviceTokens = [];
+        $targetIds = collect($request->input('target_ids', []))
+            ->map(static fn ($id): int => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($request->target_type === 'users') {
+            $targetIds = User::users()->where('status', User::STATUS_ACTIVE)
+                ->whereKey($targetIds)->pluck('id');
+        }
+
+        if ($request->target_type === 'accountants') {
+            $targetIds = Accountant::where('status', 'active')
+                ->whereKey($targetIds)->pluck('id');
+        }
+
+        if ($request->target_type !== 'all' && $targetIds->isEmpty()) {
+            return back()->withErrors(['target_ids' => 'اختر مستلمًا فعالًا واحدًا على الأقل.'])->withInput();
+        }
+
+        // لا تشمل قائمة all المدير أو الحسابات الموقوفة وفق المتطلبات المعتمدة.
+        $deviceTokens = collect();
 
         if ($request->target_type === 'all') {
-            $deviceTokens = DB::table('device_tokens')->pluck('token')->toArray();
+            $deviceTokens = DB::table('device_tokens')
+                ->leftJoin('users', 'users.id', '=', 'device_tokens.user_id')
+                ->leftJoin('accountants', 'accountants.id', '=', 'device_tokens.accountant_id')
+                ->where(function ($query): void {
+                    $query->where(function ($users): void {
+                        $users->where('users.role', User::ROLE_USER)
+                            ->where('users.status', User::STATUS_ACTIVE)
+                            ->whereNull('users.deleted_at');
+                    })->orWhere(function ($accountants): void {
+                        $accountants->where('accountants.status', 'active');
+                    });
+                })
+                ->pluck('device_tokens.token');
         }
 
         if ($request->target_type === 'users') {
             $deviceTokens = DB::table('device_tokens')
-                ->whereIn('user_id', $request->target_ids ?? [])
-                ->pluck('token')
-                ->toArray();
+                ->whereIn('user_id', $targetIds)
+                ->pluck('token');
         }
 
         if ($request->target_type === 'accountants') {
             $deviceTokens = DB::table('device_tokens')
-                ->whereIn('accountant_id', $request->target_ids ?? [])
-                ->pluck('token')
-                ->toArray();
+                ->whereIn('accountant_id', $targetIds)
+                ->pluck('token');
         }
 
-        // إرسال Push Notification فقط إذا فيه أجهزة
-        if (!empty($deviceTokens)) {
-            OneSignalService::sendToDevices($deviceTokens, $request->title, $request->message);
-        }
+        // كل دفعة تصبح Job مستقلة حتى لا يطول طلب الويب ولا يكبر payload المزود.
+        $deviceTokens->unique()->values()->chunk(1000)->each(function ($tokens) use ($request): void {
+            SendOneSignalNotification::dispatch(
+                $tokens->all(),
+                $request->title,
+                $request->message,
+            );
+        });
 
         // إرسال Site Notification
         NotificationService::send([
             'sender_type' => 'admin',
             'target_type' => $request->target_type,
-            'target_ids'  => $request->target_ids,
+            'target_ids'  => $targetIds->all(),
             'title'       => $request->title,
             'message'     => $request->message,
         ]);
 
-        return back()->with('success', 'تم إرسال الإشعار بنجاح');
+        return back()->with('success', 'تم حفظ الإشعار الداخلي وإضافة Push إلى قائمة الإرسال.');
     }
 }
