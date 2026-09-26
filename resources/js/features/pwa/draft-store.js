@@ -1,6 +1,7 @@
 const DATABASE_NAME = 'carled-client';
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const DRAFT_STORE = 'drafts';
+const OUTBOX_STORE = 'outbox';
 const MAX_DRAFT_BYTES = 256 * 1024;
 const MAX_DRAFTS_PER_ACCOUNT = 50;
 
@@ -37,6 +38,12 @@ const openDatabase = () => new Promise((resolve, reject) => {
             }
             cursor.continue();
         };
+        if (!database.objectStoreNames.contains(OUTBOX_STORE)) {
+            const outbox = database.createObjectStore(OUTBOX_STORE, { keyPath: 'localId' });
+            outbox.createIndex('accountScope', 'accountScope');
+            outbox.createIndex('status', 'status');
+            outbox.createIndex('createdAt', 'createdAt');
+        }
     };
     request.onsuccess = () => resolve(request.result);
 });
@@ -61,6 +68,11 @@ const withStore = async (mode, operation) => {
         database.close();
     }
 };
+
+export const openClientDatabase = openDatabase;
+export const clientDatabaseName = DATABASE_NAME;
+export const clientDatabaseVersion = DATABASE_VERSION;
+export const outboxStoreName = OUTBOX_STORE;
 
 export const getDraft = (key) => withStore('readonly', (store) => store.get(key));
 

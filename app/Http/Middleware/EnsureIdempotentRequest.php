@@ -18,7 +18,7 @@ class EnsureIdempotentRequest
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $key = trim((string) $request->header('Idempotency-Key'));
+        $key = trim((string) ($request->header('Idempotency-Key') ?: $request->input('_idempotency_key')));
         if (!preg_match('/\A[A-Za-z0-9._:-]{8,255}\z/', $key)) {
             return $this->error('يلزم إرسال Idempotency-Key صالح بطول 8 إلى 255 حرفًا.', 422);
         }
@@ -130,7 +130,7 @@ class EnsureIdempotentRequest
 
     private function requestHash(Request $request): string
     {
-        $payload = $request->except(['_token']);
+        $payload = $request->except(['_token', '_idempotency_key']);
         $this->sortRecursively($payload);
 
         return hash('sha256', json_encode([

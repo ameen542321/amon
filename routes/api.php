@@ -3,19 +3,27 @@
 use App\Http\Controllers\Api\AuthTokenController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\InventoryCountController;
+use App\Http\Controllers\Api\GovernanceController;
+use App\Http\Controllers\Api\DesignSystemController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\StoreTransferController;
-use App\Http\Controllers\Api\ShiftController;
-use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\SupportingOperationController;
 use Illuminate\Support\Facades\Route;
 
 // توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
 Route::get('/ping', fn (): string => 'pong');
+Route::get('/v1/report-downloads/{type}', [ReportController::class, 'download'])
+    ->whereIn('type', ['monthly', 'store-transfers'])
+    ->middleware(['api.contract', 'signed', 'throttle:30,1'])
+    ->name('api.v1.report-downloads.show');
 
 Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function (): void {
     Route::post('/auth/login', [AuthTokenController::class, 'login'])
@@ -28,6 +36,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
         Route::post('/auth/logout-all', [AuthTokenController::class, 'logoutAll'])->name('auth.logout-all');
         Route::get('/me', [MobileContextController::class, 'me'])->middleware('ability:app:read')->name('me');
         Route::get('/app-config', [MobileContextController::class, 'appConfig'])->middleware('ability:app:read')->name('app-config');
+        Route::get('/design-system', DesignSystemController::class)->middleware('ability:design-system:read')->name('design-system');
         Route::get('/stores', [MobileContextController::class, 'stores'])->middleware('ability:app:read')->name('stores');
         Route::prefix('catalog')->name('catalog.')->middleware('ability:catalog:read')->group(function (): void {
             Route::get('/categories', [CatalogController::class, 'categories'])->name('categories');
@@ -39,6 +48,41 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/summary', [InventoryController::class, 'summary'])->name('summary');
             Route::get('/movements', [InventoryController::class, 'movements'])->name('movements');
             Route::get('/integrity', [InventoryController::class, 'integrity'])->name('integrity');
+        });
+        Route::prefix('inventory-counts')->name('inventory-counts.')->middleware('ability:inventory-counts:read')->group(function (): void {
+            Route::get('/', [InventoryCountController::class, 'index'])->name('index');
+            Route::get('/{session}', [InventoryCountController::class, 'show'])->whereNumber('session')->name('show');
+            Route::patch('/{session}/draft', [InventoryCountController::class, 'saveDraft'])
+                ->whereNumber('session')
+                ->middleware(['ability:inventory-counts:write', 'idempotency'])
+                ->name('draft.save');
+        });
+        Route::prefix('people')->name('people.')->middleware('ability:people:read')->group(function (): void {
+            Route::get('/summary', [PeopleController::class, 'summary'])->name('summary');
+            Route::get('/employees', [PeopleController::class, 'employees'])->name('employees.index');
+            Route::get('/employees/{employee}', [PeopleController::class, 'employee'])->whereNumber('employee')->name('employees.show');
+            Route::get('/accountants', [PeopleController::class, 'accountants'])->name('accountants.index');
+            Route::get('/accountants/{accountant}', [PeopleController::class, 'accountant'])->whereNumber('accountant')->name('accountants.show');
+        });
+        Route::prefix('operations')->name('operations.')->middleware('ability:operations:read')->group(function (): void {
+            Route::get('/summary', [SupportingOperationController::class, 'summary'])->name('summary');
+            Route::get('/expenses', [SupportingOperationController::class, 'expenses'])->name('expenses.index');
+            Route::get('/expenses/{expense}', [SupportingOperationController::class, 'expense'])->whereNumber('expense')->name('expenses.show');
+            Route::get('/internal-use', [SupportingOperationController::class, 'internalUses'])->name('internal-use.index');
+            Route::get('/internal-use/{sale}', [SupportingOperationController::class, 'internalUse'])->whereNumber('sale')->name('internal-use.show');
+            Route::get('/owner-purchases', [SupportingOperationController::class, 'ownerPurchases'])->name('owner-purchases.index');
+        });
+        Route::prefix('reports')->name('reports.')->middleware('ability:reports:read')->group(function (): void {
+            Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/monthly/summary', [ReportController::class, 'monthlySummary'])->name('monthly.summary');
+            Route::post('/downloads', [ReportController::class, 'createDownload'])
+                ->middleware('idempotency')->name('downloads.create');
+        });
+        Route::prefix('governance')->name('governance.')->middleware('ability:governance:read')->group(function (): void {
+            Route::get('/overview', [GovernanceController::class, 'overview'])->name('overview');
+            Route::get('/subscriptions', [GovernanceController::class, 'subscriptions'])->name('subscriptions');
+            Route::get('/sessions', [GovernanceController::class, 'sessions'])->name('sessions');
+            Route::get('/audit', [GovernanceController::class, 'audit'])->name('audit');
         });
         Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
             Route::get('/current', [ShiftController::class, 'current'])->name('current');

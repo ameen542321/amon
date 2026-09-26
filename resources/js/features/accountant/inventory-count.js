@@ -1,4 +1,6 @@
 import { deleteDraft, getDraft, pruneDrafts, putDraft } from '../pwa/draft-store';
+import { apiRequest, createIdempotencyKey } from '../pwa/api-client';
+import { putOutboxItem } from '../pwa/outbox-store';
 
 const formatCount = (value, singular, dual, plural) => {
     if (value === 1) return singular;
@@ -44,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const maxDraftAge = 30 * 24 * 60 * 60 * 1000;
     let saveTimer = null;
     let writeQueue = Promise.resolve();
+    let submitting = false;
 
     const setStatus = (text) => {
         if (draftStatus) draftStatus.textContent = text;
@@ -156,6 +159,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         persistDraft();
     };
 
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (submitting) return;
+        submitting = true;
+        flushDraft();
+        const payload = Object.fromEntries([...new FormData(form).entries()].filter(([key]) => !['_token', '_method', '_idempotency_key'].includes(key)));
+        payload.session_version = serverVersion;
+        const localId = `${storageKey}:server-draft`;
+        try {
+            if (navigator.onLine) {
+                setStatus('جارٍ تثبيت المسودة في الخادم…');
+                await apiRequest(form.action, {
+                    method: 'PUT',
+                    body: new URLSearchParams(payload),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                    idempotencyKey: createIdempotencyKey(),
+                });
+                await deleteDraft(storageKey).catch(() => undefined);
+                window.location.reload();
+                return;
+            }
+            await putOutboxItem({
+                localId,
+                idempotencyKey: createIdempotencyKey(),
+                operationType: 'inventory-count-draft',
+                accountScope,
+                storeId,
+                serverVersion,
+                url: form.action,
+                method: 'PUT',
+                payload,
+                status: 'queued',
+                attempts: 0,
+                createdAt: Date.now(),
+                lastError: null,
+            });
+            setStatus('حُفظ طلب المسودة في قائمة الإرسال وسيُرسل عند عودة الاتصال');
+        } catch (error) {
+            setStatus(navigator.onLine
+                ? (error.message || 'تعذر تثبيت المسودة في الخادم')
+                : 'تعذر تجهيز المسودة للإرسال؛ بقيت القيم محفوظة محليًا فقط');
+        } finally {
+            submitting = false;
+        }
+    });
+
     await restoreDraft();
 
     form.querySelectorAll('[data-inventory-count-item]').forEach((item) => {
@@ -181,5 +230,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') flushDraft();
     });
-    window.addEventListener('offline', () => setStatus('أنت دون اتصال — المسودة محلية ولن تُرسل تلقائيًا'));
+    window.addEventListener('offline', () => setStatus('أنت دون اتصال — يمكنك تجهيز المسودة للإرسال عند عودة الشبكة'));
+    window.addEventListener('carled:outbox-synced', async () => {
+        await deleteDraft(storageKey).catch(() => undefined);
+        setStatus('تم تثبيت مسودة الجرد في الخادم — حدّث الصفحة قبل متابعة التعديل');
+    });
+    window.addEventListener('carled:outbox-conflict', () => setStatus('تغيرت الجلسة على الخادم — راجع أحدث البيانات قبل إعادة الإرسال'));
 });

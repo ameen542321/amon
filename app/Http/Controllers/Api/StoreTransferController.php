@@ -94,19 +94,26 @@ class StoreTransferController extends Controller
             $query->where(function (Builder $date) use ($storeId, $filters): void {
                 $date->where(function (Builder $outgoing) use ($storeId, $filters): void {
                     $outgoing->where('sender_store_id', $storeId);
-                    $this->applyDateBounds($outgoing, 'request_business_date', $filters);
+                    $this->applyDateBounds($outgoing, 'COALESCE(request_business_date, DATE(created_at))', $filters);
                 })->orWhere(function (Builder $incoming) use ($storeId, $filters): void {
                     $incoming->where('receiver_store_id', $storeId);
-                    $this->applyDateBounds($incoming, 'action_business_date', $filters, 'request_business_date');
+                    $this->applyDateBounds(
+                        $incoming,
+                        'COALESCE(action_business_date, request_business_date, DATE(completed_at), DATE(acted_at), DATE(created_at))',
+                        $filters
+                    );
                 });
             });
         }
     }
 
-    private function applyDateBounds(Builder $query, string $primary, array $filters, ?string $fallback = null): void
+    private function applyDateBounds(Builder $query, string $dateExpression, array $filters): void
     {
-        $column = $fallback ? "COALESCE({$primary}, {$fallback})" : $primary;
-        if (! empty($filters['from'])) $query->whereRaw("{$column} >= ?", [$filters['from']]);
-        if (! empty($filters['to'])) $query->whereRaw("{$column} <= ?", [$filters['to']]);
+        if (! empty($filters['from'])) {
+            $query->whereRaw("{$dateExpression} >= ?", [$filters['from']]);
+        }
+        if (! empty($filters['to'])) {
+            $query->whereRaw("{$dateExpression} <= ?", [$filters['to']]);
+        }
     }
 }
