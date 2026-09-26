@@ -1,16 +1,7 @@
 @extends('dashboard.app')
 @section('title', 'إدخال الجرد')
 @section('content')
-@php
-    // تتغير البصمة بعد أي حفظ ناجح في الخادم، فلا تعيد مسودة المتصفح القديمة فوق البيانات الأحدث.
-    $browserDraftVersion = hash('sha256', $session->items->map(fn ($item) => [
-        $item->id,
-        $item->accountant_quantity,
-        $item->unit_type,
-        $item->accountant_note,
-        $item->accountant_updated_at?->format('Y-m-d H:i:s.u'),
-    ])->toJson());
-@endphp
+@php($browserDraftVersion = $session->updated_at?->toIso8601String())
 <div class="max-w-5xl mx-auto space-y-5">
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -35,6 +26,8 @@
           data-inventory-count-version="{{ $browserDraftVersion }}">
         @csrf
         @method('PUT')
+        <input type="hidden" name="_idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+        <input type="hidden" name="session_version" value="{{ $browserDraftVersion }}">
     @foreach($session->items as $item)
         @php
             $unitOptions = $item->product?->product_type === 'fractional'

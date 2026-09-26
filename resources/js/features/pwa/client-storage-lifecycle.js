@@ -1,4 +1,5 @@
 import { deleteDraftsForAccount } from './draft-store';
+import { deleteOutboxForAccount } from './outbox-store';
 
 const submittedForms = new WeakSet();
 const logoutPaths = new Set(['/logout', '/user/logout', '/accountant/logout']);
@@ -15,7 +16,7 @@ document.addEventListener('submit', async (event) => {
     submittedForms.add(form);
 
     try {
-        await deleteDraftsForAccount(accountScope);
+        await Promise.all([deleteDraftsForAccount(accountScope), deleteOutboxForAccount(accountScope)]);
     } catch (error) {
         console.warn('تعذر تنظيف مسودات الحساب المحلية قبل تسجيل الخروج.', error);
     } finally {

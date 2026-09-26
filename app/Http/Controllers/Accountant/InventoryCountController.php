@@ -54,6 +54,7 @@ class InventoryCountController extends Controller
         $this->authorizeSession($inventoryCount);
         abort_unless(in_array($inventoryCount->status, ['sent_to_accountant', 'counting', 'returned_to_accountant'], true), 403);
         $data = $request->validate([
+            'session_version' => ['required', 'date'],
             'items' => 'required|array|min:1',
             'items.*.accountant_quantity' => 'required|numeric|min:0',
             'items.*.unit_type' => ['required', Rule::in(['piece', 'kit', 'meter', 'roll'])],
@@ -83,7 +84,13 @@ class InventoryCountController extends Controller
         }
 
         $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
-        $service->saveAccountantCounts($inventoryCount, $data['items'], $businessDate);
+        $service->saveAccountantCounts(
+            $inventoryCount,
+            $data['items'],
+            $businessDate,
+            $data['session_version'],
+            (int) auth('accountant')->id(),
+        );
 
         return back()->with('success', 'تم حفظ كميات جميع المنتجات في الجلسة.');
     }
