@@ -1,3 +1,4 @@
+import { pwaRuntimeConfig } from './runtime-config';
 import { apiRequest } from './api-client';
 import { deleteOutboxItem, listOutboxForAccount, updateOutboxItem } from './outbox-store';
 
@@ -27,7 +28,7 @@ const syncItem = async (item) => {
 
 export const syncOutbox = async () => {
     const accountScope = document.querySelector('[data-client-account-scope]')?.dataset.clientAccountScope;
-    if (syncing || !navigator.onLine || !accountScope) return;
+    if (!pwaRuntimeConfig.outboxEnabled || syncing || !navigator.onLine || !accountScope) return;
     syncing = true;
     try {
         const items = (await listOutboxForAccount(accountScope))

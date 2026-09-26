@@ -57,15 +57,33 @@ final class NotificationPayload
             return null;
         }
 
-        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//') && !str_contains($url, '\\')) {
             return url($url);
         }
 
-        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
-        $urlHost = parse_url($url, PHP_URL_HOST);
+        $app = parse_url((string) config('app.url'));
+        $candidate = parse_url($url);
+        if (!is_array($app) || !is_array($candidate) || isset($candidate['user']) || isset($candidate['pass'])) {
+            return null;
+        }
 
-        return $appHost && $urlHost && hash_equals(strtolower($appHost), strtolower($urlHost))
-            ? $url
-            : null;
+        $appScheme = strtolower((string) ($app['scheme'] ?? ''));
+        $urlScheme = strtolower((string) ($candidate['scheme'] ?? ''));
+        $appHost = strtolower((string) ($app['host'] ?? ''));
+        $urlHost = strtolower((string) ($candidate['host'] ?? ''));
+        $defaultPort = static fn (string $scheme): ?int => match ($scheme) {
+            'https' => 443,
+            'http' => 80,
+            default => null,
+        };
+        $appPort = $app['port'] ?? $defaultPort($appScheme);
+        $urlPort = $candidate['port'] ?? $defaultPort($urlScheme);
+
+        return $appScheme && $appHost
+            && hash_equals($appScheme, $urlScheme)
+            && hash_equals($appHost, $urlHost)
+            && $appPort === $urlPort
+                ? $url
+                : null;
     }
 }

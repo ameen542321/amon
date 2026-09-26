@@ -1,6 +1,7 @@
 import { deleteDraft, getDraft, pruneDrafts, putDraft } from '../pwa/draft-store';
 import { apiRequest, createIdempotencyKey } from '../pwa/api-client';
 import { putOutboxItem } from '../pwa/outbox-store';
+import { pwaRuntimeConfig } from '../pwa/runtime-config';
 
 const formatCount = (value, singular, dual, plural) => {
     if (value === 1) return singular;
@@ -178,6 +179,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 await deleteDraft(storageKey).catch(() => undefined);
                 window.location.reload();
+                return;
+            }
+            if (!pwaRuntimeConfig.outboxEnabled) {
+                setStatus('الحفظ المؤجل متوقف مؤقتًا؛ بقيت القيم محفوظة محليًا على هذا الجهاز');
                 return;
             }
             await putOutboxItem({

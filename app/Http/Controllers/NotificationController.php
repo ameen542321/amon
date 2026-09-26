@@ -31,6 +31,19 @@ class NotificationController extends Controller
         return view('notifications.show', compact('notification', 'recipient'));
     }
 
+    public function open(int $notification): RedirectResponse
+    {
+        if (!$this->currentAccount()) {
+            return redirect()->guest(route('login'));
+        }
+
+        $recipient = $this->recipient();
+        $record = $this->notificationFor($recipient, $notification);
+        $record->markAsReadByRecipient($recipient);
+
+        return redirect()->route($this->showRouteName(), ['id' => $record->id]);
+    }
+
     public function toggle(int $id): RedirectResponse
     {
         $recipient = $this->recipient();
@@ -103,6 +116,17 @@ class NotificationController extends Controller
     private function currentAccount(): ?Authenticatable
     {
         return Auth::guard('accountant')->user() ?? Auth::guard('web')->user();
+    }
+
+    private function showRouteName(): string
+    {
+        if (Auth::guard('accountant')->check()) {
+            return 'accountant.notifications.show';
+        }
+
+        return Auth::guard('web')->user()?->isAdmin()
+            ? 'admin.notifications.show'
+            : 'user.notifications.show';
     }
 
     private function indexRouteName(): string

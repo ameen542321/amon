@@ -1,4 +1,7 @@
-const canRegister = 'serviceWorker' in navigator
+import { pwaRuntimeConfig } from './runtime-config';
+
+const canRegister = pwaRuntimeConfig.serviceWorkerEnabled
+    && 'serviceWorker' in navigator
     && (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname));
 const buildVersion = document.querySelector('meta[name="pwa-build-version"]')?.content ?? 'development';
 const UPDATE_PREPARATION_TIMEOUT = 10000;
@@ -77,7 +80,7 @@ const showOnline = () => {
 };
 
 const showInstall = () => {
-    if (!panel || sessionStorage.getItem('pwa-install-dismissed') === '1') return;
+    if (!panel || !pwaRuntimeConfig.serviceWorkerEnabled || sessionStorage.getItem('pwa-install-dismissed') === '1') return;
     title.textContent = 'ثبّت تطبيق CARLED';
     message.textContent = 'أضف التطبيق إلى شاشة الهاتف للوصول السريع؛ تبقى العمليات الحساسة بحاجة إلى الإنترنت.';
     setHidden(installButton, false);
@@ -88,7 +91,7 @@ const showInstall = () => {
 };
 
 const showUpdate = () => {
-    if (!panel) return;
+    if (!panel || !pwaRuntimeConfig.updatesEnabled) return;
     title.textContent = 'تحديث جديد متاح';
     message.textContent = 'احفظ أي نموذج مفتوح، ثم حدّث التطبيق للحصول على النسخة الجديدة.';
     setHidden(installButton, true);
@@ -159,6 +162,19 @@ dismissButton?.addEventListener('click', () => {
 });
 
 if (!navigator.onLine) showOffline();
+
+if (!pwaRuntimeConfig.serviceWorkerEnabled && 'serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+            announceStatus('disabled');
+        } catch (error) {
+            announceStatus('disable-failed');
+            console.warn('تعذر إلغاء تسجيل Service Worker بعد تعطيله.', error);
+        }
+    });
+}
 
 if (canRegister) {
     window.addEventListener('load', async () => {

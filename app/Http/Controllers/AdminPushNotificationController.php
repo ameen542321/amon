@@ -6,6 +6,7 @@ use App\Jobs\SendOneSignalNotification;
 use App\Models\Accountant;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Support\Notifications\NotificationDeepLink;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -87,23 +88,26 @@ class AdminPushNotificationController extends Controller
                 ->pluck('token');
         }
 
-        // كل دفعة تصبح Job مستقلة حتى لا يطول طلب الويب ولا يكبر payload المزود.
-        $deviceTokens->unique()->values()->chunk(1000)->each(function ($tokens) use ($request): void {
-            SendOneSignalNotification::dispatch(
-                $tokens->all(),
-                $request->title,
-                $request->message,
-            );
-        });
-
-        // إرسال Site Notification
-        NotificationService::send([
+        // ينشأ Inbox أولًا ليكون هو المصدر، ثم يحمل Push رابطًا إلى السجل نفسه.
+        $notification = NotificationService::send([
             'sender_type' => 'admin',
             'target_type' => $request->target_type,
             'target_ids'  => $targetIds->all(),
             'title'       => $request->title,
             'message'     => $request->message,
         ]);
+        $deepLink = NotificationDeepLink::payload($notification);
+        $notification->forceFill(['data' => $deepLink])->save();
+
+        // كل دفعة تصبح Job مستقلة حتى لا يطول طلب الويب ولا يكبر payload المزود.
+        $deviceTokens->unique()->values()->chunk(1000)->each(function ($tokens) use ($request, $deepLink): void {
+            SendOneSignalNotification::dispatch(
+                $tokens->all(),
+                $request->title,
+                $request->message,
+                $deepLink,
+            );
+        });
 
         return back()->with('success', 'تم حفظ الإشعار الداخلي وإضافة Push إلى قائمة الإرسال.');
     }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\OneSignalSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Support\Notifications\NotificationPayload;
 
 class OneSignalService
 {
@@ -30,6 +31,8 @@ class OneSignalService
             return false;
         }
 
+        $data = NotificationPayload::normalize($data);
+        $webUrl = NotificationPayload::safeWebUrl($data);
         $payload = [
             'app_id' => $config->app_id,
             'include_player_ids' => $deviceTokens,
@@ -42,6 +45,7 @@ class OneSignalService
                 'ar' => $message,
             ],
             'data' => $data,
+            ...($webUrl ? ['url' => $webUrl] : []),
         ];
 
         $response = Http::connectTimeout(5)
@@ -72,6 +76,8 @@ class OneSignalService
             return false;
         }
 
+        $data = NotificationPayload::normalize($data);
+        $webUrl = NotificationPayload::safeWebUrl($data);
         $payload = [
             'app_id' => $config->app_id,
             'included_segments' => ['All'],
@@ -84,6 +90,7 @@ class OneSignalService
                 'ar' => $message,
             ],
             'data' => $data,
+            ...($webUrl ? ['url' => $webUrl] : []),
         ];
 
         $response = Http::connectTimeout(5)

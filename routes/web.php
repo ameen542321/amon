@@ -20,6 +20,11 @@ Route::middleware('web')->group(function () {
     require base_path('routes/user.php');
      require base_path('routes/accountant.php');
 
+    Route::get('/notifications/open/{notification}', [NotificationController::class, 'open'])
+        ->whereNumber('notification')
+        ->middleware('throttle:120,1')
+        ->name('notifications.open');
+
 
     /*
     |--------------------------------------------------------------------------

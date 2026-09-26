@@ -8,6 +8,7 @@ const manifest = JSON.parse(source('public/manifest.webmanifest'));
 const worker = source('public/sw.js');
 const registration = source('resources/js/features/pwa/register-service-worker.js');
 const draft = source('resources/js/features/accountant/inventory-count.js');
+const runtimeConfig = source('resources/views/components/pwa-runtime-config.blade.php');
 
 check(manifest.lang === 'ar' && manifest.dir === 'rtl' && manifest.display === 'standalone', 'manifest is Arabic RTL standalone');
 check(Array.isArray(manifest.shortcuts) && manifest.shortcuts.length >= 2, 'manifest exposes role shortcuts');
@@ -21,8 +22,9 @@ check(registration.includes('UPDATE_PREPARATION_TIMEOUT') && registration.includ
 check(registration.includes("type: 'GET_VERSION'") && registration.includes("announceStatus('version-mismatch'"), 'registration verifies the deployed worker version');
 check(draft.includes('carled:pwa-prepare-update') && draft.includes('pending?.push(persistDraft())'), 'inventory draft flush participates in update handshake');
 
+check(runtimeConfig.includes('name="pwa-build-version"'), 'shared PWA runtime config exposes build version');
 for (const file of ['resources/views/dashboard/app.blade.php', 'resources/views/layouts/auth.blade.php', 'resources/views/welcome.blade.php']) {
-    check(source(file).includes('name="pwa-build-version"'), `${file} exposes build version`);
+    check(source(file).includes('<x-pwa-runtime-config />'), `${file} includes the shared PWA runtime config`);
 }
 
 passes.forEach((message) => console.log(`PASS: ${message}`));
