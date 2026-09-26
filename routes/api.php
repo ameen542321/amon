@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthTokenController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryCountController;
+use App\Http\Controllers\Api\GovernanceController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PeopleController;
@@ -74,6 +75,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/monthly/summary', [ReportController::class, 'monthlySummary'])->name('monthly.summary');
             Route::post('/downloads', [ReportController::class, 'createDownload'])
                 ->middleware('idempotency')->name('downloads.create');
+        });
+        Route::prefix('governance')->name('governance.')->middleware('ability:governance:read')->group(function (): void {
+            Route::get('/overview', [GovernanceController::class, 'overview'])->name('overview');
+            Route::get('/subscriptions', [GovernanceController::class, 'subscriptions'])->name('subscriptions');
+            Route::get('/sessions', [GovernanceController::class, 'sessions'])->name('sessions');
+            Route::get('/audit', [GovernanceController::class, 'audit'])->name('audit');
         });
         Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
             Route::get('/current', [ShiftController::class, 'current'])->name('current');
