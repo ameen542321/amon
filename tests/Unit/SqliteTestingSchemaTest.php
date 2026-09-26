@@ -32,4 +32,29 @@ class SqliteTestingSchemaTest extends TestCase
             $schema
         );
     }
+
+    public function test_mobile_api_tables_match_the_runtime_migrations(): void
+    {
+        $schema = file_get_contents(dirname(__DIR__, 2).'/database/testing/sqlite-schema.sql');
+
+        self::assertStringContainsString('CREATE TABLE "api_idempotency_keys"', $schema);
+        self::assertStringContainsString('CREATE TABLE "api_access_tokens"', $schema);
+        self::assertStringContainsString('"refresh_token_hash" varchar(64) DEFAULT NULL UNIQUE', $schema);
+        self::assertStringContainsString('"refresh_expires_at" datetime NULL DEFAULT NULL', $schema);
+        self::assertStringContainsString('"api_access_token_id" INTEGER DEFAULT NULL', $schema);
+        self::assertStringContainsString('device_tokens_api_access_token_id_index', $schema);
+    }
+
+    public function test_mobile_catalog_indexes_match_the_runtime_migration(): void
+    {
+        $schema = file_get_contents(dirname(__DIR__, 2).'/database/testing/sqlite-schema.sql');
+
+        self::assertStringContainsString('products_mobile_catalog_index', $schema);
+        self::assertStringContainsString('products_store_barcode_index', $schema);
+        self::assertStringContainsString('products_store_category_status_index', $schema);
+        self::assertStringContainsString('products_store_updated_sync_index', $schema);
+        self::assertStringContainsString('categories_mobile_catalog_index', $schema);
+        self::assertStringContainsString('categories_store_updated_sync_index', $schema);
+    }
+
 }

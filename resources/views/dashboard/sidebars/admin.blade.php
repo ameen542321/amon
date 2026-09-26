@@ -161,13 +161,13 @@
         </li>
 
         {{-- الإشعارات --}}
-      <li x-data="{ dropNotifs: {{ request()->routeIs('admin.notifications.*') ? 'true' : 'false' }} }">
+      <li x-data="{ dropNotifs: {{ request()->routeIs('admin.notifications.*', 'admin.notification-operations.*') ? 'true' : 'false' }} }">
 
 
             <button
                 @click="dropNotifs = !dropNotifs"
                 class="ui-sidebar-link justify-between w-full
-                       {{ request()->routeIs('admin.notifications.*') ? 'ui-sidebar-link-active' : 'ui-sidebar-link-rest' }}"
+                       {{ request()->routeIs('admin.notifications.*', 'admin.notification-operations.*') ? 'ui-sidebar-link-active' : 'ui-sidebar-link-rest' }}"
             >
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-bell w-6 text-lg"></i>
@@ -186,6 +186,14 @@
                         class="ui-sidebar-link">
                         <i class="fa-solid fa-circle-dot w-5 ui-text-caption"></i>
                         <span x-show="open" x-cloak>مركز الإشعارات</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('admin.notification-operations.index') }}"
+                        class="ui-sidebar-link">
+                        <i class="fa-solid fa-chart-simple w-5 ui-text-caption"></i>
+                        <span x-show="open" x-cloak>ملخص وتحكم الإشعارات</span>
                     </a>
                 </li>
 

@@ -11,7 +11,7 @@ use App\Services\Shifts\ShiftSettingsHistoryService;
 
 class ShiftLifecycleService
 {
-    public const MISSING_DAYS_LOOKBACK = 15;
+    public const PREVIOUS_MONTH_MISSING_DAYS = 10;
 
     /**
      * Resolve the current open shift window and accounting date for a store.
@@ -96,7 +96,7 @@ class ShiftLifecycleService
 
     private function activeAccountantGapDate(Store $store, Carbon $operationTime): ?string
     {
-        if (app()->runningInConsole() || ! auth('accountant')->check()) {
+        if (app()->runningInConsole() || ! request()->hasSession() || ! auth('accountant')->check()) {
             return null;
         }
 
@@ -169,9 +169,9 @@ class ShiftLifecycleService
         }
 
         $referenceDate ??= now();
-        // تنبيهات الشفتات تعرض الأيام المكتملة فقط؛ تاريخ اليوم الحالي لا يعتبر ناقصًا قبل نهايته.
-        $endDate = $referenceDate->copy()->subDay()->startOfDay();
-        $startDate = $endDate->copy()->subDays(self::MISSING_DAYS_LOOKBACK - 1);
+        // النطاق يشمل كل أيام الشهر الحالي المكتملة، ويضيف آخر عشرة أيام من الشهر السابق.
+        // لا يدخل اليوم الجاري لأنه ما زال مفتوحًا وقابلًا لتسجيل العمليات.
+        [$startDate, $endDate] = $this->missingBusinessDateRange($referenceDate);
         $storeCreatedAt = Carbon::parse($store->created_at)->startOfDay();
         if ($storeCreatedAt->greaterThan($startDate)) {
             $startDate = $storeCreatedAt;
@@ -208,6 +208,15 @@ class ShiftLifecycleService
             ->reject(fn (string $date) => (int) ($closedShiftCounts[$date] ?? 0) >= $this->requiredShiftsForBusinessDate($store, $date))
             ->values()
             ->all();
+    }
+
+    private function missingBusinessDateRange(Carbon $referenceDate): array
+    {
+        $endDate = $referenceDate->copy()->subDay()->startOfDay();
+        $previousMonthEnd = $referenceDate->copy()->startOfMonth()->subDay()->startOfDay();
+        $startDate = $previousMonthEnd->copy()->subDays(self::PREVIOUS_MONTH_MISSING_DAYS - 1);
+
+        return [$startDate, $endDate];
     }
 
     /**

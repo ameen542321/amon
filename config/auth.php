@@ -71,7 +71,8 @@ return [
 
         'users' => [
             'provider' => 'users',
-            'table' => 'password_reset_tokens',
+            // يطابق الجدول التاريخي المستخدم فعليًا في Controllers ومخطط الإنتاج الحالي.
+            'table' => 'password_resets',
             'expire' => 60,
             'throttle' => 60,
         ],
@@ -79,7 +80,7 @@ return [
         // ⭐ إعادة تعيين كلمة مرور المحاسب
         'accountants' => [
             'provider' => 'accountants',
-            'table' => 'password_reset_tokens',
+            'table' => 'password_resets',
             'expire' => 60,
             'throttle' => 60,
         ],

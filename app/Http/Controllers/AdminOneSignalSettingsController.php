@@ -32,7 +32,7 @@ class AdminOneSignalSettingsController extends Controller
         return back()->with('success', 'تم حفظ إعدادات OneSignal بنجاح');
     }
 
-    public function test()
+    public function test(OneSignalService $oneSignal)
     {
         $settings = OneSignalSetting::first();
 
@@ -41,12 +41,13 @@ class AdminOneSignalSettingsController extends Controller
         }
 
         // إرسال إشعار تجريبي لجميع الأجهزة
-        OneSignalService::sendToAll(
+        $sent = $oneSignal->sendToAll(
             "اختبار OneSignal",
             "تم إرسال هذا الإشعار بنجاح!"
         );
 
-        return back()->with('success', 'تم إرسال الإشعار التجريبي بنجاح');
+        return $sent
+            ? back()->with('success', 'تم إرسال الإشعار التجريبي بنجاح')
+            : back()->with('error', 'تعذر إرسال الإشعار التجريبي. راجع إعدادات OneSignal والسجلات.');
     }
 }
-

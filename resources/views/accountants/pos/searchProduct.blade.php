@@ -64,7 +64,7 @@
                         $remainingMeters = $rawQuantity - ($wholeRolls * (float) $product->roll_length);
                         $displayQtyLabel = trim(($wholeRolls > 0 ? $wholeRolls . ' رول' : '') . ($remainingMeters > 0 ? ' و' . rtrim(rtrim(number_format($remainingMeters, 2, '.', ''), '0'), '.') . ' متر' : '')) ?: '0 متر';
                     } elseif ($isSet && (int) $product->items_per_unit > 0) {
-                        {{-- نحول الرصيد أولًا إلى حبات صحيحة ثم نعيد توزيعه إلى أطقم كاملة وباقي حبات لتجنب كسور العرض. --}}
+                        // نحول الرصيد أولًا إلى حبات صحيحة ثم نعيد توزيعه إلى أطقم كاملة وباقي حبات لتجنب كسور العرض.
                         $itemsPerSet = (int) $product->items_per_unit;
                         $totalPieces = max(0, (int) round($rawQuantity * $itemsPerSet));
                         $wholeSets = intdiv($totalPieces, $itemsPerSet);

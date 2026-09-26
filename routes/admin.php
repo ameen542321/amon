@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\CreditHealthCheckController;
@@ -17,6 +16,7 @@ use App\Http\Controllers\Admin\SupportArchiveController;
 use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\SupportActionController;
 use App\Http\Controllers\Admin\SecurityCommandCenterController;
+use App\Http\Controllers\Admin\NotificationOperationsController;
 
 
 
@@ -30,10 +30,12 @@ use App\Http\Controllers\Admin\SecurityCommandCenterController;
 |--------------------------------------------------------------------------
 */
 Route::get('/notifications/push', [AdminPushNotificationController::class, 'create'])
+        ->middleware(['auth:web', 'is.admin'])
         ->name('admin.notifications.push');
 
     // تنفيذ الإرسال
     Route::post('/notifications/push', [AdminPushNotificationController::class, 'store'])
+        ->middleware(['auth:web', 'is.admin', 'throttle:10,1'])
         ->name('admin.notifications.push.store');
 
 
@@ -138,37 +140,22 @@ Route::middleware(['web', 'auth', 'is.admin'])
             ->name('notifications.read');
 
         Route::post('/notifications/read-all', [NotificationController::class, 'markAll'])
-            ->name('notifications.readAll');
+            ->name('notifications.markAll');
+
+        Route::post('/notifications/mark-selected', [NotificationController::class, 'markSelected'])
+            ->name('notifications.markSelected');
 
         Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])
             ->name('notifications.delete');
-        Route::delete('/{id}', [NotificationController::class, 'deleteindex'])->name('deleteindex');
-        Route::post('/notifications/delete-selected', [NotificationController::class, 'deleteSelected'])
-            ->name('notifications.deleteSelected');
 
-        /*
-        |--------------------------------------------------------------------------
-        | إرسال إشعارات داخلية (للمستخدمين)
-        |--------------------------------------------------------------------------
-        */
-
-// Route::get('/notifications/send', [AdminNotificationSendController::class, 'create'])
-//     ->name('notifications.send');
-
-// Route::post('/notifications/send', [AdminNotificationSendController::class, 'store'])
-//     ->name('notifications.send.store');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | إرسال إشعارات OneSignal
-        |--------------------------------------------------------------------------
-        */
-        // Route::get('/notifications/push', [AdminPushNotificationController::class, 'create'])
-        //     ->name('notifications.push');
-
-        // Route::post('/notifications/push', [AdminPushNotificationController::class, 'store'])
-        //     ->name('notifications.push.store');
+        Route::get('/notification-operations', [NotificationOperationsController::class, 'index'])
+            ->name('notification-operations.index');
+        Route::delete('/notification-operations/expired', [NotificationOperationsController::class, 'cleanup'])
+            ->middleware('throttle:2,1')
+            ->name('notification-operations.cleanup');
+        Route::delete('/notification-operations/{notification}', [NotificationOperationsController::class, 'destroy'])
+            ->middleware('throttle:10,1')
+            ->name('notification-operations.destroy');
 
         /*
         |--------------------------------------------------------------------------
@@ -186,63 +173,16 @@ Route::middleware(['web', 'auth', 'is.admin'])
     });
 
 Route::post('/support-session/stop', [SupportSessionController::class, 'stop'])
-    ->middleware('web')
+    ->middleware(['auth:web', 'is.admin'])
     ->name('admin.support.stop');
 Route::patch('/support-archive/{archive}/message', [SupportArchiveController::class, 'message'])
-    ->middleware('web')
+    ->middleware(['auth:web', 'is.admin'])
     ->name('admin.support.archive.message');
 
-/*
-|--------------------------------------------------------------------------
-| Device Token
-|--------------------------------------------------------------------------
-*/
-Route::prefix('admin')->middleware(['auth:web', 'is.admin'])->group(function () {
-
-    // صفحة إرسال إشعار OneSignal
-    // Route::get('/notifications/push', [\App\Http\Controllers\AdminPushNotificationController::class, 'create'])
-    //     ->name('admin.notifications.push');
-
-    // // تنفيذ الإرسال
-    // Route::post('/notifications/push', [\App\Http\Controllers\AdminPushNotificationController::class, 'store'])
-    //     ->name('admin.notifications.push.store');
-
-});
-
-Route::post('/device-token', [DeviceTokenController::class, 'store'])
-    ->name('device.token.store')
-    ->middleware('auth');
 Route::get('/notifications/send', [AdminNotificationSendController::class, 'create'])
+    ->middleware(['auth:web', 'is.admin'])
     ->name('notifications.internal.send');
 
 Route::post('/notifications/send', [AdminNotificationSendController::class, 'store'])
+    ->middleware(['auth:web', 'is.admin', 'throttle:10,1'])
     ->name('notifications.internal.send.store');
-
-
-//     Route::middleware(['auth:web', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-
-//     Route::prefix('notifications')->name('notifications.')->group(function () {
-
-//         Route::get('/', [NotificationController::class, 'index'])
-//             ->name('index');
-
-//         Route::get('/{id}', [NotificationController::class, 'show'])
-//             ->name('show');
-
-//         Route::post('/{id}/toggle', [NotificationController::class, 'toggle'])
-//             ->name('toggle');
-
-//         Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])
-//             ->name('read');
-
-//         Route::post('/mark-all', [NotificationController::class, 'markAll'])
-//             ->name('markAll');
-
-//         Route::delete('/{id}', [NotificationController::class, 'delete'])
-//             ->name('delete');
-
-//         Route::post('/delete-selected', [NotificationController::class, 'deleteSelected'])
-//             ->name('deleteSelected');
-//     });
-
-// });

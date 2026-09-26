@@ -16,15 +16,15 @@
         @if ($errors->any() || session('auth') || session('status'))
             <div class="mb-6 space-y-3">
                 @if ($errors->any())
-                    <div class="ui-alert ui-badge-danger text-sm">
+                    <div class="ui-alert ui-alert-danger text-sm" role="alert">
                         @foreach ($errors->all() as $error) <div>{{ $error }}</div> @endforeach
                     </div>
                 @endif
                 @if (session('auth'))
-                    <div class="ui-alert ui-alert-warning text-sm">{{ session('auth') }}</div>
+                    <div class="ui-alert ui-alert-warning text-sm" role="alert">{{ session('auth') }}</div>
                 @endif
                 @if (session('status'))
-                    <div class="ui-alert ui-badge-success text-sm">{{ session('status') }}</div>
+                    <div class="ui-alert ui-alert-success text-sm" role="status">{{ session('status') }}</div>
                 @endif
             </div>
         @endif
@@ -37,7 +37,7 @@
                     <label for="login-email" class="auth-label">البريد الإلكتروني</label>
                     <input id="login-email" type="email" name="email" value="{{ old('email') }}"
                            class="ui-input"
-                           placeholder="name@company.com" required autofocus>
+                           placeholder="name@company.com" autocomplete="email" inputmode="email" required autofocus>
                 </div>
 
                 <div>
@@ -45,7 +45,7 @@
                     <div class="relative" x-data="{ passwordVisible: false }">
                         <input id="login-password" :type="passwordVisible ? 'text' : 'password'" name="password"
                                class="ui-input pl-12"
-                               required>
+                               autocomplete="current-password" required>
                         <button type="button"
                                 class="auth-password-toggle absolute left-1 top-1/2 -translate-y-1/2"
                                 @click="passwordVisible = !passwordVisible"

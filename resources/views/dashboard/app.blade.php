@@ -6,6 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00C4B4">
+    <x-pwa-runtime-config />
+    <meta name="application-name" content="CARLED">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="{{ asset('carled.svg') }}">
     <link rel="preload" href="{{ asset('fonts/cairo/cairo-arabic-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ asset('fonts/Cairo-Regular.ttf') }}" as="font" type="font/ttf" crossorigin>
     {{-- يبقى تحميل الثيم متزامنًا في الرأس عمدًا لمنع وميض الوضع قبل رسم الصفحة. --}}
@@ -18,7 +23,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="ui-page min-h-screen">
+@php
+    $clientAccount = auth('accountant')->user() ?? auth('web')->user();
+    $clientAccountType = auth('accountant')->check() ? 'accountant' : (auth('web')->check() ? 'user' : null);
+    $clientAccountScope = $clientAccountType && $clientAccount
+        ? $clientAccountType.':'.$clientAccount->getAuthIdentifier()
+        : null;
+@endphp
+<body class="ui-page min-h-screen" @if($clientAccountScope) data-client-account-scope="{{ $clientAccountScope }}" @endif>
 <x-ui.page-loader />
 @php
     $role = auth('web')->check() ? (auth('web')->user()->role ?? 'user') : null;
@@ -86,6 +98,7 @@
 @if($usesAdminSidebar)
     </div>
 @endif
+<x-pwa-install-panel />
 <x-ui.help-modal />
 @yield('scripts')
 
