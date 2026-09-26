@@ -7,6 +7,7 @@ check(routes.includes("prefix('store-transfers')")&&routes.includes('ability:sto
 check(!routes.includes("Route::post('/store-transfers")&&!routes.includes("Route::patch('/store-transfers")&&!routes.includes("Route::delete('/store-transfers"),'mobile transfer API is read only');
 check(controller.includes('ApiStoreScopeService')&&controller.includes('sender_store_id')&&controller.includes('receiver_store_id'),'reads are scoped to an authorized participating store');
 check(controller.includes('cursorPaginate')&&controller.includes('request_business_date')&&controller.includes('action_business_date'),'list is cursor paginated and accounting-date aware');
+check(controller.includes('DATE(created_at)')&&resource.includes('business_date_source')&&resource.includes('created_at_fallback'),'legacy transfers fall back to operation dates when business dates are absent');
 check(resource.includes("'direction'")&&resource.includes("'counterparty_store'"),'resource describes direction and counterparty');
 check(resource.includes('product_name_snapshot')&&resource.includes('unit_label_snapshot'),'item history uses transfer snapshots');
 check(!resource.includes("'sender_stock_before'")&&!resource.includes("'receiver_stock_after'"),'internal stock snapshots are not exposed');

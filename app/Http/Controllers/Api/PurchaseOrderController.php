@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Accountant;
 use App\Modules\PurchaseOrders\Models\StorePurchaseOrder;
 use App\Modules\PurchaseOrders\Support\PurchaseOrderWorkflow;
 use App\Services\ApiStoreScopeService;
 use App\Support\Api\ApiResponse;
 use App\Support\Api\PurchaseOrderResource;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,7 +29,7 @@ class PurchaseOrderController extends Controller
             'cursor' => ['nullable', 'string'],
         ]);
         $store = $this->stores->resolve($request->attributes->get('api_actor'), (int) $validated['store_id']);
-        $query = StorePurchaseOrder::query()->where('store_id', $store->id)->withCount('items');
+        $query = $this->visibleQuery($request, (int) $store->id)->withCount('items');
 
         $query->when($validated['status'] ?? null, fn ($q, $status) => $q->where('workflow_status', $status));
         $query->when($validated['supplier'] ?? null, fn ($q, $supplier) => $q->where('supplier_name', 'like', '%'.addcslashes($supplier, '%_\\').'%'));
@@ -45,13 +47,12 @@ class PurchaseOrderController extends Controller
     public function show(Request $request, int $order): JsonResponse
     {
         $store = $this->resolveStore($request);
-        $record = StorePurchaseOrder::query()
+        $record = $this->visibleQuery($request, (int) $store->id)
             ->with([
                 'store:id,name', 'accountant:id,name', 'user:id,name',
                 'items.product:id,name,product_type', 'items.matchedProduct:id,name,product_type',
                 'events' => fn ($query) => $query->orderBy('id'),
             ])
-            ->where('store_id', $store->id)
             ->findOrFail($order);
 
         return ApiResponse::success(PurchaseOrderResource::order($record, true));
@@ -60,7 +61,7 @@ class PurchaseOrderController extends Controller
     public function summary(Request $request): JsonResponse
     {
         $store = $this->resolveStore($request);
-        $counts = StorePurchaseOrder::query()->where('store_id', $store->id)
+        $counts = $this->visibleQuery($request, (int) $store->id)
             ->selectRaw('workflow_status, COUNT(*) as aggregate')
             ->groupBy('workflow_status')->pluck('aggregate', 'workflow_status');
 
@@ -78,5 +79,21 @@ class PurchaseOrderController extends Controller
         $validated = $request->validate(['store_id' => ['required', 'integer', 'min:1']]);
 
         return $this->stores->resolve($request->attributes->get('api_actor'), (int) $validated['store_id']);
+    }
+
+    /**
+     * يطابق نطاق واجهة الويب: يرى المحاسب طلبياته والطلبيات غير المسندة فقط،
+     * بينما يرى المالك طلبيات متجره التابعة لحسابه.
+     */
+    private function visibleQuery(Request $request, int $storeId): Builder
+    {
+        $actor = $request->attributes->get('api_actor');
+        $query = StorePurchaseOrder::query()->where('store_id', $storeId);
+
+        return $actor instanceof Accountant
+            ? $query->where(fn (Builder $scope) => $scope
+                ->where('accountant_id', $actor->getAuthIdentifier())
+                ->orWhereNull('accountant_id'))
+            : $query->where('user_id', $actor->getAuthIdentifier());
     }
 }

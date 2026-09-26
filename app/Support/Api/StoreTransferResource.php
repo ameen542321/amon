@@ -10,7 +10,22 @@ final class StoreTransferResource
     public static function transfer(StoreTransfer $transfer, int $storeId, bool $details = false): array
     {
         $outgoing = (int) $transfer->sender_store_id === $storeId;
-        $businessDate = $outgoing ? $transfer->request_business_date : ($transfer->action_business_date ?? $transfer->request_business_date);
+        $businessDate = $outgoing
+            ? ($transfer->request_business_date ?? $transfer->created_at)
+            : ($transfer->action_business_date
+                ?? $transfer->request_business_date
+                ?? $transfer->completed_at
+                ?? $transfer->acted_at
+                ?? $transfer->created_at);
+        $businessDateSource = $outgoing
+            ? ($transfer->request_business_date ? 'request_business_date' : 'created_at_fallback')
+            : match (true) {
+                $transfer->action_business_date !== null => 'action_business_date',
+                $transfer->request_business_date !== null => 'request_business_date',
+                $transfer->completed_at !== null => 'completed_at_fallback',
+                $transfer->acted_at !== null => 'acted_at_fallback',
+                default => 'created_at_fallback',
+            };
         $data = [
             'id' => (int) $transfer->id, 'direction' => $outgoing ? 'outgoing' : 'incoming', 'status' => (string) $transfer->status,
             'counterparty_store' => [
@@ -19,6 +34,7 @@ final class StoreTransferResource
             ],
             'items_count' => (int) ($transfer->items_count ?? $transfer->items->count()),
             'business_date' => $businessDate?->toDateString(),
+            'business_date_source' => $businessDateSource,
             'request_business_date' => $transfer->request_business_date?->toDateString(),
             'action_business_date' => $transfer->action_business_date?->toDateString(),
             'created_at' => $transfer->created_at?->toIso8601String(), 'updated_at' => $transfer->updated_at?->toIso8601String(),

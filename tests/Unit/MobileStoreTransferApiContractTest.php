@@ -14,7 +14,9 @@ class MobileStoreTransferApiContractTest extends TestCase
     {
         $controller=file_get_contents(base_path('app/Http/Controllers/Api/StoreTransferController.php')); $resource=file_get_contents(base_path('app/Support/Api/StoreTransferResource.php'));
         self::assertStringContainsString("'request_business_date'",$controller); self::assertStringContainsString("'action_business_date'",$controller);
-        self::assertStringContainsString('action_business_date ?? $transfer->request_business_date',$resource);
+        self::assertStringContainsString('business_date_source',$resource);
+        self::assertStringContainsString('created_at_fallback',$resource);
+        self::assertStringContainsString('COALESCE(action_business_date, request_business_date, DATE(completed_at), DATE(acted_at), DATE(created_at))',$controller);
         self::assertStringNotContainsString("'sender_stock_before'",$resource); self::assertStringNotContainsString("'receiver_stock_after'",$resource);
     }
 }

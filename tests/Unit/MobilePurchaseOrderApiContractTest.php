@@ -8,7 +8,11 @@ class MobilePurchaseOrderApiContractTest extends TestCase
         $routes=file_get_contents(base_path('routes/api.php')); $controller=file_get_contents(base_path('app/Http/Controllers/Api/PurchaseOrderController.php'));
         self::assertStringContainsString("prefix('purchase-orders')",$routes); self::assertStringContainsString('ability:purchase-orders:read',$routes);
         self::assertStringNotContainsString("Route::post('/purchase-orders",$routes); self::assertStringContainsString('ApiStoreScopeService',$controller);
-        self::assertStringContainsString("where('store_id', \$store->id)",$controller); self::assertStringContainsString('cursorPaginate',$controller);
+        self::assertStringContainsString('visibleQuery($request, (int) $store->id)',$controller);
+        self::assertStringContainsString("where('accountant_id', \$actor->getAuthIdentifier())",$controller);
+        self::assertStringContainsString("orWhereNull('accountant_id')",$controller);
+        self::assertStringContainsString("where('user_id', \$actor->getAuthIdentifier())",$controller);
+        self::assertStringContainsString('cursorPaginate',$controller);
     }
     public function test_resource_uses_workflow_without_stock_snapshots(): void
     {
