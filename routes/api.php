@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryCountController;
 use App\Http\Controllers\Api\GovernanceController;
+use App\Http\Controllers\Api\DesignSystemController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PeopleController;
@@ -35,6 +36,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
         Route::post('/auth/logout-all', [AuthTokenController::class, 'logoutAll'])->name('auth.logout-all');
         Route::get('/me', [MobileContextController::class, 'me'])->middleware('ability:app:read')->name('me');
         Route::get('/app-config', [MobileContextController::class, 'appConfig'])->middleware('ability:app:read')->name('app-config');
+        Route::get('/design-system', DesignSystemController::class)->middleware('ability:design-system:read')->name('design-system');
         Route::get('/stores', [MobileContextController::class, 'stores'])->middleware('ability:app:read')->name('stores');
         Route::prefix('catalog')->name('catalog.')->middleware('ability:catalog:read')->group(function (): void {
             Route::get('/categories', [CatalogController::class, 'categories'])->name('categories');
