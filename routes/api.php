@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\StoreTransferController;
+use App\Http\Controllers\Api\SupportingOperationController;
 use Illuminate\Support\Facades\Route;
 
 // توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
@@ -54,6 +55,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/employees/{employee}', [PeopleController::class, 'employee'])->whereNumber('employee')->name('employees.show');
             Route::get('/accountants', [PeopleController::class, 'accountants'])->name('accountants.index');
             Route::get('/accountants/{accountant}', [PeopleController::class, 'accountant'])->whereNumber('accountant')->name('accountants.show');
+        });
+        Route::prefix('operations')->name('operations.')->middleware('ability:operations:read')->group(function (): void {
+            Route::get('/summary', [SupportingOperationController::class, 'summary'])->name('summary');
+            Route::get('/expenses', [SupportingOperationController::class, 'expenses'])->name('expenses.index');
+            Route::get('/expenses/{expense}', [SupportingOperationController::class, 'expense'])->whereNumber('expense')->name('expenses.show');
+            Route::get('/internal-use', [SupportingOperationController::class, 'internalUses'])->name('internal-use.index');
+            Route::get('/internal-use/{sale}', [SupportingOperationController::class, 'internalUse'])->whereNumber('sale')->name('internal-use.show');
+            Route::get('/owner-purchases', [SupportingOperationController::class, 'ownerPurchases'])->name('owner-purchases.index');
         });
         Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
             Route::get('/current', [ShiftController::class, 'current'])->name('current');
