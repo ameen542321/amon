@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\StoreTransferController;
+use App\Http\Controllers\Api\ShiftController;
+use App\Http\Controllers\Api\SaleController;
 use Illuminate\Support\Facades\Route;
 
 // توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
