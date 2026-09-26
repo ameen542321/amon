@@ -1,3 +1,5 @@
+import { deleteDraft, getDraft, pruneDrafts, putDraft } from '../pwa/draft-store';
+
 const formatCount = (value, singular, dual, plural) => {
     if (value === 1) return singular;
     if (value === 2) return dual;
@@ -28,67 +30,156 @@ const updateKitBreakdown = (item) => {
     output.textContent = parts.length > 0 ? `تعادل: ${parts.join(' و')}` : '';
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const form = document.querySelector('[data-inventory-count-form]');
     if (!form) return;
 
     const storageKey = form.dataset.inventoryCountStorageKey;
+    const legacyStorageKey = form.dataset.inventoryCountLegacyStorageKey;
+    const accountScope = form.dataset.inventoryCountAccountScope;
+    const storeId = form.dataset.inventoryCountStoreId;
     const serverVersion = form.dataset.inventoryCountVersion;
     const draftStatus = document.querySelector('[data-inventory-count-draft-status]');
     const draftFields = [...form.querySelectorAll('[name^="items["]')];
     const maxDraftAge = 30 * 24 * 60 * 60 * 1000;
+    let saveTimer = null;
+    let writeQueue = Promise.resolve();
 
-    // localStorage يبقي العد غير المثبت متاحًا بعد تحديث الصفحة أو إغلاق المتصفح والعودة خلال ثلاثين يومًا.
-    const restoreDraft = () => {
+    const setStatus = (text) => {
+        if (draftStatus) draftStatus.textContent = text;
+    };
+
+    const valuesSnapshot = () => Object.fromEntries(draftFields.map((field) => [field.name, field.value]));
+
+    const migrateLegacyDraft = async () => {
+        try {
+            const legacyValue = window.localStorage.getItem(legacyStorageKey);
+            if (!legacyValue) return null;
+
+            const legacyDraft = JSON.parse(legacyValue);
+            const migratedDraft = {
+                ...legacyDraft,
+                schemaVersion: 2,
+                accountScope,
+                accountType: 'accountant',
+                storeId,
+                draftType: 'inventory-count',
+            };
+            await putDraft(storageKey, migratedDraft);
+            window.localStorage.removeItem(legacyStorageKey);
+            return { key: storageKey, ...migratedDraft };
+        } catch {
+            try {
+                if (legacyStorageKey) window.localStorage.removeItem(legacyStorageKey);
+            } catch {
+                // قد يمنع المتصفح التخزين القديم؛ تبقى IndexedDB هي المسار الأساسي.
+            }
+            return null;
+        }
+    };
+
+    const restoreDraft = async () => {
         if (!storageKey) return;
 
         try {
-            const draft = JSON.parse(window.localStorage.getItem(storageKey) || 'null');
+            await pruneDrafts(Date.now() - maxDraftAge);
+            const previousIndexedDraft = legacyStorageKey ? await getDraft(legacyStorageKey) : null;
+            if (previousIndexedDraft) {
+                await putDraft(storageKey, {
+                    ...previousIndexedDraft,
+                    schemaVersion: 2,
+                    accountScope,
+                    accountType: 'accountant',
+                    storeId,
+                    draftType: 'inventory-count',
+                });
+                await deleteDraft(legacyStorageKey);
+            }
+            const draft = await getDraft(storageKey) ?? await migrateLegacyDraft();
             const isCurrent = draft
+                && draft.accountScope === accountScope
+                && String(draft.storeId) === String(storeId)
                 && draft.serverVersion === serverVersion
                 && draft.values
                 && typeof draft.values === 'object'
                 && Date.now() - draft.savedAt <= maxDraftAge;
 
             if (!isCurrent) {
-                window.localStorage.removeItem(storageKey);
+                if (draft) await deleteDraft(storageKey);
                 return;
             }
 
             draftFields.forEach((field) => {
                 if (Object.hasOwn(draft.values, field.name)) field.value = draft.values[field.name];
             });
-            if (draftStatus) draftStatus.textContent = 'تمت استعادة مدخلاتك المحفوظة في هذا المتصفح';
+            setStatus('تمت استعادة مسودة الجرد من قاعدة هذا المتصفح');
         } catch {
-            if (draftStatus) draftStatus.textContent = 'تعذر استعادة الحفظ المؤقت من هذا المتصفح';
+            setStatus('تعذر فتح التخزين المحلي؛ احفظ الكميات في الخادم قبل المغادرة');
         }
     };
 
-    const saveDraft = () => {
-        if (!storageKey) return;
+    const persistDraft = () => {
+        if (!storageKey) return Promise.resolve();
 
-        const values = Object.fromEntries(draftFields.map((field) => [field.name, field.value]));
-        try {
-            window.localStorage.setItem(storageKey, JSON.stringify({ serverVersion, savedAt: Date.now(), values }));
-            if (draftStatus) draftStatus.textContent = 'حُفظت مدخلاتك مؤقتًا في هذا المتصفح';
-        } catch {
-            if (draftStatus) draftStatus.textContent = 'تعذر الحفظ المؤقت؛ اضغط حفظ جميع الكميات قبل المغادرة';
-        }
+        const draft = {
+            schemaVersion: 2,
+            accountScope,
+            accountType: 'accountant',
+            storeId,
+            draftType: 'inventory-count',
+            serverVersion,
+            savedAt: Date.now(),
+            values: valuesSnapshot(),
+        };
+
+        writeQueue = writeQueue
+            .catch(() => undefined)
+            .then(() => putDraft(storageKey, draft))
+            .then(() => setStatus(navigator.onLine
+                ? 'حُفظت المسودة محليًا في هذا الجهاز'
+                : 'حُفظت المسودة محليًا — يلزم الإنترنت لتثبيتها في الخادم'))
+            .catch(() => setStatus('تعذر الحفظ المحلي؛ اضغط حفظ جميع الكميات قبل المغادرة'));
+
+        return writeQueue;
     };
 
-    restoreDraft();
+    const scheduleDraftSave = () => {
+        clearTimeout(saveTimer);
+        setStatus('جارٍ حفظ المسودة محليًا…');
+        saveTimer = window.setTimeout(persistDraft, 300);
+    };
+
+    const flushDraft = () => {
+        if (!saveTimer) return;
+        clearTimeout(saveTimer);
+        saveTimer = null;
+        persistDraft();
+    };
+
+    await restoreDraft();
 
     form.querySelectorAll('[data-inventory-count-item]').forEach((item) => {
         const update = () => updateKitBreakdown(item);
         item.querySelector('[data-inventory-count-quantity]')?.addEventListener('input', () => {
             update();
-            saveDraft();
+            scheduleDraftSave();
         });
         item.querySelector('[data-inventory-count-unit]')?.addEventListener('change', () => {
             update();
-            saveDraft();
+            scheduleDraftSave();
         });
-        item.querySelector('[name$="[accountant_note]"]')?.addEventListener('input', saveDraft);
+        item.querySelector('[name$="[accountant_note]"]')?.addEventListener('input', scheduleDraftSave);
         update();
     });
+
+    window.addEventListener('pagehide', flushDraft);
+    window.addEventListener('carled:pwa-prepare-update', (event) => {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+        event.detail?.pending?.push(persistDraft());
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushDraft();
+    });
+    window.addEventListener('offline', () => setStatus('أنت دون اتصال — المسودة محلية ولن تُرسل تلقائيًا'));
 });

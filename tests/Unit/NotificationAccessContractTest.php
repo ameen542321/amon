@@ -119,12 +119,34 @@ class NotificationAccessContractTest extends TestCase
 
         self::assertStringContainsString('->visibleTo($recipient)', $controller);
         self::assertStringContainsString('->cursorPaginate(', $controller);
+        self::assertStringContainsString('ApiResponse::success', $controller);
         self::assertStringContainsString("Auth::guard('accountant')->user()", $controller);
         self::assertStringContainsString("Auth::guard('web')->user()", $controller);
         self::assertStringContainsString("prefix('api/v1/notifications')", $ownerRoutes);
-        self::assertStringContainsString("middleware('throttle:120,1')", $ownerRoutes);
+        self::assertStringContainsString("middleware(['api.contract', 'throttle:120,1'])", $ownerRoutes);
         self::assertStringContainsString("prefix('api/v1/notifications')", $accountantRoutes);
-        self::assertStringContainsString("middleware('throttle:120,1')", $accountantRoutes);
+        self::assertStringContainsString("middleware(['api.contract', 'throttle:120,1'])", $accountantRoutes);
         self::assertStringNotContainsString('notifications', $publicApiRoutes);
+    }
+
+    public function test_notification_staging_gate_is_repeatable_and_protects_real_data(): void
+    {
+        $package = json_decode(
+            file_get_contents(dirname(__DIR__, 2).'/package.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $checker = file_get_contents(dirname(__DIR__, 2).'/scripts/check-notification-readiness.mjs');
+        $guide = file_get_contents(dirname(__DIR__, 2).'/docs/بوابة-Staging-لنظام-الإشعارات.md');
+
+        self::assertSame(
+            'node scripts/check-notification-readiness.mjs',
+            $package['scripts']['test:notifications'],
+        );
+        self::assertStringContainsString("process.argv.includes('--staging-env')", $checker);
+        self::assertStringContainsString("!['sync', 'null'].includes(queue)", $checker);
+        self::assertStringContainsString('DB_DATABASE" value=":memory:" force="true"', $checker);
+        self::assertStringContainsString('php artisan notifications:cleanup --dry-run', $guide);
+        self::assertStringContainsString('لا تستخدم الإرسال العام `All`', $guide);
     }
 }

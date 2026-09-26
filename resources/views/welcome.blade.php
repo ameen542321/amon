@@ -3,11 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00C4B4">
+    <meta name="pwa-build-version" content="{{ config('pwa.build_version') }}">
+    <meta name="application-name" content="CARLED">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="{{ asset('carled.svg') }}">
     <title>Carled</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="ui-page ui-public-page-shell">
+@php
+    $clientAccount = auth('accountant')->user() ?? auth('web')->user();
+    $clientAccountType = auth('accountant')->check() ? 'accountant' : (auth('web')->check() ? 'user' : null);
+    $clientAccountScope = $clientAccountType && $clientAccount
+        ? $clientAccountType.':'.$clientAccount->getAuthIdentifier()
+        : null;
+@endphp
+<body class="ui-page ui-public-page-shell" @if($clientAccountScope) data-client-account-scope="{{ $clientAccountScope }}" @endif>
     <x-ui.page-loader />
 
     <header class="ui-topbar sticky top-0 z-40">
@@ -221,5 +233,6 @@
 
     </footer>
 
+    <x-pwa-install-panel />
 </body>
 </html>

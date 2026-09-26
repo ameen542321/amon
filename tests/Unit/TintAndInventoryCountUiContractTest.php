@@ -61,6 +61,7 @@ class TintAndInventoryCountUiContractTest extends TestCase
         $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Accountant/InventoryCountController.php');
         $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/InventoryCountService.php');
         $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/accountant/inventory-count.js');
+        $draftStore = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/pwa/draft-store.js');
 
         self::assertStringContainsString("inventory-counts.items.bulk-update", $view);
         self::assertStringContainsString('حفظ جميع الكميات', $view);
@@ -74,8 +75,14 @@ class TintAndInventoryCountUiContractTest extends TestCase
         self::assertStringContainsString('function saveAccountantCounts(', $service);
         self::assertStringContainsString('إما ينجح حفظ الصفحة كاملة أو لا يحفظ منها شيء', $service);
         self::assertStringContainsString("تعادل: \${parts.join(' و')}", $script);
-        self::assertStringContainsString('window.localStorage.setItem', $script);
+        self::assertStringContainsString("from '../pwa/draft-store'", $script);
+        self::assertStringNotContainsString('window.localStorage.setItem', $script);
+        self::assertStringContainsString('window.localStorage.getItem', $script);
+        self::assertStringContainsString("window.indexedDB.open(DATABASE_NAME", $draftStore);
+        self::assertStringContainsString("createObjectStore(DRAFT_STORE, { keyPath: 'key' })", $draftStore);
+        self::assertStringContainsString('pruneDrafts', $script);
         self::assertStringContainsString('restoreDraft()', $script);
         self::assertStringContainsString('draft.serverVersion === serverVersion', $script);
+        self::assertStringContainsString('لن تُرسل تلقائيًا', $view);
     }
 }

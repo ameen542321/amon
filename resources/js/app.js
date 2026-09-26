@@ -1,5 +1,7 @@
 import './bootstrap';
 import './features/font-readiness';
+import './features/pwa/register-service-worker';
+import './features/pwa/client-storage-lifecycle';
 import './features/dashboard-navigation';
 import './features/dashboard/owner-dashboard';
 import './features/dashboard-notifications';

@@ -16,6 +16,7 @@ use App\Http\Controllers\Accountant\StoreTransferController as AccountantStoreTr
 use App\Modules\PurchaseOrders\Controllers\AccountantPurchaseOrderController;
 use App\Http\Controllers\Accountant\InventoryCountController;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
+use App\Http\Controllers\Api\AppContextController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +55,10 @@ Route::post('/accountant/logout', [LoginController::class, 'logout'])
 */
 Route::middleware(['accountant.unified'])->group(function () {
     Route::prefix('accountant')->name('accountant.')->group(function () {
+
+        Route::get('/api/v1/app-context', AppContextController::class)
+            ->middleware(['api.contract', 'throttle:60,1'])
+            ->name('api.app-context');
 
         // --- مسارات الفواتير ---
         Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
@@ -172,11 +177,11 @@ Route::middleware(['accountant.unified'])->group(function () {
         });
 
         // API جلسة الويب للـPWA؛ يستخدم حارس المحاسب الحالي ولا يقبل Token عامًا.
-        Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware('throttle:120,1')->group(function () {
+        Route::prefix('api/v1/notifications')->name('api.notifications.')->middleware(['api.contract', 'throttle:120,1'])->group(function () {
             Route::get('/', [ApiNotificationController::class, 'index'])->name('index');
             Route::get('/unread-count', [ApiNotificationController::class, 'unreadCount'])->name('unread-count');
-            Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->name('read');
-            Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->name('hide');
+            Route::patch('/{notification}/read', [ApiNotificationController::class, 'markRead'])->middleware('idempotency')->name('read');
+            Route::delete('/{notification}', [ApiNotificationController::class, 'hide'])->middleware('idempotency')->name('hide');
         });
 
         // --- مسارات الإشعارات ---

@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Support\Api\ApiResponse;
 use App\Support\Notifications\NotificationPayload;
 use App\Support\Notifications\NotificationRecipient;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class NotificationController extends Controller
 {
@@ -25,15 +27,15 @@ class NotificationController extends Controller
             ->latest('id')
             ->cursorPaginate($validated['limit'] ?? 20);
 
-        return $this->json([
-            'data' => collect($notifications->items())
+        return ApiResponse::success(
+            collect($notifications->items())
                 ->map(fn (Notification $notification): array => $this->serialize($notification, $recipient))
                 ->values(),
-            'meta' => [
+            [
                 'next_cursor' => $notifications->nextCursor()?->encode(),
                 'per_page' => $notifications->perPage(),
             ],
-        ]);
+        );
     }
 
     public function unreadCount(): JsonResponse
@@ -44,7 +46,7 @@ class NotificationController extends Controller
             ->unreadByRecipient($recipient)
             ->count();
 
-        return $this->json(['data' => ['count' => $count]]);
+        return ApiResponse::success(['count' => $count]);
     }
 
     public function markRead(int $notification): JsonResponse
@@ -52,15 +54,15 @@ class NotificationController extends Controller
         $recipient = $this->recipient();
         $this->notificationFor($recipient, $notification)->markAsReadByRecipient($recipient);
 
-        return $this->json(['data' => ['read' => true]]);
+        return ApiResponse::success(['read' => true]);
     }
 
-    public function hide(int $notification): JsonResponse
+    public function hide(int $notification): Response
     {
         $recipient = $this->recipient();
         $this->notificationFor($recipient, $notification)->hideFromRecipient($recipient);
 
-        return $this->json(null, 204);
+        return ApiResponse::noContent();
     }
 
     private function serialize(Notification $notification, NotificationRecipient $recipient): array
@@ -92,14 +94,8 @@ class NotificationController extends Controller
 
     private function currentAccount(): ?Authenticatable
     {
-        return Auth::guard('accountant')->user() ?? Auth::guard('web')->user();
-    }
-
-    private function json(?array $data, int $status = 200): JsonResponse
-    {
-        return response()->json($data, $status)->withHeaders([
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return request()->attributes->get('api_actor')
+            ?? Auth::guard('accountant')->user()
+            ?? Auth::guard('web')->user();
     }
 }

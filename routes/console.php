@@ -12,3 +12,11 @@ Artisan::command('inspire', function () {
 Schedule::command('notifications:cleanup')
     ->dailyAt('02:30')
     ->withoutOverlapping();
+
+Schedule::command('idempotency:cleanup')
+    ->hourly()
+    ->withoutOverlapping();
+
+Schedule::command('api-tokens:cleanup')
+    ->dailyAt('03:00')
+    ->withoutOverlapping();
