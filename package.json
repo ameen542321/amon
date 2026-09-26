@@ -15,6 +15,7 @@
     "test:mobile-catalog": "node scripts/check-mobile-catalog-readiness.mjs",
     "test:mysql-migrations": "node scripts/check-mysql-migration-compatibility.mjs",
     "test:mobile-inventory": "node scripts/check-mobile-inventory-readiness.mjs",
+    "test:mobile-inventory-counts": "node scripts/check-mobile-inventory-count-readiness.mjs",
     "test:mobile-shifts": "node scripts/check-mobile-shift-readiness.mjs",
     "test:mobile-sales": "node scripts/check-mobile-sales-readiness.mjs",
     "test:mobile-purchase-orders": "node scripts/check-mobile-purchase-orders-readiness.mjs",

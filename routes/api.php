@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthTokenController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\InventoryCountController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
@@ -37,6 +38,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/summary', [InventoryController::class, 'summary'])->name('summary');
             Route::get('/movements', [InventoryController::class, 'movements'])->name('movements');
             Route::get('/integrity', [InventoryController::class, 'integrity'])->name('integrity');
+        });
+        Route::prefix('inventory-counts')->name('inventory-counts.')->middleware('ability:inventory-counts:read')->group(function (): void {
+            Route::get('/', [InventoryCountController::class, 'index'])->name('index');
+            Route::get('/{session}', [InventoryCountController::class, 'show'])->whereNumber('session')->name('show');
+            Route::patch('/{session}/draft', [InventoryCountController::class, 'saveDraft'])
+                ->whereNumber('session')
+                ->middleware(['ability:inventory-counts:write', 'idempotency'])
+                ->name('draft.save');
         });
         Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
             Route::get('/current', [ShiftController::class, 'current'])->name('current');

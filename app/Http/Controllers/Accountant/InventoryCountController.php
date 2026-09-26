@@ -46,9 +46,6 @@ class InventoryCountController extends Controller
         ]);
         $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
         $service->saveAccountantCount($item, $data, $businessDate);
-        if ($inventoryCount->status !== 'returned_to_accountant') {
-            $inventoryCount->update(['status' => 'counting']);
-        }
         return back()->with('success', 'تم حفظ كمية المنتج وتسجيل اليوم تلقائيًا.');
     }
 
@@ -87,9 +84,6 @@ class InventoryCountController extends Controller
 
         $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
         $service->saveAccountantCounts($inventoryCount, $data['items'], $businessDate);
-        if ($inventoryCount->status !== 'returned_to_accountant') {
-            $inventoryCount->update(['status' => 'counting']);
-        }
 
         return back()->with('success', 'تم حفظ كميات جميع المنتجات في الجلسة.');
     }

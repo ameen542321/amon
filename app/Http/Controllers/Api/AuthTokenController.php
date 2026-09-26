@@ -192,7 +192,7 @@ class AuthTokenController extends Controller
 
     private function defaultAbilities(): array
     {
-        return ['app:read', 'catalog:read', 'inventory:read', 'shifts:read', 'sales:read', 'purchase-orders:read', 'store-transfers:read', 'devices:manage', 'notifications:read', 'notifications:write', 'push:manage'];
+        return ['app:read', 'catalog:read', 'inventory:read', 'inventory-counts:read', 'inventory-counts:write', 'shifts:read', 'sales:read', 'purchase-orders:read', 'store-transfers:read', 'devices:manage', 'notifications:read', 'notifications:write', 'push:manage'];
     }
 
     private function findActor(string $type, string $email): ?Authenticatable

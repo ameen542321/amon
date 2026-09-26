@@ -17,7 +17,15 @@ class InventoryCountService
     public function saveAccountantCount(InventoryCountSessionItem $item, array $data, string $businessDate): InventoryCountSessionItem
     {
         return DB::transaction(function () use ($item, $data, $businessDate): InventoryCountSessionItem {
+            $lockedSession = InventoryCountSession::whereKey($item->inventory_count_session_id)->lockForUpdate()->firstOrFail();
+            if (! in_array($lockedSession->status, ['sent_to_accountant', 'counting', 'returned_to_accountant'], true)) {
+                throw ValidationException::withMessages(['session' => 'جلسة الجرد ليست متاحة للحفظ حاليًا.']);
+            }
             $lockedItem = InventoryCountSessionItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            $allowedDecisions = $lockedSession->status === 'returned_to_accountant' ? ['returned', 'recounted'] : ['pending'];
+            if ((int) $lockedItem->inventory_count_session_id !== (int) $lockedSession->id || ! in_array($lockedItem->decision, $allowedDecisions, true)) {
+                throw ValidationException::withMessages(['item' => 'تغيرت حالة المنتج. حدّث الصفحة قبل الحفظ.']);
+            }
             $product = Product::withTrashed()->whereKey($lockedItem->product_id)->lockForUpdate()->firstOrFail();
             $capturedAt = now();
 
@@ -30,16 +38,35 @@ class InventoryCountService
                 'decision' => in_array($lockedItem->decision, ['returned', 'recounted'], true) ? 'recounted' : 'pending',
             ]);
 
+            if ($lockedSession->status !== 'returned_to_accountant') {
+                $lockedSession->status = 'counting';
+            }
+            $lockedSession->touch();
+
             return $lockedItem->fresh('product');
         });
     }
 
-    public function saveAccountantCounts(InventoryCountSession $session, array $items, string $businessDate): void
+    public function saveAccountantCounts(
+        InventoryCountSession $session,
+        array $items,
+        string $businessDate,
+        ?string $expectedVersion = null,
+        ?int $accountantId = null,
+    ): InventoryCountSession
     {
-        DB::transaction(function () use ($session, $items, $businessDate): void {
+        return DB::transaction(function () use ($session, $items, $businessDate, $expectedVersion, $accountantId): InventoryCountSession {
             $lockedSession = InventoryCountSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
+            if ($accountantId !== null && (int) $lockedSession->accountant_id !== $accountantId) {
+                throw ValidationException::withMessages(['session' => 'جلسة الجرد لا تخص هذا المحاسب.']);
+            }
             if (! in_array($lockedSession->status, ['sent_to_accountant', 'counting', 'returned_to_accountant'], true)) {
                 throw ValidationException::withMessages(['session' => 'جلسة الجرد ليست متاحة للحفظ حاليًا.']);
+            }
+            if ($expectedVersion !== null && ! $lockedSession->updated_at?->equalTo(Carbon::parse($expectedVersion))) {
+                throw ValidationException::withMessages([
+                    'session_version' => 'تغيرت جلسة الجرد على الخادم. حدّث البيانات قبل إعادة الحفظ.',
+                ]);
             }
 
             $lockedItems = $lockedSession->items()->whereIn('id', array_keys($items))->lockForUpdate()->get()->keyBy('id');
@@ -64,6 +91,14 @@ class InventoryCountService
                     'decision' => in_array($lockedItem->decision, ['returned', 'recounted'], true) ? 'recounted' : 'pending',
                 ]);
             }
+
+            // تحديث نسخة الجلسة داخل المعاملة نفسها يجعل كشف التعارض صالحًا للويب وعميل الهاتف.
+            if ($lockedSession->status !== 'returned_to_accountant') {
+                $lockedSession->status = 'counting';
+            }
+            $lockedSession->touch();
+
+            return $lockedSession->fresh(['items.product', 'store']);
         });
     }
 
