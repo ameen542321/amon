@@ -17,6 +17,8 @@
     "test:mobile-inventory": "node scripts/check-mobile-inventory-readiness.mjs",
     "test:mobile-shifts": "node scripts/check-mobile-shift-readiness.mjs",
     "test:mobile-sales": "node scripts/check-mobile-sales-readiness.mjs",
+    "test:mobile-purchase-orders": "node scripts/check-mobile-purchase-orders-readiness.mjs",
+    "test:mobile-store-transfers": "node scripts/check-mobile-store-transfers-readiness.mjs",
     "test:pwa:phase3": "node scripts/check-pwa-phase3-readiness.mjs"
   },
   "devDependencies": {

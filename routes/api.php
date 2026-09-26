@@ -6,6 +6,10 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MobileContextController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\ShiftController;
+use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\StoreTransferController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SaleController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +49,16 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/', [SaleController::class, 'index'])->name('index');
             Route::get('/summary', [SaleController::class, 'summary'])->name('summary');
             Route::get('/{sale}', [SaleController::class, 'show'])->whereNumber('sale')->name('show');
+        });
+        Route::prefix('purchase-orders')->name('purchase-orders.')->middleware('ability:purchase-orders:read')->group(function (): void {
+            Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');
+            Route::get('/summary', [PurchaseOrderController::class, 'summary'])->name('summary');
+            Route::get('/{order}', [PurchaseOrderController::class, 'show'])->whereNumber('order')->name('show');
+        });
+        Route::prefix('store-transfers')->name('store-transfers.')->middleware('ability:store-transfers:read')->group(function (): void {
+            Route::get('/', [StoreTransferController::class, 'index'])->name('index');
+            Route::get('/summary', [StoreTransferController::class, 'summary'])->name('summary');
+            Route::get('/{transfer}', [StoreTransferController::class, 'show'])->whereNumber('transfer')->name('show');
         });
         Route::put('/push-subscription', [PushSubscriptionController::class, 'store'])
             ->middleware(['ability:push:manage', 'idempotency'])->name('push.store');
