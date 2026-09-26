@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\StoreTransferController;
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Route;
 
 // توافق مؤقت مع فحص الصحة القديم؛ لا يحمل بيانات ولا مصادقة.
 Route::get('/ping', fn (): string => 'pong');
+Route::get('/v1/report-downloads/{type}', [ReportController::class, 'download'])
+    ->whereIn('type', ['monthly', 'store-transfers'])
+    ->middleware(['api.contract', 'signed', 'throttle:30,1'])
+    ->name('api.v1.report-downloads.show');
 
 Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function (): void {
     Route::post('/auth/login', [AuthTokenController::class, 'login'])
@@ -63,6 +68,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('api.contract')->group(function
             Route::get('/internal-use', [SupportingOperationController::class, 'internalUses'])->name('internal-use.index');
             Route::get('/internal-use/{sale}', [SupportingOperationController::class, 'internalUse'])->whereNumber('sale')->name('internal-use.show');
             Route::get('/owner-purchases', [SupportingOperationController::class, 'ownerPurchases'])->name('owner-purchases.index');
+        });
+        Route::prefix('reports')->name('reports.')->middleware('ability:reports:read')->group(function (): void {
+            Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/monthly/summary', [ReportController::class, 'monthlySummary'])->name('monthly.summary');
+            Route::post('/downloads', [ReportController::class, 'createDownload'])
+                ->middleware('idempotency')->name('downloads.create');
         });
         Route::prefix('shifts')->name('shifts.')->middleware('ability:shifts:read')->group(function (): void {
             Route::get('/current', [ShiftController::class, 'current'])->name('current');

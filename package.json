@@ -18,6 +18,7 @@
     "test:mobile-inventory-counts": "node scripts/check-mobile-inventory-count-readiness.mjs",
     "test:mobile-people": "node scripts/check-mobile-people-readiness.mjs",
     "test:mobile-operations": "node scripts/check-mobile-operations-readiness.mjs",
+    "test:mobile-reports": "node scripts/check-mobile-reports-readiness.mjs",
     "test:mobile-shifts": "node scripts/check-mobile-shift-readiness.mjs",
     "test:mobile-sales": "node scripts/check-mobile-sales-readiness.mjs",
     "test:mobile-purchase-orders": "node scripts/check-mobile-purchase-orders-readiness.mjs",
