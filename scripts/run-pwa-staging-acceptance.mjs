@@ -17,6 +17,7 @@ const commands = [
     ['operational_controls', 'npm', ['run', 'test:pwa:controls']],
     ['deep_links', 'npm', ['run', 'test:pwa:deep-links']],
     ['notifications', 'npm', ['run', 'test:notifications']],
+    ['performance_baseline', 'node', ['scripts/measure-pwa-staging-performance.mjs', origin, 'storage/app/pwa-acceptance/performance.json']],
     ['deployment', 'node', ['scripts/check-pwa-deployment.mjs', origin]],
     ['browser', 'node', ['scripts/check-pwa-browser.mjs', origin]],
 ];

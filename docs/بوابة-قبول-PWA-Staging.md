@@ -55,3 +55,22 @@ npm run test:pwa:staging -- https://staging.example.com storage/app/pwa-acceptan
 - `NO-GO`: أي `FAIL` أو `PENDING` أو `BLOCKED`.
 
 التقرير الافتراضي يكتب في `storage/app/pwa-acceptance/latest.md` ولا يُعد ملفًا مصدرًا للالتزام. تحفظ نسخة معتمدة خارج مجلد التشغيل عند توقيع قرار الإطلاق.
+
+## قياس خط أساس الأداء
+
+تشغل البوابة القياس تلقائيًا قبل فحص ملفات النشر والمتصفح. ويمكن تشغيله منفردًا:
+
+```bash
+PWA_PERFORMANCE_SAMPLES=20 \
+npm run test:pwa:performance -- https://staging.example.com storage/app/pwa-acceptance/performance.json
+```
+
+ينتج القياس:
+
+- p50 وp95 وp99 لزيارة الصفحة العامة دون Cache.
+- نسبة أخطاء العينات وحالات HTTP.
+- الحجم الإجمالي لحزم JavaScript وCSS المكتشفة من HTML المنشور.
+- صحة Manifest وService Worker وOffline shell وأصل SVG.
+- العينات الخام ووقت القياس والمنهجية داخل JSON.
+
+نجاح جمع خط الأساس لا يعني نجاح SLO. تبقى أدلة SLO في تقرير القبول `PENDING` حتى يراجع الفريق القياسات ويعتمد حدودًا رقمية ثم يرفق دليل اجتيازها.
