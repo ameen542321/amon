@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">CARLED</title>
+  <desc id="description">علامة CARLED بلون الهوية</desc>
+  <rect width="512" height="512" rx="96" fill="#00c4b4"/>
+  <path fill="#f8fafc" d="M391 174a162 162 0 1 0 0 164h-74a96 96 0 1 1 0-164z"/>
+  <circle cx="383" cy="349" r="18" fill="#020617"/>
+</svg>

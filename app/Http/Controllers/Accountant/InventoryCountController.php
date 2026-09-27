@@ -10,6 +10,7 @@ use App\Services\InventoryCountService;
 use App\Services\ShiftLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class InventoryCountController extends Controller
 {
@@ -45,10 +46,53 @@ class InventoryCountController extends Controller
         ]);
         $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
         $service->saveAccountantCount($item, $data, $businessDate);
-        if ($inventoryCount->status !== 'returned_to_accountant') {
-            $inventoryCount->update(['status' => 'counting']);
-        }
         return back()->with('success', 'تم حفظ كمية المنتج وتسجيل اليوم تلقائيًا.');
+    }
+
+    public function bulkUpdate(Request $request, InventoryCountSession $inventoryCount, InventoryCountService $service)
+    {
+        $this->authorizeSession($inventoryCount);
+        abort_unless(in_array($inventoryCount->status, ['sent_to_accountant', 'counting', 'returned_to_accountant'], true), 403);
+        $data = $request->validate([
+            'session_version' => ['required', 'date'],
+            'items' => 'required|array|min:1',
+            'items.*.accountant_quantity' => 'required|numeric|min:0',
+            'items.*.unit_type' => ['required', Rule::in(['piece', 'kit', 'meter', 'roll'])],
+            'items.*.accountant_note' => 'nullable|string|max:1000',
+        ]);
+
+        // نقبل فقط البنود الظاهرة للمحاسب في هذه المرحلة حتى لا يحدّث الطلب بندًا مخفيًا أو معتمدًا.
+        $editableItems = $inventoryCount->items()
+            ->when(
+                $inventoryCount->status === 'returned_to_accountant',
+                fn ($query) => $query->whereIn('decision', ['returned', 'recounted']),
+                fn ($query) => $query->where('decision', 'pending')
+            )
+            ->with('product')
+            ->whereIn('id', array_keys($data['items']))
+            ->get()
+            ->keyBy('id');
+
+        if ($editableItems->count() !== count($data['items'])) {
+            throw ValidationException::withMessages(['items' => 'بعض المنتجات لم تعد متاحة للحفظ. حدّث الصفحة وحاول مجددًا.']);
+        }
+
+        foreach ($editableItems as $item) {
+            if (! in_array($data['items'][$item->id]['unit_type'], $this->allowedUnits($item->product), true)) {
+                throw ValidationException::withMessages(["items.{$item->id}.unit_type" => 'وحدة العد المختارة لا تناسب هذا المنتج.']);
+            }
+        }
+
+        $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
+        $service->saveAccountantCounts(
+            $inventoryCount,
+            $data['items'],
+            $businessDate,
+            $data['session_version'],
+            (int) auth('accountant')->id(),
+        );
+
+        return back()->with('success', 'تم حفظ كميات جميع المنتجات في الجلسة.');
     }
 
     public function submit(InventoryCountSession $inventoryCount, InventoryCountService $service)

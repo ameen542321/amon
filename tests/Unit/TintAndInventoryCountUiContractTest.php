@@ -28,4 +28,61 @@ class TintAndInventoryCountUiContractTest extends TestCase
         self::assertStringContainsString("in_array(\$inventoryCount->status, ['draft', 'cancelled'], true)", $controller);
         self::assertStringContainsString('$this->ownerStore($store)', $controller);
     }
+
+    public function test_inventory_session_product_selection_is_limited_to_the_current_page(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/create.blade.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
+
+        // يحمي العقد من إعادة ربط الزر بالإجراء القديم الذي كان يحدد كامل نتائج المتجر.
+        self::assertStringContainsString('value="select_page">تحديد جميع منتجات هذه الصفحة', $view);
+        self::assertStringContainsString("Rule::in(['page', 'select_page'])", $controller);
+        self::assertStringContainsString("->whereIn('id', \$pageIds)", $controller);
+        self::assertStringNotContainsString("selection_action'] ?? 'page') === 'all'", $controller);
+    }
+
+    public function test_inventory_session_products_are_ordered_by_oldest_audit_after_never_audited_products(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/create.blade.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
+
+        // يجب أن يضيف الاستعلام تاريخ الجرد المحسوب من دون إسقاط أعمدة المنتج اللازمة للبطاقات.
+        self::assertStringContainsString('التي لم تُجرد من قبل أولًا، ثم المنتجات المجرودة من تاريخ الجرد الأقدم إلى الأحدث', $view);
+        self::assertStringContainsString("->select('products.*')", $controller);
+        self::assertStringContainsString("MAX(COALESCE(business_date, DATE(created_at)))", $controller);
+        self::assertStringContainsString("->orderByRaw('last_audit_date IS NOT NULL')", $controller);
+        self::assertStringContainsString("->orderBy('last_audit_date')", $controller);
+    }
+
+    public function test_accountant_can_save_inventory_quantities_together_with_unit_guidance(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/accountant/show.blade.php');
+        $routes = file_get_contents(dirname(__DIR__, 2).'/routes/accountant.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Accountant/InventoryCountController.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/InventoryCountService.php');
+        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/accountant/inventory-count.js');
+        $draftStore = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/pwa/draft-store.js');
+
+        self::assertStringContainsString("inventory-counts.items.bulk-update", $view);
+        self::assertStringContainsString('حفظ جميع الكميات', $view);
+        self::assertStringContainsString('مكونات المنتج: الطقم الواحد يحتوي على', $view);
+        self::assertStringContainsString('مكونات المنتج: الرول الواحد يحتوي على', $view);
+        self::assertStringContainsString('data-inventory-count-storage-key', $view);
+        self::assertStringContainsString('data-inventory-count-version', $view);
+        self::assertStringContainsString('منتج مكسور، تالف، رجيع، استهلاك، الاسم بحاجة للتغيير', $view);
+        self::assertStringContainsString("->name('items.bulk-update')", $routes);
+        self::assertStringContainsString('function bulkUpdate(', $controller);
+        self::assertStringContainsString('function saveAccountantCounts(', $service);
+        self::assertStringContainsString('إما ينجح حفظ الصفحة كاملة أو لا يحفظ منها شيء', $service);
+        self::assertStringContainsString("تعادل: \${parts.join(' و')}", $script);
+        self::assertStringContainsString("from '../pwa/draft-store'", $script);
+        self::assertStringNotContainsString('window.localStorage.setItem', $script);
+        self::assertStringContainsString('window.localStorage.getItem', $script);
+        self::assertStringContainsString("window.indexedDB.open(DATABASE_NAME", $draftStore);
+        self::assertStringContainsString("createObjectStore(DRAFT_STORE, { keyPath: 'key' })", $draftStore);
+        self::assertStringContainsString('pruneDrafts', $script);
+        self::assertStringContainsString('restoreDraft()', $script);
+        self::assertStringContainsString('draft.serverVersion === serverVersion', $script);
+        self::assertStringContainsString('لن تُرسل تلقائيًا', $view);
+    }
 }

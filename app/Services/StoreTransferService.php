@@ -21,7 +21,11 @@ class StoreTransferService
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_CANCELLED = 'cancelled';
 
-    public function createTransfer(Store $senderStore, Store $receiverStore, array $items, ?string $notes, Model $actor, string $businessDate): StoreTransfer
+    public function __construct(private ShiftLifecycleService $shiftLifecycle)
+    {
+    }
+
+    public function createTransfer(Store $senderStore, Store $receiverStore, array $items, ?string $notes, Model $actor): StoreTransfer
     {
         $this->ensureSameOwner($senderStore, $receiverStore);
         $this->ensureActorCanUseStore($actor, $senderStore);
@@ -40,6 +44,9 @@ class StoreTransferService
         }
 
         usort($items, static fn ($left, $right) => (int) $left['sender_product_id'] <=> (int) $right['sender_product_id']);
+
+        // تاريخ الإرسال وحركة الخصم يتبعان يوم العمل المفتوح للمتجر المرسل، لا تاريخ الخادم الفعلي.
+        $businessDate = $this->businessDateFor($senderStore);
 
         return DB::transaction(function () use ($senderStore, $receiverStore, $items, $notes, $actor, $businessDate) {
             $transfer = StoreTransfer::create([
@@ -98,9 +105,9 @@ class StoreTransferService
         });
     }
 
-    public function approveTransfer(StoreTransfer $transfer, array $receiverProductIds, Model $actor, bool $ownerOverride = false, ?string $businessDate = null): StoreTransfer
+    public function approveTransfer(StoreTransfer $transfer, array $receiverProductIds, Model $actor, bool $ownerOverride = false): StoreTransfer
     {
-        return DB::transaction(function () use ($transfer, $receiverProductIds, $actor, $ownerOverride, $businessDate) {
+        return DB::transaction(function () use ($transfer, $receiverProductIds, $actor, $ownerOverride) {
             $lockedTransfer = StoreTransfer::query()
                 ->whereKey($transfer->id)
                 ->where('status', self::STATUS_PENDING)
@@ -109,6 +116,8 @@ class StoreTransferService
 
             $lockedTransfer->load(['senderStore', 'receiverStore', 'items.senderProduct']);
             $this->ensureActorCanReceiveTransfer($actor, $lockedTransfer, $ownerOverride);
+            // تاريخ الاستلام وإضافة المخزون كلاهما يوم العمل المفتوح للمتجر المستلم.
+            $businessDate = $this->businessDateFor($lockedTransfer->receiverStore);
 
             $missingReceiverProducts = $lockedTransfer->items->filter(function (StoreTransferItem $item) use ($receiverProductIds): bool {
                 return (int) ($receiverProductIds[$item->id] ?? $receiverProductIds[$item->sender_product_id] ?? 0) <= 0;
@@ -169,14 +178,14 @@ class StoreTransferService
         });
     }
 
-    public function rejectTransfer(StoreTransfer $transfer, string $reason, Model $actor, ?string $businessDate = null): StoreTransfer
+    public function rejectTransfer(StoreTransfer $transfer, string $reason, Model $actor): StoreTransfer
     {
-        return $this->returnTransferToSender($transfer, $actor, self::STATUS_REJECTED, $reason, $businessDate);
+        return $this->returnTransferToSender($transfer, $actor, self::STATUS_REJECTED, $reason);
     }
 
-    public function cancelTransfer(StoreTransfer $transfer, Model $actor, ?string $businessDate = null): StoreTransfer
+    public function cancelTransfer(StoreTransfer $transfer, Model $actor): StoreTransfer
     {
-        return $this->returnTransferToSender($transfer, $actor, self::STATUS_CANCELLED, null, $businessDate);
+        return $this->returnTransferToSender($transfer, $actor, self::STATUS_CANCELLED, null);
     }
 
     public function markSeen(StoreTransfer $transfer, Accountant $accountant): StoreTransfer
@@ -190,9 +199,9 @@ class StoreTransferService
         return $transfer;
     }
 
-    private function returnTransferToSender(StoreTransfer $transfer, Model $actor, string $status, ?string $reason, ?string $businessDate): StoreTransfer
+    private function returnTransferToSender(StoreTransfer $transfer, Model $actor, string $status, ?string $reason): StoreTransfer
     {
-        return DB::transaction(function () use ($transfer, $actor, $status, $reason, $businessDate) {
+        return DB::transaction(function () use ($transfer, $actor, $status, $reason) {
             $lockedTransfer = StoreTransfer::query()
                 ->whereKey($transfer->id)
                 ->where('status', self::STATUS_PENDING)
@@ -201,6 +210,8 @@ class StoreTransferService
 
             $lockedTransfer->load(['senderStore', 'receiverStore', 'items.senderProduct']);
             $this->ensureActorCanReturnTransfer($actor, $lockedTransfer);
+            // عند الرفض أو الإلغاء تعود الكمية إلى المرسل بيوم عمل متجره المفتوح.
+            $businessDate = $this->businessDateFor($lockedTransfer->senderStore);
 
             foreach ($lockedTransfer->items as $item) {
                 $senderProduct = Product::query()->sellable()->whereKey($item->sender_product_id)->lockForUpdate()->firstOrFail();
@@ -331,6 +342,11 @@ class StoreTransferService
     private function stockMovementUserId(Model $actor): ?int
     {
         return $actor instanceof User ? (int) $actor->id : null;
+    }
+
+    private function businessDateFor(Store $store): string
+    {
+        return (string) $this->shiftLifecycle->currentShiftContext($store)['business_date'];
     }
 
 }
