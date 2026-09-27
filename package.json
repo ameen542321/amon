@@ -29,7 +29,9 @@
     "test:pwa:outbox": "node scripts/check-pwa-outbox-readiness.mjs",
     "test:roadmap-scope": "node scripts/check-roadmap-scope.mjs",
     "test:pwa:controls": "node scripts/check-pwa-operational-controls.mjs",
-    "test:pwa:deep-links": "node scripts/check-pwa-notification-deep-links.mjs"
+    "test:pwa:deep-links": "node scripts/check-pwa-notification-deep-links.mjs",
+    "test:pwa:staging": "node scripts/run-pwa-staging-acceptance.mjs",
+    "test:pwa:staging-plan": "node scripts/run-pwa-staging-acceptance.mjs --plan"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

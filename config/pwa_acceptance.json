@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "required_automated_gates": [
+    "build",
+    "pwa_contract",
+    "phase3_contract",
+    "outbox_contract",
+    "operational_controls",
+    "deep_links",
+    "notifications",
+    "deployment",
+    "browser"
+  ],
+  "required_manual_gates": {
+    "android_install_update": "تثبيت وفتح وتحديث PWA على جهاز Android فعلي",
+    "push_delivery_and_click": "تسليم OneSignal وفتح Deep Link لكل دور مصرح",
+    "outbox_disconnect_reconnect": "حفظ مسودة الجرد أثناء الانقطاع ومزامنتها مرة واحدة عند العودة",
+    "account_switch_isolation": "عدم ظهور مسودة أو Cache الحساب السابق بعد تبديل الحساب",
+    "kill_switch_rollback": "تجربة تعطيل Service Worker والتحديثات وOutbox ثم استعادتها"
+  },
+  "provisional_slo_evidence": [
+    "p50_p95_p99",
+    "http_4xx_5xx_rate",
+    "queue_lag_and_failed_jobs",
+    "push_delivery_rate",
+    "outbox_conflict_and_failure_rate",
+    "initial_bundle_and_pwa_open_time"
+  ]
+}
