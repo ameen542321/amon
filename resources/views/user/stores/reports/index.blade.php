@@ -37,6 +37,15 @@
             <p class="ui-text-soft text-sm">ابحث بكلمة واحدة داخل المبيعات، استهلاك المحاسب، ومشتريات المالك خلال فترة محددة.</p>
         </a>
 
+        <a href="{{ route('user.stores.reports.sales-cost', $store->id) }}"
+           class="block ui-card border ui-border rounded-2xl p-5 transition">
+            <div class="flex items-center gap-3 mb-3">
+                <i class="fas fa-coins ui-status-success text-xl"></i>
+                <h2 class="ui-title font-bold">تقرير تكلفة المبيعات</h2>
+            </div>
+            <p class="ui-text-soft text-sm">احسب تكلفة المنتجات المباعة وشغل اليد خلال فترة، مع تنبيه الأيام المستخدمة سابقًا.</p>
+        </a>
+
         <a href="{{ route('user.stores.reports.employees.monthly', $store->id) }}"
            class="block ui-card border ui-border rounded-2xl p-5 transition">
             <div class="flex items-center gap-3 mb-3">
