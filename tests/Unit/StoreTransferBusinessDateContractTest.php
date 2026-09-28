@@ -81,4 +81,19 @@ class StoreTransferBusinessDateContractTest extends TestCase
         self::assertStringNotContainsString('<style', $views);
         self::assertStringNotContainsString('style="', $views);
     }
+
+    public function test_transfer_quantities_prevent_accidental_fractional_whole_units(): void
+    {
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/StoreTransferService.php');
+        $form = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/store-transfer-form.blade.php');
+        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/features/store-transfers/transfer-system.js');
+        $formatter = file_get_contents(dirname(__DIR__, 2).'/app/Support/ProductQuantityFormatter.php');
+
+        self::assertStringContainsString("! in_array(\$unitType, ['meter', 'meters'], true)", $service);
+        self::assertStringContainsString('يجب أن تكون عددًا صحيحًا', $service);
+        self::assertStringContainsString('@wheel="$event.currentTarget.blur()"', $form);
+        self::assertStringContainsString(':step="quantityStep(item)"', $form);
+        self::assertStringContainsString("return ['meter', 'meters'].includes(item.unit_type) ? '0.001' : '1';", $script);
+        self::assertStringContainsString('return self::number($quantity, 3)', $formatter);
+    }
 }
