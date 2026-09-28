@@ -374,8 +374,10 @@ if (!purchaseOrderShowView.includes('js-open-owner-product-modal')
     || purchaseOrderShowView.includes('id="ownerProductItemsPerUnitInput" name="items_per_unit" type="number" min="2" class="ui-input hidden"')
     || !purchaseOrderShowFeature.includes("document.getElementById('ownerProductForm')")
     || !purchaseOrderShowFeature.includes('closeOwnerProductModal();\n                if (typeof Swal')
-    || !purchaseOrderShowFeature.includes("window.location.reload()")) {
-    failures.push('purchase-order receipt: owner-product dialog must keep unit-aware sale fields, conditional category selection, and close-on-save');
+    || !purchaseOrderShowFeature.includes("activeOwnerProductCard.dataset.unresolved = '0'")
+    || !purchaseOrderShowFeature.includes('openButton.replaceWith(linkedBadge)')
+    || purchaseOrderShowFeature.includes("window.location.reload()")) {
+    failures.push('purchase-order receipt: owner-product dialog must keep unit-aware fields and update the linked item without clearing receipt inputs');
 }
 
 if (!purchaseOrderShowView.includes('اعتماد الطلبية')

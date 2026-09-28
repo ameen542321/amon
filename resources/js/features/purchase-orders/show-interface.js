@@ -438,6 +438,7 @@ if (root) {
         const ownerProductCartonField = document.getElementById('ownerProductCartonField');
         const ownerProductWasteField = document.getElementById('ownerProductWasteField');
         const ownerProductQuickSaleField = document.getElementById('ownerProductQuickSaleField');
+        let activeOwnerProductCard = null;
 
         const isCreatingOwnerProduct = () => ownerProductForm?.querySelector('input[name="product_action"]:checked')?.value === 'create';
 
@@ -500,6 +501,7 @@ if (root) {
                 if (ownerProductUnit) ownerProductUnit.value = button.dataset.ownerProductUnit || 'piece';
                 if (ownerProductUnitChoice) ownerProductUnitChoice.value = ownerProductUnit?.value || 'piece';
                 const card = button.closest('.js-receive-item');
+                activeOwnerProductCard = card;
                 const enteredQuantity = Number(card?.querySelector('input[name$="[quantity_received]"]')?.value || button.dataset.ownerRequestedQuantity || 0);
                 const enteredTotalCost = Number(card?.querySelector('.js-receipt-price')?.value || button.dataset.ownerOrderCost || 0);
                 const unitCost = enteredQuantity > 0 ? enteredTotalCost / enteredQuantity : 0;
@@ -593,11 +595,27 @@ if (root) {
                     return;
                 }
 
+                if (activeOwnerProductCard) {
+                    activeOwnerProductCard.dataset.unresolved = '0';
+                    const ownerPurchaseOnly = Boolean(data.item?.owner_purchase_only);
+                    activeOwnerProductCard.dataset.owner = ownerPurchaseOnly ? '1' : '0';
+
+                    const ownerPurchaseCheckbox = activeOwnerProductCard.querySelector('input[name$="[add_to_owner_purchases]"][type="checkbox"]');
+                    if (ownerPurchaseCheckbox) ownerPurchaseCheckbox.checked = ownerPurchaseOnly;
+
+                    const openButton = activeOwnerProductCard.querySelector('.js-open-owner-product-modal');
+                    if (openButton) {
+                        const linkedBadge = document.createElement('span');
+                        linkedBadge.className = 'ui-badge ui-badge-success';
+                        linkedBadge.textContent = `المنتج مربوط: ${data.product?.name || ''}`.trim();
+                        openButton.replaceWith(linkedBadge);
+                    }
+                }
+
                 closeOwnerProductModal();
                 if (typeof Swal !== 'undefined') {
                     await Swal.fire({ icon: 'success', title: 'تم الحفظ', text: data.message, confirmButtonText: 'حسنًا' });
                 }
-                window.location.reload();
             } catch (error) {
                 if (ownerProductErrors) {
                     ownerProductErrors.textContent = 'حدث خطأ في الاتصال بالخادم، يرجى المحاولة مرة أخرى.';

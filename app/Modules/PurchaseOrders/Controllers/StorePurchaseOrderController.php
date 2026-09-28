@@ -316,6 +316,10 @@ public function pdf(Store $store, StorePurchaseOrder $order)
             return response()->json([
                 'message' => 'تم ربط المنتج الموجود بالطلبية.',
                 'product' => ['id' => $existingProduct->id, 'name' => $existingProduct->name],
+                'item' => [
+                    'id' => $item->id,
+                    'owner_purchase_only' => $existingProduct->isOwnerPurchaseOnly(),
+                ],
             ]);
         }
 
@@ -405,6 +409,10 @@ public function pdf(Store $store, StorePurchaseOrder $order)
                 ? 'تم حفظ المنتج ضمن منتجات البيع وربطه بالطلبية.'
                 : 'تم حفظ المنتج ضمن مشتريات المالك وربطه بالطلبية.',
             'product' => ['id' => $product->id, 'name' => $product->name],
+            'item' => [
+                'id' => $item->id,
+                'owner_purchase_only' => $validated['usage_type'] !== Product::USAGE_TYPE_SALE,
+            ],
         ], 201);
     }
 
