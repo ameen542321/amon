@@ -227,7 +227,7 @@
     @endif
 
     @if($order->status === 'sent')
-        <form id="receipt-confirmation" method="POST" action="{{ route('accountant.purchase-orders.receive', $order->id) }}" class="ui-card p-5 space-y-5">
+        <form id="receipt-confirmation" method="POST" action="{{ route('accountant.purchase-orders.receive', $order->id) }}" class="ui-card p-5 space-y-5" data-receipt-confirmation>
             @csrf
             <div class="flex items-center gap-2">
                 <h2 class="ui-title text-lg font-black">تأكيد استلام الطلبية</h2>
@@ -279,7 +279,7 @@
                 @endphp
                 <div class="js-receive-item ui-card p-4 grid gap-4 md:grid-cols-3" data-product-name="{{ $item->productName() }}">
                     <input type="hidden" name="items[{{ $item->id }}][id]" value="{{ $item->id }}">
-                    <div><span class="ui-text-muted">المنتج</span><strong class="block ui-title">{{ $item->productName() }}</strong></div>
+                    <div><span class="ui-text-muted">المنتج</span><strong class="js-owner-product-display-name block ui-title">{{ $item->productName() }}</strong></div>
                     <div><span class="ui-text-muted">المطلوب</span><strong class="block ui-title">{{ number_format((float) $item->quantity_requested, 2) }} {{ $unitLabels[$item->unit_type ?: 'unit'] ?? 'وحدة' }}</strong></div>
                     <div><span class="ui-text-muted">التكلفة المسجلة</span><strong class="block ui-title">{{ number_format((float) $item->cost_price_at_order, 2) }} ر.س</strong></div>
                     <label class="ui-label">الكمية المستلمة
@@ -1101,7 +1101,7 @@
                     data-attention="{{ $hasAccountantReceiptChange || abs($variance) > 0.01 || (! $item->product_id && ! $item->matched_product_id && ! $item->add_to_owner_purchases) || $item->add_to_owner_purchases ? '1' : '0' }}">
                     <summary class="ui-disclosure-summary">
                         <span class="flex items-center gap-2 min-w-0">
-                            <strong class="ui-title break-words">{{ $item->productName() }}</strong>
+                            <strong class="js-owner-product-display-name ui-title break-words">{{ $item->productName() }}</strong>
                             @if($hasAccountantReceiptChange)
                                 <span class="ui-badge ui-badge-info">عدّله المحاسب</span>
                                 <x-ui.help title="تعديل المحاسب" body="غيّر المحاسب: {{ $accountantChangedFields->map(fn ($field) => ['quantity' => 'الكمية', 'unit' => 'الوحدة', 'cost' => 'التكلفة', 'note' => 'الملاحظة'][$field] ?? $field)->implode('، ') }}. افتح البطاقة لمراجعة القيم." />
@@ -1116,7 +1116,7 @@
                             <div class="flex items-center gap-2 min-w-0">
                                 <span class="inline-flex w-2 h-2 rounded-full {{ $inventoryAuditDot }} flex-shrink-0" title="{{ $inventoryAudit['label'] ?? 'حالة الجرد' }}"></span>
                                 <div class="flex items-center gap-2 flex-wrap min-w-0">
-                                    <h3 class="font-bold text-base ui-title leading-snug break-words min-w-0">{{ $item->productName() }}</h3>
+                                    <h3 class="js-owner-product-display-name font-bold text-base ui-title leading-snug break-words min-w-0">{{ $item->productName() }}</h3>
                                     @if($item->add_to_owner_purchases)
                                         <span class="inline-flex items-center ui-text-caption font-bold ui-status-warning">مشتريات مالك</span>
                                     @endif
@@ -1367,8 +1367,8 @@
     <div class="ui-modal-panel ui-modal-panel-wide">
         <div class="ui-modal-header">
             <div class="flex items-center gap-2">
-                <strong class="ui-title text-lg font-bold">حفظ المنتج وربطه بالطلبية</strong>
-                <x-ui.help title="طريقة حفظ المنتج" body="اختر منتج بيع إذا كنت ستبيعه ويجب أن يظهر في المخزون ونقاط البيع. اختر مشتريات مالك إذا كان للاستخدام أو الشراء الخاص ولن يظهر ضمن منتجات البيع." />
+                <strong class="ui-title text-lg font-bold">استبدال منتج الطلبية</strong>
+                <x-ui.help title="طريقة الاستبدال" body="اختر منتجًا موجودًا في مخزون المتجر، أو أضف سطر منتج مخصص، أو أنشئ منتجًا جديدًا عند الحاجة. يحل الاختيار الجديد محل المنتج السابق في البند." />
             </div>
             <button type="button" id="closeOwnerProductModal" class="ui-modal-close-text-danger">إغلاق</button>
         </div>
@@ -1379,7 +1379,7 @@
 
             <fieldset class="ui-card p-4 space-y-3">
                 <legend class="ui-title font-black px-2">اختر الإجراء</legend>
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-3 sm:grid-cols-3">
                     <label class="ui-card-muted p-4 flex items-start gap-3 cursor-pointer">
                         <input type="radio" name="product_action" value="link" checked>
                         <span class="flex items-center gap-2"><strong class="ui-title">ربط بمنتج موجود</strong><x-ui.help title="ربط بمنتج موجود" body="الخيار الافتراضي؛ اختر منتجًا محفوظًا دون إنشاء نسخة جديدة." /></span>
@@ -1387,6 +1387,10 @@
                     <label class="ui-card-muted p-4 flex items-start gap-3 cursor-pointer">
                         <input type="radio" name="product_action" value="create">
                         <span class="flex items-center gap-2"><strong class="ui-title">إنشاء منتج جديد</strong><x-ui.help title="إنشاء منتج جديد" body="يعرض بيانات المنتج ونوع البيع والوحدات المناسبة للحبة أو الطقم أو الرول." /></span>
+                    </label>
+                    <label class="ui-card-muted p-4 flex items-start gap-3 cursor-pointer">
+                        <input type="radio" name="product_action" value="custom">
+                        <span class="flex items-center gap-2"><strong class="ui-title">سطر منتج مخصص</strong><x-ui.help title="سطر منتج مخصص" body="يستبدل البند الحالي بسطر مخصص لا يرتبط بمنتج مخزني، ويسجل ضمن مشتريات المالك." /></span>
                     </label>
                 </div>
             </fieldset>
@@ -1401,6 +1405,14 @@
                         <option value="{{ $existingProduct->id }}" data-search="{{ $existingProduct->name }} {{ $existingProduct->description }}">{{ $existingProduct->name }}</option>
                     @endforeach
                 </select>
+            </section>
+
+            <section id="ownerProductCustomFields" class="hidden ui-card-muted p-4 space-y-3">
+                <div class="flex items-center gap-2"><strong class="ui-title">سطر المنتج المخصص</strong><x-ui.help title="استبدال بسطر مخصص" body="سيزال ارتباط المنتج السابق، ويبقى السطر المخصص خارج المخزون ويعامل كمشتريات مالك." /></div>
+                <label class="block">
+                    <span class="block ui-text-caption font-bold ui-text-soft mb-1.5">اسم المنتج المخصص</span>
+                    <input id="ownerCustomProductName" name="custom_product_name" maxlength="255" class="ui-input" placeholder="اكتب اسم المنتج البديل">
+                </label>
             </section>
 
             <div id="ownerProductCreateFields" class="hidden space-y-5">
