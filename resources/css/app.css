@@ -456,6 +456,13 @@ html.ui-font-loading body > :not(.ui-page-loader) {
         box-shadow: 0 0 0 4px rgba(0, 196, 180, .12);
     }
 
+    /* يحدد حقل التحقق الخاطئ بصريًا مع إبقاء الرسالة النصية هي المصدر الأساسي للخطأ. */
+    .ui-input[aria-invalid="true"],
+    .ui-input.ui-input-invalid {
+        border-color: var(--ui-danger-text);
+        box-shadow: 0 0 0 4px var(--ui-danger-bg);
+    }
+
 
     .ui-text-caption {
         font-size: .875rem;

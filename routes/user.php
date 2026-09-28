@@ -21,6 +21,7 @@ use App\Http\Controllers\Users\SupportTicketController;
 use App\Http\Controllers\Cashier\InvoiceController;
 use App\Http\Controllers\Tools\StockMovementDateCorrectionController;
 use App\Http\Controllers\InventoryCountController;
+use App\Http\Controllers\Reports\SalesCostReportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 use App\Http\Controllers\Api\AppContextController;
@@ -148,6 +149,10 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
             Route::post('/{store}/shift-gaps/zero-close', [StoreController::class, 'zeroCloseShiftGap'])->name('shift-gaps.zero-close');
             Route::get('/{store}/reports', [StoreController::class, 'reportsIndex'])->name('reports.index');
             Route::get('/{store}/reports/search', [StoreController::class, 'reportsComprehensiveSearch'])->name('reports.search');
+            Route::get('/{store}/reports/sales-cost', [SalesCostReportController::class, 'index'])->name('reports.sales-cost');
+            Route::post('/{store}/reports/sales-cost/mark-used', [SalesCostReportController::class, 'markUsed'])
+                ->middleware('throttle:10,1')
+                ->name('reports.sales-cost.mark-used');
             Route::get('/{store}/reports/store-transfers', [StoreController::class, 'reportsStoreTransfers'])->name('reports.store-transfers');
             Route::get('/{store}/reports/store-transfers/pdf', [StoreController::class, 'reportsStoreTransfersPdf'])->name('reports.store-transfers.pdf');
             Route::get('/{store}/reports/last-10-days', [StoreController::class, 'reportsLastTenDays'])->name('reports.last-ten-days');

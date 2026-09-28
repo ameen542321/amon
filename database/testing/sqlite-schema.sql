@@ -610,6 +610,24 @@ CREATE TABLE "sales" (
     CONSTRAINT "sales_store_id_foreign" FOREIGN KEY ("store_id") REFERENCES "stores" ("id") ON DELETE CASCADE
 );
 
+CREATE TABLE "sales_cost_used_dates" (
+    "id" INTEGER NOT NULL,
+    "store_id" INTEGER NOT NULL,
+    "user_id" INTEGER DEFAULT NULL,
+    "business_date" date NOT NULL,
+    "search_term" varchar(100) DEFAULT NULL,
+    "sales_total" NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    "products_cost" NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    "labor_total" NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    "operations_count" INTEGER NOT NULL DEFAULT 0,
+    "created_at" timestamp NULL DEFAULT NULL,
+    "updated_at" timestamp NULL DEFAULT NULL,
+    PRIMARY KEY ("id"),
+    CONSTRAINT "sales_cost_used_dates_store_day_unique" UNIQUE ("store_id", "business_date"),
+    CONSTRAINT "sales_cost_used_dates_store_id_foreign" FOREIGN KEY ("store_id") REFERENCES "stores" ("id") ON DELETE CASCADE,
+    CONSTRAINT "sales_cost_used_dates_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE SET NULL
+);
+
 CREATE TABLE "stock_movements" (
     "id" INTEGER NOT NULL,
     "store_id" INTEGER NOT NULL,

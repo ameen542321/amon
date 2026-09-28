@@ -1,6 +1,13 @@
 @extends('dashboard.app')
 @section('title', 'إدخال الجرد')
 @section('content')
+@php
+    $browserDraftVersion = $session->updated_at?->toIso8601String();
+@endphp
+{{-- نستخدم كتلة PHP صريحة بدل صيغة PHP المختصرة لتجنب التباس مترجم Blade مع null-safe والاستدعاءات المتداخلة. --}}
+@php
+    $browserDraftVersion = $session->updated_at?->toIso8601String();
+@endphp
 @php($browserDraftVersion = $session->updated_at?->toIso8601String())
 <div class="max-w-5xl mx-auto space-y-5">
     <div class="flex items-center justify-between gap-3">
@@ -76,7 +83,13 @@
         </div>
     </form>
 
-    @php($allItemsSaved = $session->items->isNotEmpty() && $session->items->every(fn ($item) => $item->accountant_quantity !== null && $item->decision !== 'returned'))
+    {{-- هذه العبارة تحتوي Arrow Function واستدعاءات متداخلة؛ إبقاؤها في كتلة صريحة يمنع أن يغلق مترجم Blade التوجيه مبكرًا. --}}
+    @php
+        $allItemsSaved = $session->items->isNotEmpty()
+            && $session->items->every(
+                fn ($item) => $item->accountant_quantity !== null && $item->decision !== 'returned'
+            );
+    @endphp
     @unless($allItemsSaved)<div class="ui-alert ui-alert-danger"><strong>الإرسال غير جاهز:</strong> توجد كمية غير محفوظة.</div>@endunless
     <form method="POST" action="{{ route('accountant.inventory-counts.submit', $session) }}"
           data-ui-confirm="سيتم إرسال جميع نتائج الجرد المحفوظة إلى صاحب المتجر للمراجعة، وسيتوقف تعديلها حتى يعيد لك منتجًا. هل تريد المتابعة؟"
