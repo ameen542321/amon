@@ -1,6 +1,9 @@
 @extends('dashboard.app')
 @section('title', 'إدخال الجرد')
 @section('content')
+@php
+    $browserDraftVersion = $session->updated_at?->toIso8601String();
+@endphp
 {{-- نستخدم كتلة PHP صريحة بدل صيغة PHP المختصرة لتجنب التباس مترجم Blade مع null-safe والاستدعاءات المتداخلة. --}}
 @php
     $browserDraftVersion = $session->updated_at?->toIso8601String();
