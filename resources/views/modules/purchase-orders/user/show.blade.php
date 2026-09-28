@@ -234,6 +234,15 @@
                 <x-ui.help title="كميات الاستلام" body="أدخل الكمية التي وصلت فعلًا، وأدخل صفرًا إذا لم يصل المنتج." />
                 <a href="{{ route('accountant.purchase-orders.receipt.pdf', $order->id) }}" class="ui-btn ui-btn-info">تحميل مستند استلام الطلبية</a>
             </div>
+            <div class="js-receipt-validation-summary ui-alert ui-alert-danger-plain {{ $errors->any() ? '' : 'hidden' }}" role="alert" aria-live="assertive" tabindex="-1">
+                <strong class="ui-alert-title">تعذر حفظ بيانات الاستلام</strong>
+                <div class="ui-alert-body">
+                    <p>راجع الحقول المحددة أدناه ثم أعد المحاولة.</p>
+                    <ul class="js-receipt-validation-list list-disc pr-5">
+                        @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                    </ul>
+                </div>
+            </div>
             @foreach($order->items->where('excluded_after_count', false) as $item)
                 @php
                     $receiptProduct = $item->product ?: $item->matchedProduct;
@@ -268,18 +277,19 @@
                     );
                     $autoFillReceiptPrice = ! session()->hasOldInput('items.'.$item->id.'.cost_price_at_receipt') && $item->cost_price_at_receipt === null;
                 @endphp
-                <div class="js-receive-item ui-card p-4 grid gap-4 md:grid-cols-3">
+                <div class="js-receive-item ui-card p-4 grid gap-4 md:grid-cols-3" data-product-name="{{ $item->productName() }}">
                     <input type="hidden" name="items[{{ $item->id }}][id]" value="{{ $item->id }}">
                     <div><span class="ui-text-muted">المنتج</span><strong class="block ui-title">{{ $item->productName() }}</strong></div>
                     <div><span class="ui-text-muted">المطلوب</span><strong class="block ui-title">{{ number_format((float) $item->quantity_requested, 2) }} {{ $unitLabels[$item->unit_type ?: 'unit'] ?? 'وحدة' }}</strong></div>
                     <div><span class="ui-text-muted">التكلفة المسجلة</span><strong class="block ui-title">{{ number_format((float) $item->cost_price_at_order, 2) }} ر.س</strong></div>
                     <label class="ui-label">الكمية المستلمة
-                        <input class="ui-input" type="number" min="0" step="0.01" name="items[{{ $item->id }}][quantity_received]" value="{{ $defaultReceiptQuantity }}">
+                        <input class="ui-input" type="number" min="0" step="0.01" name="items[{{ $item->id }}][quantity_received]" value="{{ $defaultReceiptQuantity }}" @error('items.'.$item->id.'.quantity_received') aria-invalid="true" @enderror>
                         <span class="js-receipt-expected ui-text-soft text-sm"></span>
                         @error('items.'.$item->id.'.quantity_received')<span class="ui-status-danger">{{ $message }}</span>@enderror
                     </label>
                     <label class="ui-label">تكلفة الاستلام
-                        <input class="js-receipt-price ui-input" type="number" min="0" step="0.01" name="items[{{ $item->id }}][cost_price_at_receipt]" value="{{ $defaultReceiptPrice }}" data-auto-fill="{{ $autoFillReceiptPrice ? '1' : '0' }}" data-order-price="{{ (float) $item->cost_price_at_order }}" data-requested-qty="{{ (float) $item->quantity_requested }}" data-variance-target="accountant-variance-{{ $item->id }}">
+                        <input class="js-receipt-price ui-input" type="number" min="0" step="0.01" name="items[{{ $item->id }}][cost_price_at_receipt]" value="{{ $defaultReceiptPrice }}" data-auto-fill="{{ $autoFillReceiptPrice ? '1' : '0' }}" data-order-price="{{ (float) $item->cost_price_at_order }}" data-requested-qty="{{ (float) $item->quantity_requested }}" data-variance-target="accountant-variance-{{ $item->id }}" @error('items.'.$item->id.'.cost_price_at_receipt') aria-invalid="true" @enderror>
+                        @error('items.'.$item->id.'.cost_price_at_receipt')<span class="ui-status-danger">{{ $message }}</span>@enderror
                         <span id="accountant-variance-{{ $item->id }}" class="hidden ui-text-soft text-sm"></span>
                     </label>
                     @if(count($receiptUnits) > 1)
@@ -296,7 +306,7 @@
                     @endif
                 </div>
             @endforeach
-            <button class="ui-btn ui-btn-success">تأكيد استلام الطلبية</button>
+            <button type="submit" class="ui-btn ui-btn-success">تأكيد استلام الطلبية</button>
         </form>
     @endif
 
@@ -947,6 +957,16 @@
     <form id="receipt-review" data-order-id="{{ $order->id }}" method="POST" action="{{ route('user.stores.purchase-orders.receive', [$store->id, $order->id]) }}" class="space-y-6">
         @csrf
 
+        <div class="js-receipt-validation-summary ui-alert ui-alert-danger-plain {{ $errors->any() ? '' : 'hidden' }}" role="alert" aria-live="assertive" tabindex="-1">
+            <strong class="ui-alert-title">تعذر حفظ بيانات الاستلام</strong>
+            <div class="ui-alert-body">
+                <p>راجع الحقول أو البنود المحددة أدناه ثم أعد المحاولة.</p>
+                <ul class="js-receipt-validation-list list-disc pr-5">
+                    @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                </ul>
+            </div>
+        </div>
+
         @if($isOwnerReceiptReview)
             <section class="ui-card p-5 space-y-4" aria-labelledby="ownerDecisionReadinessTitle">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1072,6 +1092,7 @@
                 @endphp
 
                 <details class="js-receive-item ui-disclosure ui-purchase-item-card"
+                    data-product-name="{{ $item->productName() }}"
                     data-search="{{ e($item->productName().' '.($item->receipt_notes ?? '').' '.($item->add_to_owner_purchases ? 'مشتريات مالك بدون مخزون' : '')) }}"
                     data-changed="{{ $hasAccountantReceiptChange ? '1' : '0' }}"
                     data-variance="{{ abs($variance) > 0.01 ? '1' : '0' }}"
@@ -1153,8 +1174,9 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                             <div class="space-y-1.5">
                                 <label class="block ui-text-caption font-bold ui-text-muted">الكمية المستلمة الفعلية</label>
-                                <input name="items[{{ $item->id }}][quantity_received]" type="number" step="0.01" min="0" value="{{ old('items.'.$item->id.'.quantity_received', $item->quantity_received) }}" placeholder="اتركه فارغاً للاستلام الكامل" class="ui-input text-sm">
+                                <input name="items[{{ $item->id }}][quantity_received]" type="number" step="0.01" min="0" value="{{ old('items.'.$item->id.'.quantity_received', $item->quantity_received) }}" placeholder="اتركه فارغاً للاستلام الكامل" class="ui-input text-sm" @error('items.'.$item->id.'.quantity_received') aria-invalid="true" @enderror>
                                 <span class="js-receipt-expected ui-text-soft text-sm"></span>
+                                @error('items.'.$item->id.'.quantity_received')<span class="ui-status-danger">{{ $message }}</span>@enderror
                             </div>
 
                             @if($hasUnitChoices)
@@ -1177,7 +1199,8 @@
                                 <label class="block ui-text-caption font-bold {{ $item->add_to_owner_purchases ? 'ui-status-warning' : 'ui-text-muted' }}">
                                     سعر الاستلام الفعلي (للكمية كاملة){{ $receiptPriceRequired ? ' *' : '' }}
                                 </label>
-                                <input name="items[{{ $item->id }}][cost_price_at_receipt]" type="number" step="0.01" min="0" {{ $receiptPriceRequired ? 'required' : '' }} value="{{ old('items.'.$item->id.'.cost_price_at_receipt', $item->cost_price_at_receipt) }}" placeholder="{{ $receiptPriceRequired ? 'هذا الحقل إلزامي لعدم وجود سعر سابق' : 'اتركه فارغاً لاعتماد السعر المحفوظ' }}" class="ui-input text-sm js-receipt-price" data-order-price="{{ (float) $item->cost_price_at_order }}" data-requested-qty="{{ (float) $item->quantity_requested }}" data-variance-target="variance-{{ $item->id }}">
+                                <input name="items[{{ $item->id }}][cost_price_at_receipt]" type="number" step="0.01" min="0" {{ $receiptPriceRequired ? 'required' : '' }} value="{{ old('items.'.$item->id.'.cost_price_at_receipt', $item->cost_price_at_receipt) }}" placeholder="{{ $receiptPriceRequired ? 'هذا الحقل إلزامي لعدم وجود سعر سابق' : 'اتركه فارغاً لاعتماد السعر المحفوظ' }}" class="ui-input text-sm js-receipt-price" data-order-price="{{ (float) $item->cost_price_at_order }}" data-requested-qty="{{ (float) $item->quantity_requested }}" data-variance-target="variance-{{ $item->id }}" @error('items.'.$item->id.'.cost_price_at_receipt') aria-invalid="true" @enderror>
+                                @error('items.'.$item->id.'.cost_price_at_receipt')<span class="ui-status-danger">{{ $message }}</span>@enderror
                             </div>
                         </div>
                     </div>
@@ -1201,22 +1224,21 @@
                                 <span class="text-sm ui-status-warning">مشتريات مالك</span>
                             @endif
 
-                            @if(!$item->product_id && !$item->matched_product_id)
-                                <button type="button"
-                                        class="js-open-owner-product-modal ui-btn ui-btn-secondary ui-text-caption"
-                                        data-owner-product-url="{{ route('user.stores.purchase-orders.items.owner-product.store', [$store->id, $order->id, $item->id]) }}"
-                                        data-owner-product-name="{{ $item->productName() }}"
-                                        data-owner-product-unit="{{ in_array($item->unit_type, ['piece', 'kit', 'roll'], true) ? $item->unit_type : 'piece' }}"
-                                        data-owner-items-per-unit="{{ (int) $item->items_per_unit }}"
-                                        data-owner-roll-length="{{ (float) $item->roll_length }}"
-                                        data-owner-requested-quantity="{{ (float) $item->quantity_requested }}"
-                                        data-owner-order-cost="{{ (float) $item->cost_price_at_order }}">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                    ربط أو إنشاء منتج
-                                </button>
-                            @else
-                                <span class="ui-badge ui-badge-success">المنتج مربوط</span>
-                            @endif
+                            <span class="js-owner-product-link-status ui-badge ui-badge-success {{ !$item->product_id && !$item->matched_product_id ? 'hidden' : '' }}">
+                                {{ $item->product_id || $item->matched_product_id ? 'المنتج مربوط: '.$item->productName() : '' }}
+                            </span>
+                            <button type="button"
+                                    class="js-open-owner-product-modal ui-btn ui-btn-secondary ui-text-caption"
+                                    data-owner-product-url="{{ route('user.stores.purchase-orders.items.owner-product.store', [$store->id, $order->id, $item->id]) }}"
+                                    data-owner-product-name="{{ $item->productName() }}"
+                                    data-owner-product-unit="{{ in_array($item->unit_type, ['piece', 'kit', 'roll'], true) ? $item->unit_type : 'piece' }}"
+                                    data-owner-items-per-unit="{{ (int) $item->items_per_unit }}"
+                                    data-owner-roll-length="{{ (float) $item->roll_length }}"
+                                    data-owner-requested-quantity="{{ (float) $item->quantity_requested }}"
+                                    data-owner-order-cost="{{ (float) $item->cost_price_at_order }}">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <span class="js-owner-product-action-label">{{ $item->product_id || $item->matched_product_id ? 'استبدال المنتج' : 'ربط أو إنشاء منتج' }}</span>
+                            </button>
                         </div>
                     </div>
                     </div>
@@ -1230,7 +1252,7 @@
         </div>
 
         <div class="pt-4 flex justify-end">
-            <button class="ui-btn ui-btn-primary w-full py-4 text-lg md:w-auto">
+            <button type="submit" class="ui-btn ui-btn-primary w-full py-4 text-lg md:w-auto">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                 {{ $isOwnerReceiptReview ? 'اعتماد مراجعة الاستلام والمتابعة' : 'حفظ بيانات الاستلام' }}
             </button>

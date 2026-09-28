@@ -21,10 +21,12 @@ check(sync.includes("status: conflict ? 'conflict' : 'failed'"), 'server conflic
 check(lifecycle.includes('deleteOutboxForAccount') && lifecycle.includes('Promise.all'), 'logout clears drafts and outbox together');
 check(inventory.includes('navigator.onLine') && inventory.includes('putOutboxItem') && inventory.includes('session_version'), 'inventory form queues only offline draft saves with a server version');
 check(routes.includes("middleware('idempotency')->name('items.bulk-update')"), 'web draft save is protected by server idempotency');
+// Regression guard: complex inline @php(...) previously made Blade report @endforeach as an unexpected token.
 const inventoryView = read('resources/views/inventory-counts/accountant/show.blade.php');
 check(inventoryView.includes('name="_idempotency_key"'), 'non-JavaScript form fallback carries an idempotency key');
 check(!inventoryView.includes('@php(') && (inventoryView.match(/@php\b/g) ?? []).length === (inventoryView.match(/@endphp\b/g) ?? []).length, 'inventory Blade uses balanced explicit PHP blocks');
 check((inventoryView.match(/@foreach\b/g) ?? []).length === (inventoryView.match(/@endforeach\b/g) ?? []).length, 'inventory Blade loops are balanced');
+check(read('resources/views/inventory-counts/accountant/show.blade.php').includes('name="_idempotency_key"'), 'non-JavaScript form fallback carries an idempotency key');
 
 passed.forEach((message) => console.log(`PASS: ${message}`));
 failed.forEach((message) => console.error(`FAIL: ${message}`));

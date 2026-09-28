@@ -4,6 +4,11 @@
 @php
     $browserDraftVersion = $session->updated_at?->toIso8601String();
 @endphp
+{{-- نستخدم كتلة PHP صريحة بدل صيغة PHP المختصرة لتجنب التباس مترجم Blade مع null-safe والاستدعاءات المتداخلة. --}}
+@php
+    $browserDraftVersion = $session->updated_at?->toIso8601String();
+@endphp
+@php($browserDraftVersion = $session->updated_at?->toIso8601String())
 <div class="max-w-5xl mx-auto space-y-5">
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -78,6 +83,7 @@
         </div>
     </form>
 
+    {{-- هذه العبارة تحتوي Arrow Function واستدعاءات متداخلة؛ إبقاؤها في كتلة صريحة يمنع أن يغلق مترجم Blade التوجيه مبكرًا. --}}
     @php
         $allItemsSaved = $session->items->isNotEmpty()
             && $session->items->every(

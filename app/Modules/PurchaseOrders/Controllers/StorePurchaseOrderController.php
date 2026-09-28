@@ -220,6 +220,13 @@ public function pdf(Store $store, StorePurchaseOrder $order)
 
         $request->merge(['items' => $itemsInput]);
 
+        // أسماء الحقول تربط رسالة الخادم بالمنتج نفسه بدل إظهار خطأ عام لا يحدد مكان التصحيح.
+        $receiptAttributes = $order->items->flatMap(fn ($item) => [
+            "items.{$item->id}.quantity_received" => "الكمية المستلمة للمنتج ({$item->productName()})",
+            "items.{$item->id}.cost_price_at_receipt" => "سعر الاستلام للمنتج ({$item->productName()})",
+            "items.{$item->id}.unit_type" => "وحدة الاستلام للمنتج ({$item->productName()})",
+        ])->all();
+
         $validated = $request->validate([
             'items' => 'required|array',
             'items.*.id' => ['required', Rule::exists('store_purchase_order_items', 'id')->where(fn ($query) => $query->where('store_purchase_order_id', $order->id))],
@@ -234,12 +241,12 @@ public function pdf(Store $store, StorePurchaseOrder $order)
             'items.required' => 'يجب إرسال بيانات الاستلام أولاً.',
             'items.*.id.required' => 'معرف عنصر الطلبية مطلوب لعملية التحديث.',
             'items.*.id.exists' => 'عنصر الطلبية المحدد غير صحيح أو لا ينتمي لهذه الطلبية.',
-            'items.*.quantity_received.numeric' => 'الكمية المستلمة يجب أن تكون رقمًا.',
-            'items.*.quantity_received.min' => 'الكمية المستلمة لا يمكن أن تكون أقل من صفر.',
-            'items.*.cost_price_at_receipt.numeric' => 'سعر الاستلام يجب أن يكون رقمًا.',
-            'items.*.cost_price_at_receipt.min' => 'سعر الاستلام لا يمكن أن يكون أقل من صفر.',
+            'items.*.quantity_received.numeric' => ':attribute يجب أن تكون رقمًا.',
+            'items.*.quantity_received.min' => ':attribute لا يمكن أن تكون أقل من صفر.',
+            'items.*.cost_price_at_receipt.numeric' => ':attribute يجب أن يكون رقمًا.',
+            'items.*.cost_price_at_receipt.min' => ':attribute لا يمكن أن يكون أقل من صفر.',
             'items.*.matched_product_id.exists' => 'المنتج المقابل المختار غير صحيح أو لا يتبع هذا المتجر.',
-        ]);
+        ], $receiptAttributes);
 
         $items = collect($validated['items'])
             ->keyBy(fn ($item) => (int) $item['id'])
@@ -266,8 +273,6 @@ public function pdf(Store $store, StorePurchaseOrder $order)
         $canManageReceiptProduct = $order->status === 'sent'
             || ($order->status === 'received' && $order->workflow_status === 'pending_owner_receipt_review');
         abort_unless($canManageReceiptProduct, 422, 'يمكن ربط المنتج أو إنشاؤه أثناء مراجعة تأكيد الاستلام فقط.');
-        abort_unless(! $item->product_id && ! $item->matched_product_id, 422, 'هذا البند مرتبط بمنتج بالفعل.');
-
         $request->merge([
             'product_action' => $request->input('product_action') ?: ($request->filled('existing_product_id') ? 'link' : 'create'),
         ]);
@@ -309,6 +314,11 @@ public function pdf(Store $store, StorePurchaseOrder $order)
             return response()->json([
                 'message' => 'تم ربط المنتج الموجود بالطلبية.',
                 'product' => ['id' => $existingProduct->id, 'name' => $existingProduct->name],
+                'item' => [
+                    'id' => $item->id,
+                    'owner_purchase_only' => $existingProduct->isOwnerPurchaseOnly(),
+                    'product_name' => $existingProduct->name,
+                ],
             ]);
         }
 
@@ -398,6 +408,11 @@ public function pdf(Store $store, StorePurchaseOrder $order)
                 ? 'تم حفظ المنتج ضمن منتجات البيع وربطه بالطلبية.'
                 : 'تم حفظ المنتج ضمن مشتريات المالك وربطه بالطلبية.',
             'product' => ['id' => $product->id, 'name' => $product->name],
+            'item' => [
+                'id' => $item->id,
+                'owner_purchase_only' => $validated['usage_type'] !== Product::USAGE_TYPE_SALE,
+                'product_name' => $product->name,
+            ],
         ], 201);
     }
 

@@ -33,10 +33,12 @@ class PwaOutboxContractTest extends TestCase
         self::assertStringContainsString('session_version', $inventory);
         self::assertStringContainsString('deleteOutboxForAccount', $lifecycle);
         self::assertStringContainsString("middleware('idempotency')->name('items.bulk-update')", $routes);
+        // يحمي من عودة صيغة @php(...) المركبة التي سببت ParseError عند @endforeach.
         $view = file_get_contents(base_path('resources/views/inventory-counts/accountant/show.blade.php'));
         self::assertStringContainsString("name=\"_idempotency_key\"", $view);
         self::assertStringNotContainsString('@php(', $view);
         self::assertSame(substr_count($view, '@php'), substr_count($view, '@endphp'));
         self::assertSame(substr_count($view, '@foreach'), substr_count($view, '@endforeach'));
+        self::assertStringContainsString("name=\"_idempotency_key\"", file_get_contents(base_path('resources/views/inventory-counts/accountant/show.blade.php')));
     }
 }
