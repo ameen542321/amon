@@ -26,6 +26,7 @@ const inventoryView = read('resources/views/inventory-counts/accountant/show.bla
 check(inventoryView.includes('name="_idempotency_key"'), 'non-JavaScript form fallback carries an idempotency key');
 check(!inventoryView.includes('@php(') && (inventoryView.match(/@php\b/g) ?? []).length === (inventoryView.match(/@endphp\b/g) ?? []).length, 'inventory Blade uses balanced explicit PHP blocks');
 check((inventoryView.match(/@foreach\b/g) ?? []).length === (inventoryView.match(/@endforeach\b/g) ?? []).length, 'inventory Blade loops are balanced');
+check(read('resources/views/inventory-counts/accountant/show.blade.php').includes('name="_idempotency_key"'), 'non-JavaScript form fallback carries an idempotency key');
 
 passed.forEach((message) => console.log(`PASS: ${message}`));
 failed.forEach((message) => console.error(`FAIL: ${message}`));

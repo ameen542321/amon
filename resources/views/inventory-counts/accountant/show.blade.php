@@ -5,6 +5,7 @@
 @php
     $browserDraftVersion = $session->updated_at?->toIso8601String();
 @endphp
+@php($browserDraftVersion = $session->updated_at?->toIso8601String())
 <div class="max-w-5xl mx-auto space-y-5">
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">

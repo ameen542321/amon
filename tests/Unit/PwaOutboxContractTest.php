@@ -39,5 +39,6 @@ class PwaOutboxContractTest extends TestCase
         self::assertStringNotContainsString('@php(', $view);
         self::assertSame(substr_count($view, '@php'), substr_count($view, '@endphp'));
         self::assertSame(substr_count($view, '@foreach'), substr_count($view, '@endforeach'));
+        self::assertStringContainsString("name=\"_idempotency_key\"", file_get_contents(base_path('resources/views/inventory-counts/accountant/show.blade.php')));
     }
 }
