@@ -178,6 +178,127 @@ if (root) {
         });
         updateReceiveItemsSearch();
 
+        const accountantReceiptForm = document.getElementById('receipt-confirmation');
+        const receiptForms = [accountantReceiptForm, receiptReviewForm].filter(Boolean);
+
+        const revealReceiptTarget = (target) => {
+            if (!target) return;
+            const card = target.closest('.js-receive-item');
+            if (card) {
+                card.classList.remove('hidden');
+                if (card.tagName === 'DETAILS') card.open = true;
+            }
+            if (receiptReviewForm && receiptReviewForm.contains(target)) {
+                activeReceiptFilter = 'all';
+                if (receiveItemsSearch) receiveItemsSearch.value = '';
+                receiptFilterButtons.forEach((button) => {
+                    const active = button.dataset.receiptFilter === 'all';
+                    button.setAttribute('aria-pressed', String(active));
+                    button.classList.toggle('ui-btn-primary', active);
+                    button.classList.toggle('ui-btn-secondary', !active);
+                });
+                updateReceiveItemsSearch();
+                card?.classList.remove('hidden');
+                if (card?.tagName === 'DETAILS') card.open = true;
+            }
+        };
+
+        const receiptFieldMessage = (field) => {
+            const card = field.closest('.js-receive-item');
+            const product = card?.dataset.productName || 'أحد البنود';
+            const name = field.getAttribute('name') || '';
+            if (field.validity?.valueMissing) {
+                return name.includes('cost_price_at_receipt')
+                    ? `أدخل سعر الاستلام المطلوب للمنتج: ${product}.`
+                    : `أكمل الحقل المطلوب للمنتج: ${product}.`;
+            }
+            if (field.validity?.rangeUnderflow) return `القيمة لا يمكن أن تكون أقل من الحد المسموح للمنتج: ${product}.`;
+            if (field.validity?.badInput || field.validity?.stepMismatch) return `أدخل رقمًا صحيحًا في بيانات المنتج: ${product}.`;
+            return `راجع بيانات المنتج: ${product}.`;
+        };
+
+        const unresolvedReceiptIssues = (form) => {
+            if (form !== receiptReviewForm) return [];
+            return Array.from(form.querySelectorAll('.js-receive-item[data-unresolved="1"]'))
+                .filter((card) => {
+                    const ownerPurchase = card.querySelector('input[name$="[add_to_owner_purchases]"][type="checkbox"]')?.checked;
+                    const matchedProduct = card.querySelector('input[name$="[matched_product_id]"]')?.value;
+                    return !ownerPurchase && !matchedProduct;
+                })
+                .map((card) => ({
+                    message: `اربط المنتج (${card.dataset.productName || 'غير محدد'}) أو حدده كمشتريات مالك قبل الحفظ.`,
+                    target: card.querySelector('.js-open-owner-product-modal, input[name$="[add_to_owner_purchases]"]'),
+                }));
+        };
+
+        const showReceiptValidation = (form, issues) => {
+            const summary = form.querySelector('.js-receipt-validation-summary');
+            const list = summary?.querySelector('.js-receipt-validation-list');
+            const uniqueIssues = issues.filter((issue, index, all) => all.findIndex((candidate) => candidate.message === issue.message) === index);
+            if (!summary || !list || uniqueIssues.length === 0) return;
+
+            list.replaceChildren(...uniqueIssues.map(({ message }) => {
+                const item = document.createElement('li');
+                item.textContent = message;
+                return item;
+            }));
+            summary.classList.remove('hidden');
+
+            const firstTarget = uniqueIssues[0].target;
+            revealReceiptTarget(firstTarget);
+            summary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            window.setTimeout(() => firstTarget?.focus({ preventScroll: false }), 250);
+        };
+
+        receiptForms.forEach((form) => {
+            let invalidQueued = false;
+            const collectIssues = () => [
+                ...Array.from(form.querySelectorAll(':invalid')).map((field) => ({
+                    message: receiptFieldMessage(field),
+                    target: field,
+                })),
+                ...unresolvedReceiptIssues(form),
+            ];
+
+            form.addEventListener('invalid', (event) => {
+                event.preventDefault();
+                event.target.setAttribute('aria-invalid', 'true');
+                if (invalidQueued) return;
+                invalidQueued = true;
+                window.setTimeout(() => {
+                    invalidQueued = false;
+                    showReceiptValidation(form, collectIssues());
+                }, 0);
+            }, true);
+
+            form.addEventListener('input', (event) => {
+                if (event.target.matches('input, select, textarea') && event.target.validity?.valid) {
+                    event.target.removeAttribute('aria-invalid');
+                }
+                if (collectIssues().length === 0) {
+                    form.querySelector('.js-receipt-validation-summary')?.classList.add('hidden');
+                }
+            });
+
+            form.addEventListener('submit', (event) => {
+                const issues = collectIssues();
+                if (issues.length === 0) return;
+                event.preventDefault();
+                issues.forEach(({ target }) => target?.setAttribute?.('aria-invalid', 'true'));
+                showReceiptValidation(form, issues);
+            });
+
+            const serverSummary = form.querySelector('.js-receipt-validation-summary:not(.hidden)');
+            if (serverSummary) {
+                const firstServerField = form.querySelector('[aria-invalid="true"]');
+                revealReceiptTarget(firstServerField);
+                window.setTimeout(() => {
+                    serverSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstServerField?.focus({ preventScroll: false });
+                }, 100);
+            }
+        });
+
         const summaryItemsSearch = document.getElementById('summaryItemsSearch');
         const summaryItemsSearchCount = document.getElementById('summaryItemsSearchCount');
 
