@@ -603,13 +603,13 @@ if (root) {
                     const ownerPurchaseCheckbox = activeOwnerProductCard.querySelector('input[name$="[add_to_owner_purchases]"][type="checkbox"]');
                     if (ownerPurchaseCheckbox) ownerPurchaseCheckbox.checked = ownerPurchaseOnly;
 
-                    const openButton = activeOwnerProductCard.querySelector('.js-open-owner-product-modal');
-                    if (openButton) {
-                        const linkedBadge = document.createElement('span');
-                        linkedBadge.className = 'ui-badge ui-badge-success';
-                        linkedBadge.textContent = `المنتج مربوط: ${data.product?.name || ''}`.trim();
-                        openButton.replaceWith(linkedBadge);
+                    const linkedBadge = activeOwnerProductCard.querySelector('.js-owner-product-link-status');
+                    if (linkedBadge) {
+                        linkedBadge.textContent = `المنتج مربوط: ${data.item?.product_name || data.product?.name || ''}`.trim();
+                        linkedBadge.classList.remove('hidden');
                     }
+                    const actionLabel = activeOwnerProductCard.querySelector('.js-owner-product-action-label');
+                    if (actionLabel) actionLabel.textContent = 'استبدال المنتج';
                 }
 
                 closeOwnerProductModal();

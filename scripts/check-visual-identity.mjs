@@ -375,7 +375,9 @@ if (!purchaseOrderShowView.includes('js-open-owner-product-modal')
     || !purchaseOrderShowFeature.includes("document.getElementById('ownerProductForm')")
     || !purchaseOrderShowFeature.includes('closeOwnerProductModal();\n                if (typeof Swal')
     || !purchaseOrderShowFeature.includes("activeOwnerProductCard.dataset.unresolved = '0'")
-    || !purchaseOrderShowFeature.includes('openButton.replaceWith(linkedBadge)')
+    || !purchaseOrderShowFeature.includes("actionLabel.textContent = 'استبدال المنتج'")
+    || !purchaseOrderShowView.includes('js-owner-product-link-status')
+    || !purchaseOrderShowView.includes('استبدال المنتج')
     || purchaseOrderShowFeature.includes("window.location.reload()")) {
     failures.push('purchase-order receipt: owner-product dialog must keep unit-aware fields and update the linked item without clearing receipt inputs');
 }

@@ -1224,22 +1224,21 @@
                                 <span class="text-sm ui-status-warning">مشتريات مالك</span>
                             @endif
 
-                            @if(!$item->product_id && !$item->matched_product_id)
-                                <button type="button"
-                                        class="js-open-owner-product-modal ui-btn ui-btn-secondary ui-text-caption"
-                                        data-owner-product-url="{{ route('user.stores.purchase-orders.items.owner-product.store', [$store->id, $order->id, $item->id]) }}"
-                                        data-owner-product-name="{{ $item->productName() }}"
-                                        data-owner-product-unit="{{ in_array($item->unit_type, ['piece', 'kit', 'roll'], true) ? $item->unit_type : 'piece' }}"
-                                        data-owner-items-per-unit="{{ (int) $item->items_per_unit }}"
-                                        data-owner-roll-length="{{ (float) $item->roll_length }}"
-                                        data-owner-requested-quantity="{{ (float) $item->quantity_requested }}"
-                                        data-owner-order-cost="{{ (float) $item->cost_price_at_order }}">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                    ربط أو إنشاء منتج
-                                </button>
-                            @else
-                                <span class="ui-badge ui-badge-success">المنتج مربوط</span>
-                            @endif
+                            <span class="js-owner-product-link-status ui-badge ui-badge-success {{ !$item->product_id && !$item->matched_product_id ? 'hidden' : '' }}">
+                                {{ $item->product_id || $item->matched_product_id ? 'المنتج مربوط: '.$item->productName() : '' }}
+                            </span>
+                            <button type="button"
+                                    class="js-open-owner-product-modal ui-btn ui-btn-secondary ui-text-caption"
+                                    data-owner-product-url="{{ route('user.stores.purchase-orders.items.owner-product.store', [$store->id, $order->id, $item->id]) }}"
+                                    data-owner-product-name="{{ $item->productName() }}"
+                                    data-owner-product-unit="{{ in_array($item->unit_type, ['piece', 'kit', 'roll'], true) ? $item->unit_type : 'piece' }}"
+                                    data-owner-items-per-unit="{{ (int) $item->items_per_unit }}"
+                                    data-owner-roll-length="{{ (float) $item->roll_length }}"
+                                    data-owner-requested-quantity="{{ (float) $item->quantity_requested }}"
+                                    data-owner-order-cost="{{ (float) $item->cost_price_at_order }}">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <span class="js-owner-product-action-label">{{ $item->product_id || $item->matched_product_id ? 'استبدال المنتج' : 'ربط أو إنشاء منتج' }}</span>
+                            </button>
                         </div>
                     </div>
                     </div>

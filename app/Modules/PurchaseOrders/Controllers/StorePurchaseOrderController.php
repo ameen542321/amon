@@ -273,8 +273,6 @@ public function pdf(Store $store, StorePurchaseOrder $order)
         $canManageReceiptProduct = $order->status === 'sent'
             || ($order->status === 'received' && $order->workflow_status === 'pending_owner_receipt_review');
         abort_unless($canManageReceiptProduct, 422, 'يمكن ربط المنتج أو إنشاؤه أثناء مراجعة تأكيد الاستلام فقط.');
-        abort_unless(! $item->product_id && ! $item->matched_product_id, 422, 'هذا البند مرتبط بمنتج بالفعل.');
-
         $request->merge([
             'product_action' => $request->input('product_action') ?: ($request->filled('existing_product_id') ? 'link' : 'create'),
         ]);
@@ -319,6 +317,7 @@ public function pdf(Store $store, StorePurchaseOrder $order)
                 'item' => [
                     'id' => $item->id,
                     'owner_purchase_only' => $existingProduct->isOwnerPurchaseOnly(),
+                    'product_name' => $existingProduct->name,
                 ],
             ]);
         }
@@ -412,6 +411,7 @@ public function pdf(Store $store, StorePurchaseOrder $order)
             'item' => [
                 'id' => $item->id,
                 'owner_purchase_only' => $validated['usage_type'] !== Product::USAGE_TYPE_SALE,
+                'product_name' => $product->name,
             ],
         ], 201);
     }

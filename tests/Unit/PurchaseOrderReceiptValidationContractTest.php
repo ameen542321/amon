@@ -22,11 +22,14 @@ class PurchaseOrderReceiptValidationContractTest extends TestCase
         self::assertStringContainsString('revealReceiptTarget', $interface);
         self::assertStringContainsString('scrollIntoView', $interface);
         self::assertStringContainsString("activeOwnerProductCard.dataset.unresolved = '0'", $interface);
-        self::assertStringContainsString('openButton.replaceWith(linkedBadge)', $interface);
+        self::assertStringContainsString("actionLabel.textContent = 'استبدال المنتج'", $interface);
         self::assertStringNotContainsString('window.location.reload()', $interface);
+        self::assertStringContainsString('js-owner-product-link-status', $view);
+        self::assertStringContainsString('استبدال المنتج', $view);
         self::assertStringContainsString('.ui-input[aria-invalid="true"]', $styles);
         self::assertStringContainsString('$receiptAttributes', $ownerController);
         self::assertStringContainsString("'owner_purchase_only'", $ownerController);
+        self::assertStringNotContainsString('هذا البند مرتبط بمنتج بالفعل.', $ownerController);
         self::assertStringContainsString('$receiptAttributes', $accountantController);
         self::assertStringNotContainsString('<style', $view);
         self::assertStringNotContainsString('style=', $view);
