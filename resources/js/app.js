@@ -1,5 +1,6 @@
 import './bootstrap';
 import './features/font-readiness';
+import './features/number-input-wheel-guard';
 import './features/pwa/register-service-worker';
 import './features/pwa/client-storage-lifecycle';
 import './features/pwa/outbox-sync';

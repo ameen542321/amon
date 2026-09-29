@@ -104,7 +104,7 @@
                                     <p x-show="filteredProducts(item).length === 0" class="p-4 ui-text-caption ui-text-muted">لا توجد نتائج.</p>
                                 </div>
                             </div>
-                            <label class="md:col-span-3"><span class="ui-label">الكمية</span><input type="number" :name="`items[${index}][quantity]`" x-model="item.quantity" :step="quantityStep(item)" :min="quantityStep(item)" @wheel="$event.currentTarget.blur()" required class="ui-input mt-2"></label>
+                            <label class="md:col-span-3"><span class="ui-label">الكمية</span><input type="number" :name="`items[${index}][quantity]`" x-model="item.quantity" :step="quantityStep(item)" :min="quantityStep(item)" required class="ui-input mt-2"></label>
                             <label class="md:col-span-3"><span class="ui-label">الوحدة</span><select :name="`items[${index}][unit_type]`" x-model="item.unit_type" required class="ui-input mt-2"><template x-for="unit in unitsFor(item)" :key="unit.value"><option :value="unit.value" x-text="unit.label"></option></template></select></label>
                         </div>
                     </div>
