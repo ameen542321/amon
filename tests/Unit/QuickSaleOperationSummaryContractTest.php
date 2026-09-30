@@ -19,7 +19,7 @@ class QuickSaleOperationSummaryContractTest extends TestCase
         self::assertStringContainsString('Math.round(Math.max(0, remaining))', $view);
     }
 
-    public function test_tax_summary_and_invoice_option_require_a_store_tax_number(): void
+    public function test_tax_summary_requires_a_tax_number_while_invoice_option_remains_available(): void
     {
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/cashier/quick-sale/index.blade.php');
         $summaryStart = strpos($view, 'data-quick-sale-operation-summary');
@@ -29,5 +29,7 @@ class QuickSaleOperationSummaryContractTest extends TestCase
         self::assertStringContainsString('@if($hasApprovedTaxNumber ?? false)', $summary);
         self::assertStringContainsString('<span>الضريبة</span>', $summary);
         self::assertStringContainsString('إصدار فاتورة ضريبية للمطبوعات', $summary);
+        self::assertStringContainsString('إصدار فاتورة إلكترونية', $summary);
+        self::assertStringContainsString("? 'إصدار فاتورة ضريبية للمطبوعات' : 'إصدار فاتورة إلكترونية'", $summary);
     }
 }

@@ -558,16 +558,17 @@
                     </div>
                 </div>
 
-                @if($hasApprovedTaxNumber ?? false)
                 <div class="space-y-4">
-                    {{-- ✅ يظهر خيار الفاتورة الضريبية للمتجر ذي الرقم الضريبي فقط. --}}
+                    {{-- يبقى إصدار الفاتورة متاحاً، وتتغير التسمية فقط بحسب وجود الرقم الضريبي. --}}
                     <div class="flex items-center gap-2 ui-surface-muted-bg p-3 rounded-xl border ui-border mt-4">
                         <input type="checkbox" x-model="has_invoice" id="has_invoice" class="w-5 h-5 rounded ui-border ui-surface-muted-bg ui-status-info ">
-                        <label for="has_invoice" class="ui-title text-sm font-bold cursor-pointer">إصدار فاتورة ضريبية للمطبوعات</label>
-                        <button type="button" data-ui-help-title="الفاتورة الضريبية" data-ui-help-body="عند تفعيل هذا الخيار سيتم إنشاء فاتورة ضريبية بعد حفظ عملية البيع." class="mr-auto inline-flex h-5 w-5 items-center justify-center rounded-full border ui-border ui-text-caption ui-text-muted cursor-help ui-surface-muted-bg"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></button>
+                        <label for="has_invoice" class="ui-title text-sm font-bold cursor-pointer">{{ ($hasApprovedTaxNumber ?? false) ? 'إصدار فاتورة ضريبية للمطبوعات' : 'إصدار فاتورة إلكترونية' }}</label>
+                        <button type="button"
+                                data-ui-help-title="{{ ($hasApprovedTaxNumber ?? false) ? 'الفاتورة الضريبية' : 'الفاتورة الإلكترونية' }}"
+                                data-ui-help-body="{{ ($hasApprovedTaxNumber ?? false) ? 'عند تفعيل هذا الخيار سيتم إنشاء فاتورة ضريبية بعد حفظ عملية البيع.' : 'عند تفعيل هذا الخيار سيتم إنشاء فاتورة إلكترونية بعد حفظ عملية البيع.' }}"
+                                class="mr-auto inline-flex h-5 w-5 items-center justify-center rounded-full border ui-border ui-text-caption ui-text-muted cursor-help ui-surface-muted-bg"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></button>
                     </div>
                 </div>
-                @endif
 
                 <div x-show="pendingWarningVisible && !pendingStatusChecking" x-cloak class="mt-4 rounded-2xl border ui-border ui-status-warning-bg p-4 text-sm ui-status-warning">
                     <div class="font-black mb-1">تنبيه عملية بيع غير مؤكدة</div>
