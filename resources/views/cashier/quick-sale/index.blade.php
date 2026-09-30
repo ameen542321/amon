@@ -507,63 +507,67 @@
                     </div>
                 </div>
 
-                <div class="ui-surface-muted-bg rounded-xl p-4 mb-6 grid grid-cols-1 gap-3 border ui-border text-right text-sm sm:grid-cols-2">
-                    <div class="flex justify-between ui-text-muted font-bold items-center">
-                        <span>أجور اليد:</span>
-                        <span x-text="Math.round(labor_total || 0) + ' ر.س'"></span>
-                    </div>
-                    <div class="flex justify-between ui-text-muted font-bold items-center">
-                        <span>الضريبة:</span>
-                        <span x-text="Math.round(tax_value) + ' ر.س'"></span>
-                    </div>
-                    <div class="flex justify-between ui-text-muted font-bold items-center">
-                        <span>مجموع المنتجات:</span>
-                        <span x-text="Math.round(items_total) + ' ر.س'"></span>
-                    </div>
-                    <div class="ui-frame-row ui-section-divider-sm ui-title font-bold text-xl">
-                        <span class="ui-status-info font-black">الإجمالي النهائي:</span>
-                        <span class="ui-status-info text-2xl font-black" x-text="Math.round(final_total) + ' ر.س'"></span>
-                    </div>
-                    <div class="ui-frame-row ui-section-divider-sm ui-status-warning font-bold">
-                        <span x-text="sale_type === 'credit' ? 'إجمالي الأجل:' : 'المتبقي (أجل):'"></span>
-                        <span class="font-black" x-text="Math.round(Math.max(0, remaining)) + ' ر.س'"></span>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    {{-- ✅ خيار إنشاء الفاتورة مع زر التوضيح المعتمد --}}
-                    <div class="flex items-center gap-2 ui-surface-muted-bg p-3 rounded-xl border ui-border mt-4">
-                        <input type="checkbox" x-model="has_invoice" id="has_invoice" class="w-5 h-5 rounded ui-border ui-surface-muted-bg ui-status-info ">
-                        <label for="has_invoice" class="ui-title text-sm font-bold cursor-pointer">إصدار فاتورة ضريبية للمطبوعات</label>
-                        <button type="button" data-ui-help-title="الفاتورة الضريبية" data-ui-help-body="عند تفعيل هذا الخيار سيتم إنشاء فاتورة ضريبية بعد حفظ عملية البيع." class="mr-auto inline-flex h-5 w-5 items-center justify-center rounded-full border ui-border ui-text-caption ui-text-muted cursor-help ui-surface-muted-bg"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></button>
-                    </div>
-                </div>
-
-
-                <div class="ui-card p-4 space-y-3">
-                    <h3 class="ui-title font-black text-sm">ملخص العملية قبل التأكيد</h3>
-                    <div class="grid grid-cols-2 gap-3 ui-text-caption">
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted">نوع الدفع</div>
-                            <div class="ui-title font-black mt-1" x-text="sale_type ? (sale_type === 'cash' ? 'كاش' : sale_type === 'card' ? 'شبكة' : sale_type === 'mixed' ? 'مختلط' : 'آجل') : 'غير محدد'"></div>
+                {{-- ملخص موحد: يجمع مكونات الإجمالي وحالة الدفع دون تغيير أي معادلة مالية. --}}
+                <div class="ui-card p-4 space-y-4" data-quick-sale-operation-summary>
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h3 class="ui-title font-black text-base">ملخص العملية</h3>
+                            <p class="ui-text-soft ui-text-caption mt-1">راجع المبالغ وطريقة الدفع قبل التأكيد.</p>
                         </div>
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted">الإجمالي</div>
-                            <div class="ui-status-info font-black mt-1" x-text="Math.round(final_total) + ' ر.س'"></div>
+                        <i class="fa-solid fa-receipt ui-status-info text-xl" aria-hidden="true"></i>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div class="ui-frame-row ui-text-soft font-bold">
+                            <span>مجموع المنتجات</span>
+                            <span class="ui-title font-black" x-text="Math.round(items_total) + ' ر.س'"></span>
                         </div>
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted">المدفوع</div>
-                            <div class="ui-status-success font-black mt-1" x-text="sale_type === 'mixed' ? (Math.round(mixedTotal) + ' ر.س') : (sale_type === 'credit' ? '0 ر.س' : (Math.round(paid_amount || 0) + ' ر.س'))"></div>
+                        <div class="ui-frame-row ui-text-soft font-bold">
+                            <span>أجور اليد</span>
+                            <span class="ui-title font-black" x-text="Math.round(labor_total || 0) + ' ر.س'"></span>
                         </div>
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted" x-text="sale_type === 'credit' ? 'الأجل' : 'المتبقي'"></div>
-                            <div class="ui-status-warning font-black mt-1" x-text="Math.round(Math.max(0, remaining)) + ' ر.س'"></div>
+                        @if($hasApprovedTaxNumber ?? false)
+                        <div class="ui-frame-row ui-text-soft font-bold sm:col-span-2">
+                            <span>الضريبة</span>
+                            <span class="ui-title font-black" x-text="Math.round(tax_value) + ' ر.س'"></span>
+                        </div>
+                        @endif
+                    </div>
+
+                    <div class="ui-frame-row ui-status-info font-black text-lg">
+                        <span>الإجمالي النهائي</span>
+                        <span class="text-2xl" x-text="Math.round(final_total) + ' ر.س'"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div class="ui-frame-row ui-text-soft font-bold">
+                            <span>نوع الدفع</span>
+                            <span class="ui-title font-black" x-text="sale_type ? (sale_type === 'cash' ? 'كاش' : sale_type === 'card' ? 'شبكة' : sale_type === 'mixed' ? 'مختلط' : 'آجل') : 'غير محدد'"></span>
+                        </div>
+                        <div class="ui-frame-row ui-status-success font-bold">
+                            <span>المدفوع</span>
+                            <span class="font-black" x-text="sale_type === 'mixed' ? (Math.round(mixedTotal) + ' ر.س') : (sale_type === 'credit' ? '0 ر.س' : (Math.round(paid_amount || 0) + ' ر.س'))"></span>
+                        </div>
+                        <div class="ui-frame-row ui-status-warning font-bold">
+                            <span x-text="sale_type === 'credit' ? 'إجمالي الأجل' : 'المتبقي'"></span>
+                            <span class="font-black" x-text="Math.round(Math.max(0, remaining)) + ' ر.س'"></span>
                         </div>
                     </div>
                     <div x-show="employee_id" class="ui-text-caption ui-text-muted ui-section-divider ui-section-divider-sm">
                         الموظف المرتبط: <span class="font-black ui-title" x-text="creditPersons.find(person => String(person.id) === String(employee_id))?.name || 'غير معروف'"></span>
                     </div>
                 </div>
+
+                @if($hasApprovedTaxNumber ?? false)
+                <div class="space-y-4">
+                    {{-- ✅ يظهر خيار الفاتورة الضريبية للمتجر ذي الرقم الضريبي فقط. --}}
+                    <div class="flex items-center gap-2 ui-surface-muted-bg p-3 rounded-xl border ui-border mt-4">
+                        <input type="checkbox" x-model="has_invoice" id="has_invoice" class="w-5 h-5 rounded ui-border ui-surface-muted-bg ui-status-info ">
+                        <label for="has_invoice" class="ui-title text-sm font-bold cursor-pointer">إصدار فاتورة ضريبية للمطبوعات</label>
+                        <button type="button" data-ui-help-title="الفاتورة الضريبية" data-ui-help-body="عند تفعيل هذا الخيار سيتم إنشاء فاتورة ضريبية بعد حفظ عملية البيع." class="mr-auto inline-flex h-5 w-5 items-center justify-center rounded-full border ui-border ui-text-caption ui-text-muted cursor-help ui-surface-muted-bg"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                @endif
 
                 <div x-show="pendingWarningVisible && !pendingStatusChecking" x-cloak class="mt-4 rounded-2xl border ui-border ui-status-warning-bg p-4 text-sm ui-status-warning">
                     <div class="font-black mb-1">تنبيه عملية بيع غير مؤكدة</div>
