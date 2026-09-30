@@ -38,8 +38,7 @@
 
         {{-- مساحة العمل الرئيسية: بحث، تضليل، وسلة. تتحول إلى مساحة أعرض في الشاشات الكبيرة بدل تمدد عشوائي. --}}
         <div class="space-y-3">
-            @if($hasAvailableTintProducts)
-            @if(!empty($latestShiftOperation))
+            @if(($showLatestQuickSale ?? true) && !empty($latestShiftOperation))
 
                 <div class="overflow-hidden rounded-2xl border ui-border ui-status-info-bg px-3 py-2 shadow-lg " aria-label="آخر عملية مسجلة ضمن الشفت الحالي">
                     <div class="flex items-center gap-3 whitespace-nowrap ui-text-caption font-bold ui-status-info quick-sale-marquee-track sm:text-sm">
@@ -57,6 +56,7 @@
                 </div>
             @endif
             {{-- يظهر زر التضليل فقط عند وجود رول تضليل متوفر وله خيارات تجزئة. --}}
+            @if(($showTintShortcut ?? true) && $hasAvailableTintProducts)
             <div class="rounded-2xl border ui-border ui-card   p-3 shadow-lg sm:p-4">
                 <button type="button"
                         @click="window.dispatchEvent(new CustomEvent('open-tint-sale-modal'))"
@@ -64,8 +64,8 @@
                     <span class="flex min-w-0 items-center gap-3">
                         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ui-surface-strong-bg text-xl">◩</span>
                         <span class="min-w-0">
-                            <span class="block text-sm font-black sm:text-base">تضليل</span>
-                            <span class="mt-0.5 block ui-text-caption ui-status-info sm:ui-text-caption">إضافة عملية تضليل سريعة إلى السلة</span>
+                            <span class="block text-sm font-black sm:text-base">{{ $tintShortcutLabel ?? 'تضليل' }}</span>
+                            <span class="mt-0.5 block ui-text-caption ui-status-info sm:ui-text-caption">{{ $tintShortcutDescription ?? 'إضافة عملية تضليل سريعة إلى السلة' }}</span>
                         </span>
                     </span>
                     <span class="shrink-0 text-lg" aria-hidden="true">←</span>

@@ -51,6 +51,10 @@ class Store extends Model
      'inventory_audit_start_mode',
      'inventory_audit_start_date',
      'labor_description_options',
+     'show_quick_sale_tint',
+     'quick_sale_tint_label',
+     'quick_sale_tint_description',
+     'show_latest_quick_sale',
     ];
 
     /**
@@ -63,6 +67,8 @@ class Store extends Model
         'inventory_audit_cycle_months' => 'integer',
         'inventory_audit_start_date' => 'date',
         'labor_description_options' => 'array',
+        'show_quick_sale_tint' => 'boolean',
+        'show_latest_quick_sale' => 'boolean',
     ];
 
     /*

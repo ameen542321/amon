@@ -109,7 +109,43 @@
                         ['label' => 'تجليد', 'children' => []],
                         ['label' => 'شغل يد', 'children' => []],
                     ]);
+                    $showTintShortcut = (bool) old('show_quick_sale_tint', $store->show_quick_sale_tint ?? true);
+                    $showLatestQuickSale = (bool) old('show_latest_quick_sale', $store->show_latest_quick_sale ?? true);
                 @endphp
+                <div class="ui-card p-6 space-y-5" x-data="{ showTintShortcut: @js($showTintShortcut) }">
+                    <div class="flex items-center gap-2">
+                        <h2 class="ui-title text-xl font-bold">خيارات أعلى صفحة البيع</h2>
+                        <x-ui.help title="تخصيص واجهة البيع" body="يمكن للمالك إظهار اختصار التضليل وتغيير اسمه ووصفه، وكذلك إظهار أو إخفاء شريط آخر عملية بيع." />
+                    </div>
+
+                    <div class="ui-card-muted p-4 space-y-4">
+                        <div class="flex items-center gap-3">
+                            <input type="hidden" name="show_quick_sale_tint" value="0">
+                            <input id="show_quick_sale_tint" type="checkbox" name="show_quick_sale_tint" value="1" x-model="showTintShortcut" class="h-5 w-5 rounded ui-border ui-surface-muted-bg">
+                            <label for="show_quick_sale_tint" class="ui-title font-bold">إظهار اختصار التضليل أعلى صفحة البيع</label>
+                        </div>
+
+                        <div x-show="showTintShortcut" x-cloak class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <label>
+                                <span class="ui-label">اسم الاختصار</span>
+                                <input name="quick_sale_tint_label" class="ui-input mt-1" maxlength="100" :required="showTintShortcut" value="{{ old('quick_sale_tint_label', $store->quick_sale_tint_label ?? 'تضليل') }}" placeholder="مثال: تضليل">
+                            </label>
+                            <label>
+                                <span class="ui-label">وصف الاختصار</span>
+                                <input name="quick_sale_tint_description" class="ui-input mt-1" maxlength="180" :required="showTintShortcut" value="{{ old('quick_sale_tint_description', $store->quick_sale_tint_description ?? 'إضافة عملية تضليل سريعة إلى السلة') }}" placeholder="وصف مختصر يظهر أسفل الاسم">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="ui-card-muted p-4">
+                        <div class="flex items-center gap-3">
+                            <input type="hidden" name="show_latest_quick_sale" value="0">
+                            <input id="show_latest_quick_sale" type="checkbox" name="show_latest_quick_sale" value="1" @checked($showLatestQuickSale) class="h-5 w-5 rounded ui-border ui-surface-muted-bg">
+                            <label for="show_latest_quick_sale" class="ui-title font-bold">إظهار آخر عملية بيع أعلى الصفحة</label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="ui-card p-6 space-y-5" data-labor-description-editor x-data="laborDescriptionEditor(@js($laborGroups))">
                     <div class="flex items-center gap-2">
                         <h2 class="ui-title text-xl font-bold">إعدادات البيع السريع</h2>

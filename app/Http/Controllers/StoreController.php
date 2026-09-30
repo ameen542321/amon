@@ -155,6 +155,10 @@ class StoreController extends Controller
             'labor_description_options.*.children.*.label' => 'required|string|max:100',
             'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
             'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
+            'show_quick_sale_tint' => 'required|boolean',
+            'quick_sale_tint_label' => 'nullable|required_if:show_quick_sale_tint,1|string|max:100',
+            'quick_sale_tint_description' => 'nullable|required_if:show_quick_sale_tint,1|string|max:180',
+            'show_latest_quick_sale' => 'required|boolean',
         ]);
 
         $user = auth()->user();
@@ -184,6 +188,10 @@ class StoreController extends Controller
                 ? $request->inventory_audit_start_date
                 : null,
             'labor_description_options' => $this->normalizeLaborDescriptionOptions($request->input('labor_description_options')),
+            'show_quick_sale_tint' => $request->boolean('show_quick_sale_tint'),
+            'quick_sale_tint_label' => trim((string) $request->input('quick_sale_tint_label', 'تضليل')),
+            'quick_sale_tint_description' => trim((string) $request->input('quick_sale_tint_description', 'إضافة عملية تضليل سريعة إلى السلة')),
+            'show_latest_quick_sale' => $request->boolean('show_latest_quick_sale'),
             'logo'                => null,
             'status'              => 'active',
             'slug'                => Str::slug($request->name) . '-' . uniqid(),
@@ -242,10 +250,18 @@ class StoreController extends Controller
             'labor_description_options.*.children.*.label' => 'required|string|max:100',
             'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
             'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
+            'show_quick_sale_tint' => 'required|boolean',
+            'quick_sale_tint_label' => 'nullable|required_if:show_quick_sale_tint,1|string|max:100',
+            'quick_sale_tint_description' => 'nullable|required_if:show_quick_sale_tint,1|string|max:180',
+            'show_latest_quick_sale' => 'required|boolean',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $validated['labor_description_options'] = $this->normalizeLaborDescriptionOptions($validated['labor_description_options'] ?? null);
+        $validated['show_quick_sale_tint'] = $request->boolean('show_quick_sale_tint');
+        $validated['show_latest_quick_sale'] = $request->boolean('show_latest_quick_sale');
+        $validated['quick_sale_tint_label'] = trim((string) ($validated['quick_sale_tint_label'] ?? 'تضليل'));
+        $validated['quick_sale_tint_description'] = trim((string) ($validated['quick_sale_tint_description'] ?? 'إضافة عملية تضليل سريعة إلى السلة'));
         $validated['number_of_shifts'] = (int) $validated['number_of_shifts'];
         $validated['inventory_audit_cycle_months'] = (int) $validated['inventory_audit_cycle_months'];
         if ($validated['inventory_audit_start_mode'] !== 'manual') {
