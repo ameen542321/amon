@@ -19,6 +19,7 @@ import './features/invoices/create-form';
 import './features/invoices/edit-form';
 import './features/accountant/expense-interface';
 import './features/employees/actions-interface';
+import './features/employees/edit-interface';
 import './features/employees/index-interface';
 import './features/employees/debt-interface';
 import './features/employees/owner-credit-collection-preview';
