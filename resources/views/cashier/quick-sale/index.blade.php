@@ -317,7 +317,10 @@
                                 </template>
                             </div>
                             <div x-show="activeLaborGroupIndex !== null && (laborDescriptionGroups[activeLaborGroupIndex]?.children || []).length" x-transition class="ui-card-muted mb-2 p-3">
-                                <p class="ui-text-caption ui-text-soft mb-2">اختر التفاصيل؛ الضغط المتكرر على العداد يزيد العدد.</p>
+                                <div class="mb-2 flex items-center gap-2">
+                                    <span class="ui-text-caption ui-text-soft">خيارات العمل</span>
+                                    <x-ui.help title="طريقة اختيار تفاصيل العمل" body="اضغط الخيار العادي لإضافته أو إزالته. خيار العداد يزيد مرة مع كل ضغطة، ويمكن إنقاصه بزر الناقص." />
+                                </div>
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="(child, childIndex) in (laborDescriptionGroups[activeLaborGroupIndex]?.children || [])" :key="`${childIndex}-${child.label}`">
                                         <span class="inline-flex items-center gap-1">
@@ -333,6 +336,7 @@
                         </div>
                     </div>
 
+                    @if($hasApprovedTaxNumber ?? false)
                     <div class="rounded-xl border ui-border ui-surface-muted-bg p-3 sm:col-span-2">
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             <div>
@@ -342,11 +346,13 @@
                                     <option value="15">ضريبة (15%)</option>
                                 </select>
                             </div>
-                            <div class="hidden rounded-xl border ui-border ui-status-warning-bg px-3 py-2 ui-text-caption font-bold leading-6 ui-status-warning md:flex md:items-center">
-                                تنبيه: عند اختيارك لقيمة ضريبة وانت لا تمتلك رقما ضريبيا معتمدا فانت تعرض نفسك للمسالة القانونية
+                            <div class="flex items-center gap-2 rounded-xl border ui-border ui-status-info-bg px-3 py-2 ui-text-caption font-bold leading-6 ui-status-info">
+                                <x-ui.help title="احتساب الضريبة" body="تظهر هذه الخيارات لأن المتجر يملك رقمًا ضريبيًا مسجلًا. اختر النسبة المناسبة للعملية." />
+                                <span>الضريبة متاحة لهذا المتجر.</span>
                             </div>
                         </div>
                     </div>
+                    @endif
 
                     <div class="space-y-4 ui-card p-4 sm:col-span-2">
                         {{-- أزرار أنواع الدفع --}}
