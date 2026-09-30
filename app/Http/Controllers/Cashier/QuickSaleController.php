@@ -36,7 +36,11 @@ class QuickSaleController extends Controller
             'tintProducts' => $tintProducts,
             'latestShiftOperation' => $latestShiftOperation,
             'quickSaleSubmitToken' => $quickSaleSubmitToken,
-            'laborDescriptionOptions' => $store?->labor_description_options_list ?? ['تضليل', 'تجليد', 'شغل يد'],
+            'laborDescriptionGroups' => $store?->labor_description_groups_list ?? [
+                ['label' => 'تضليل', 'children' => []],
+                ['label' => 'تجليد', 'children' => []],
+                ['label' => 'شغل يد', 'children' => []],
+            ],
             'hasApprovedTaxNumber' => filled($store?->tax_number),
             'hasAvailableTintProducts' => collect($tintProducts)->contains(
                 fn (array $product) => $product['quantity'] > 0 && count($product['fractions']) > 0

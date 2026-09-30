@@ -149,8 +149,12 @@ class StoreController extends Controller
             'inventory_audit_cycle_months' => 'required|integer|in:6,12',
             'inventory_audit_start_mode' => 'required|in:store_created_at,manual',
             'inventory_audit_start_date' => 'nullable|required_if:inventory_audit_start_mode,manual|date',
-            'labor_description_options' => 'nullable|array|max:6',
-            'labor_description_options.*' => 'nullable|string|max:100',
+            'labor_description_options' => 'nullable|array|max:8',
+            'labor_description_options.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children' => 'nullable|array|max:12',
+            'labor_description_options.*.children.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
+            'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
         ]);
 
         $user = auth()->user();
@@ -232,8 +236,12 @@ class StoreController extends Controller
             'inventory_audit_cycle_months' => 'required|integer|in:6,12',
             'inventory_audit_start_mode' => 'required|in:store_created_at,manual',
             'inventory_audit_start_date' => 'nullable|required_if:inventory_audit_start_mode,manual|date',
-            'labor_description_options' => 'nullable|array|max:6',
-            'labor_description_options.*' => 'nullable|string|max:100',
+            'labor_description_options' => 'nullable|array|max:8',
+            'labor_description_options.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children' => 'nullable|array|max:12',
+            'labor_description_options.*.children.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
+            'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -283,14 +291,42 @@ class StoreController extends Controller
 
     private function normalizeLaborDescriptionOptions(array|string|null $value): array
     {
-        $lines = is_array($value) ? $value : (preg_split('/\R/u', (string) $value) ?: []);
+        $groups = is_array($value) ? $value : (preg_split('/\R/u', (string) $value) ?: []);
+        $normalized = collect($groups)->map(function ($group): ?array {
+            if (is_string($group)) {
+                $label = trim($group);
 
-        $options = array_values(array_slice(array_unique(array_filter(array_map(
-            static fn ($line) => trim($line),
-            $lines
-        ))), 0, 6));
+                return $label === '' ? null : ['label' => $label, 'children' => []];
+            }
 
-        return $options ?: ['تضليل', 'تجليد', 'شغل يد'];
+            $label = trim((string) ($group['label'] ?? ''));
+            if ($label === '') {
+                return null;
+            }
+
+            $children = collect($group['children'] ?? [])->map(function ($child): ?array {
+                $childLabel = trim((string) ($child['label'] ?? ''));
+                if ($childLabel === '') {
+                    return null;
+                }
+
+                $type = ($child['type'] ?? 'toggle') === 'counter' ? 'counter' : 'toggle';
+
+                return [
+                    'label' => $childLabel,
+                    'type' => $type,
+                    'max' => $type === 'counter' ? max(1, min(20, (int) ($child['max'] ?? 4))) : 1,
+                ];
+            })->filter()->unique('label')->values()->take(12)->all();
+
+            return ['label' => $label, 'children' => $children];
+        })->filter()->unique('label')->values()->take(8)->all();
+
+        return $normalized ?: [
+            ['label' => 'تضليل', 'children' => []],
+            ['label' => 'تجليد', 'children' => []],
+            ['label' => 'شغل يد', 'children' => []],
+        ];
     }
 
     /**

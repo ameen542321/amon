@@ -41,6 +41,7 @@ import './features/accountant/inventory-count';
 // سلوك المبيعات اليومية مستخرج من Blade مع عقد إعداد يحفظ بيانات الصفحة الحالية.
 import './features/stores/daily-sales';
 import './features/stores/store-sales-chart';
+import './features/stores/labor-description-editor';
 import './features/admin-notification-recipients';
 import './features/security-session-monitor';
 import './features/store-products/product-form-shared';

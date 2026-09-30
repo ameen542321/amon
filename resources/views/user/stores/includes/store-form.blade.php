@@ -104,22 +104,40 @@
 
                 {{-- إعدادات البيع السريع --}}
                 @php
-                    $laborOptions = collect(old('labor_description_options', $store->labor_description_options_list ?? ['تضليل', 'تجليد', 'شغل يد']))->pad(6, '')->take(6);
+                    $laborGroups = old('labor_description_options', $store->labor_description_groups_list ?? [
+                        ['label' => 'تضليل', 'children' => []],
+                        ['label' => 'تجليد', 'children' => []],
+                        ['label' => 'شغل يد', 'children' => []],
+                    ]);
                 @endphp
-                <div class="ui-card p-6 space-y-5">
+                <div class="ui-card p-6 space-y-5" data-labor-description-editor x-data="laborDescriptionEditor(@js($laborGroups))">
                     <div class="flex items-center gap-2">
                         <h2 class="ui-title text-xl font-bold">إعدادات البيع السريع</h2>
-                        <x-ui.help title="خيارات أجور العمل" body="هذه الخيارات تظهر كأزرار جاهزة داخل حقل وصف أجور العمل. اكتب كل خيار في حقل مستقل، وبحد أقصى 6 خيارات." />
-                        <x-ui.help variant="warning" title="القيم الافتراضية" body="القيم الافتراضية عند ترك الحقول فارغة: تضليل، تجليد، شغل يد. سيتم اعتماد أول 6 خيارات فقط." />
+                        <x-ui.help title="مجموعات أجور العمل" body="أضف خيارًا رئيسيًا مثل تضليل، ثم أضف خياراته الفرعية مثل أمامي وخلفي. يمكن جعل الخيار الفرعي عدادًا مثل درايش." />
+                        <x-ui.help variant="warning" title="العداد" body="الخيار الفرعي من نوع عداد يزيد مع كل ضغطة في شاشة البيع حتى الحد الأعلى الذي يحدده المالك." />
                     </div>
-                    <div class="space-y-3">
-                        @foreach($laborOptions as $option)
-                            <div>
-                                <label class="ui-text-caption ui-text-soft font-bold">الخيار {{ $loop->iteration }}</label>
-                                <input type="text" name="labor_description_options[]" value="{{ $option }}" maxlength="100" class="ui-input mt-1 px-4 py-3">
-                            </div>
-                        @endforeach
+                    <div class="space-y-4">
+                        <template x-for="(group, groupIndex) in groups" :key="group.key">
+                            <section class="ui-card-muted p-4 space-y-4">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                    <label class="flex-1"><span class="ui-label">الخيار الرئيسي</span><input class="ui-input mt-1" maxlength="100" required x-model="group.label" :name="`labor_description_options[${groupIndex}][label]`" placeholder="مثال: تضليل"></label>
+                                    <button type="button" class="ui-btn ui-btn-danger" @click="removeGroup(groupIndex)" :disabled="groups.length === 1">حذف الرئيسي</button>
+                                </div>
+                                <div class="space-y-3">
+                                    <template x-for="(child, childIndex) in group.children" :key="child.key">
+                                        <div class="ui-frame-row grid gap-3 sm:grid-cols-12 sm:items-end">
+                                            <label class="sm:col-span-5"><span class="ui-label">الخيار الفرعي</span><input class="ui-input mt-1" maxlength="100" required x-model="child.label" :name="`labor_description_options[${groupIndex}][children][${childIndex}][label]`" placeholder="مثال: أمامي أو درايش"></label>
+                                            <label class="sm:col-span-3"><span class="ui-label">نوع الاختيار</span><select class="ui-input mt-1" x-model="child.type" :name="`labor_description_options[${groupIndex}][children][${childIndex}][type]`"><option value="toggle">اختيار عادي</option><option value="counter">عداد بالضغط</option></select></label>
+                                            <label class="sm:col-span-2" x-show="child.type === 'counter'"><span class="ui-label">الحد الأعلى</span><input type="number" class="ui-input mt-1" min="1" max="20" step="1" x-model.number="child.max" :required="child.type === 'counter'" :name="`labor_description_options[${groupIndex}][children][${childIndex}][max]`"></label>
+                                            <button type="button" class="ui-btn ui-btn-danger sm:col-span-2" @click="removeChild(groupIndex, childIndex)">حذف الفرعي</button>
+                                        </div>
+                                    </template>
+                                    <button type="button" class="ui-btn ui-btn-secondary" @click="addChild(groupIndex)" :disabled="group.children.length >= 12">إضافة خيار فرعي</button>
+                                </div>
+                            </section>
+                        </template>
                     </div>
+                    <button type="button" class="ui-btn ui-btn-info" @click="addGroup()" :disabled="groups.length >= 8">إضافة خيار رئيسي</button>
                 </div>
 
                 {{-- إعدادات الشفتات --}}

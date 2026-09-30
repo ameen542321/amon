@@ -305,15 +305,29 @@
 
                         <div x-show="labor_total > 0" x-transition class="ui-section-divider ui-section-divider-sm">
                             <label class="ui-text-muted ui-text-caption font-bold block mb-1 pr-1 italic text-right">📝 وصف العمل / ملاحظات</label>
-                            {{-- أزرار جاهزة لتسريع كتابة وصف عمل اليد بدون التأثير على الإدخال اليدوي --}}
+                            {{-- مجموعات رئيسية وفرعية تضبط النص فقط ولا تغير أي حساب أو مخزون. --}}
                             <div class="flex flex-wrap gap-2 mb-2">
-                                <template x-for="option in laborDescriptionOptions" :key="option">
+                                <template x-for="(group, groupIndex) in laborDescriptionGroups" :key="`${groupIndex}-${group.label}`">
                                     <button type="button"
-                                            @click="appendLaborDescription(option)"
+                                            @click="selectLaborGroup(groupIndex)"
+                                            :class="activeLaborGroupIndex === groupIndex ? 'is-active' : ''"
                                             class="ui-quick-sale-preset ui-text-caption transition">
-                                        <span x-text="option"></span>
+                                        <span x-text="group.label"></span>
                                     </button>
                                 </template>
+                            </div>
+                            <div x-show="activeLaborGroupIndex !== null && (laborDescriptionGroups[activeLaborGroupIndex]?.children || []).length" x-transition class="ui-card-muted mb-2 p-3">
+                                <p class="ui-text-caption ui-text-soft mb-2">اختر التفاصيل؛ الضغط المتكرر على العداد يزيد العدد.</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="(child, childIndex) in (laborDescriptionGroups[activeLaborGroupIndex]?.children || [])" :key="`${childIndex}-${child.label}`">
+                                        <span class="inline-flex items-center gap-1">
+                                            <button type="button" @click="selectLaborChild(childIndex)" :class="Number(laborChildValues[childIndex] || 0) > 0 ? 'is-active' : ''" class="ui-quick-sale-preset ui-text-caption transition">
+                                                <span x-text="child.type === 'counter' && Number(laborChildValues[childIndex] || 0) > 0 ? `${child.label} (${laborChildValues[childIndex]})` : child.label"></span>
+                                            </button>
+                                            <button x-show="child.type === 'counter' && Number(laborChildValues[childIndex] || 0) > 0" type="button" @click="decrementLaborChild(childIndex)" class="ui-btn ui-btn-secondary px-3 py-2" :aria-label="`إنقاص ${child.label}`">−</button>
+                                        </span>
+                                    </template>
+                                </div>
                             </div>
                             <textarea x-model="description" placeholder="وصف سريع للعمل..." class="w-full ui-surface-muted-bg border ui-border ui-title rounded-xl px-4 py-3 text-sm outline-none text-right font-bold" rows="2"></textarea>
                         </div>
@@ -589,7 +603,11 @@
 
 {{-- عقد إعداد البيع السريع: ينقل المسارات والحالات فقط، وتبقى الحسابات والتحقق في الوحدة المستخرجة دون تغيير. --}}
 <div class="hidden" data-quick-sale-config="{{ json_encode([
-    'laborDescriptionOptions' => $laborDescriptionOptions ?? ['تضليل', 'تجليد', 'شغل يد'],
+    'laborDescriptionGroups' => $laborDescriptionGroups ?? [
+        ['label' => 'تضليل', 'children' => []],
+        ['label' => 'تجليد', 'children' => []],
+        ['label' => 'شغل يد', 'children' => []],
+    ],
     'hasStoreTaxNumber' => (bool) auth('accountant')->user()->store->tax_number,
     'hasApprovedTaxNumber' => (bool) ($hasApprovedTaxNumber ?? false),
     'clearPendingOnSuccess' => (bool) session('success'),

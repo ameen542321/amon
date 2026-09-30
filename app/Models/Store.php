@@ -96,14 +96,61 @@ public function invoices()
 
 public function getLaborDescriptionOptionsListAttribute(): array
 {
-    $options = is_array($this->labor_description_options) ? $this->labor_description_options : [];
+    return array_column($this->labor_description_groups_list, 'label');
+}
 
-    $options = array_values(array_unique(array_filter(array_map(
-        static fn ($option) => trim((string) $option),
-        $options
-    ))));
+public function getLaborDescriptionGroupsListAttribute(): array
+{
+    $storedGroups = is_array($this->labor_description_options) ? $this->labor_description_options : [];
+    $groups = collect($storedGroups)->map(function ($group): ?array {
+        if (is_string($group)) {
+            $label = trim($group);
 
-    return $options ?: ['تضليل', 'تجليد', 'شغل يد'];
+            return $label === '' ? null : ['label' => $label, 'children' => []];
+        }
+
+        if (! is_array($group)) {
+            return null;
+        }
+
+        $label = trim((string) ($group['label'] ?? ''));
+        if ($label === '') {
+            return null;
+        }
+
+        $children = collect($group['children'] ?? [])->map(function ($child): ?array {
+            if (is_string($child)) {
+                $childLabel = trim($child);
+
+                return $childLabel === '' ? null : ['label' => $childLabel, 'type' => 'toggle', 'max' => 1];
+            }
+
+            if (! is_array($child)) {
+                return null;
+            }
+
+            $childLabel = trim((string) ($child['label'] ?? ''));
+            if ($childLabel === '') {
+                return null;
+            }
+
+            $type = ($child['type'] ?? 'toggle') === 'counter' ? 'counter' : 'toggle';
+
+            return [
+                'label' => $childLabel,
+                'type' => $type,
+                'max' => $type === 'counter' ? max(1, min(20, (int) ($child['max'] ?? 4))) : 1,
+            ];
+        })->filter()->unique('label')->values()->all();
+
+        return ['label' => $label, 'children' => $children];
+    })->filter()->unique('label')->values()->take(8)->all();
+
+    return $groups ?: [
+        ['label' => 'تضليل', 'children' => []],
+        ['label' => 'تجليد', 'children' => []],
+        ['label' => 'شغل يد', 'children' => []],
+    ];
 }
     // إضافة علاقة الإعدادات إذا كانت موجودة في جداولك
     // public function settings() { return $this->hasOne(StoreSetting::class); }
