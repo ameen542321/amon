@@ -56,7 +56,7 @@
                 </div>
             @endif
             {{-- يظهر زر التضليل فقط عند وجود رول تضليل متوفر وله خيارات تجزئة. --}}
-            @if(($showTintShortcut ?? true) && $hasAvailableTintProducts)
+            @if(($showTintShortcut ?? false) && $hasAvailableTintProducts)
             <div class="rounded-2xl border ui-border ui-card   p-3 shadow-lg sm:p-4">
                 <button type="button"
                         @click="window.dispatchEvent(new CustomEvent('open-tint-sale-modal'))"

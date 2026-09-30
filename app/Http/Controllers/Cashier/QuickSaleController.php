@@ -27,7 +27,7 @@ class QuickSaleController extends Controller
     {
         $accountant = auth('accountant')->user();
         $store = $accountant->store;
-        $showTintShortcut = (bool) ($store?->show_quick_sale_tint ?? true);
+        $showTintShortcut = (bool) ($store?->show_quick_sale_tint ?? false);
         $showLatestQuickSale = (bool) ($store?->show_latest_quick_sale ?? true);
         $tintProducts = $showTintShortcut ? $this->tintProductsForStore($accountant->store_id) : [];
         $latestShiftOperation = $showLatestQuickSale ? $this->latestQuickSaleOperationForShift($accountant) : null;

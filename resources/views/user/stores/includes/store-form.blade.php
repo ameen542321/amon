@@ -109,7 +109,7 @@
                         ['label' => 'تجليد', 'children' => []],
                         ['label' => 'شغل يد', 'children' => []],
                     ]);
-                    $showTintShortcut = (bool) old('show_quick_sale_tint', $store->show_quick_sale_tint ?? true);
+                    $showTintShortcut = (bool) old('show_quick_sale_tint', $store->show_quick_sale_tint ?? false);
                     $showLatestQuickSale = (bool) old('show_latest_quick_sale', $store->show_latest_quick_sale ?? true);
                 @endphp
                 <div class="ui-card p-6 space-y-5" x-data="{ showTintShortcut: @js($showTintShortcut) }">

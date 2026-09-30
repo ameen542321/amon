@@ -21,7 +21,7 @@ return new class extends Migration
 
         Schema::table('stores', function (Blueprint $table) use ($missing) {
             if ($missing->contains('show_quick_sale_tint')) {
-                $table->boolean('show_quick_sale_tint')->default(true);
+                $table->boolean('show_quick_sale_tint')->default(false);
             }
 
             if ($missing->contains('quick_sale_tint_label')) {
