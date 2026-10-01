@@ -1169,13 +1169,21 @@ class StoreController extends Controller
             ->monthlyRowsForStore($store->id, $month, $start, $end);
 
         $employeeIds = $rows->pluck('id')->map(fn ($id) => (int) $id)->filter()->values();
+        $withdrawals = \App\Models\Withdrawal::query()
+            ->where('store_id', $store->id)
+            ->where('person_type', \App\Models\Employee::class)
+            ->whereIn('person_id', $employeeIds)
+            ->betweenAccountingDates($start, $end)
+            ->with('addedBy:id,name')
+            ->get(['id', 'person_id', 'person_type', 'amount', 'date', 'business_date', 'description', 'added_by', 'created_at']);
+
         $creditSales = \App\Models\CreditSale::query()
             ->where('store_id', $store->id)
             ->where('person_type', \App\Models\Employee::class)
             ->whereIn('person_id', $employeeIds)
             ->betweenOperationDates($start, $end)
-            ->with('person:id,name')
-            ->get(['id', 'person_id', 'person_type', 'amount', 'remaining_amount', 'date', 'description', 'status']);
+            ->with(['person:id,name', 'addedBy:id,name'])
+            ->get(['id', 'person_id', 'person_type', 'amount', 'remaining_amount', 'date', 'description', 'credit_note', 'status', 'added_by']);
 
         $creditCollectionsByEmployee = DB::table('employee_credit_collections')
             ->where('store_id', $store->id)
@@ -1185,6 +1193,25 @@ class StoreController extends Controller
             ->select('person_id', DB::raw('COALESCE(SUM(amount), 0) as aggregate'))
             ->groupBy('person_id')
             ->pluck('aggregate', 'person_id');
+
+        $creditCollectionRows = DB::table('employee_credit_collections')
+            ->leftJoin('users', 'users.id', '=', 'employee_credit_collections.collected_by')
+            ->where('employee_credit_collections.store_id', $store->id)
+            ->where('employee_credit_collections.person_type', \App\Models\Employee::class)
+            ->whereIn('employee_credit_collections.person_id', $employeeIds)
+            ->whereBetween('employee_credit_collections.collection_date', [$start->toDateString(), $end->toDateString()])
+            ->orderByDesc('employee_credit_collections.collection_date')
+            ->orderByDesc('employee_credit_collections.id')
+            ->get([
+                'employee_credit_collections.id',
+                'employee_credit_collections.person_id',
+                'employee_credit_collections.credit_sale_id',
+                'employee_credit_collections.amount',
+                'employee_credit_collections.collection_date',
+                'employee_credit_collections.payment_method_label',
+                'employee_credit_collections.note',
+                'users.name as collector_name',
+            ]);
 
         $debts = \App\Models\Debt::query()
             ->where('store_id', $store->id)
@@ -1207,8 +1234,8 @@ class StoreController extends Controller
             ->where('person_type', \App\Models\Employee::class)
             ->whereIn('person_id', $employeeIds)
             ->betweenOperationDates($start, $end)
-            ->with('person:id,name')
-            ->get(['person_id', 'person_type', 'date', 'penalty_amount', 'description']);
+            ->with(['person:id,name', 'addedBy:id,name'])
+            ->get(['id', 'person_id', 'person_type', 'date', 'penalty_amount', 'description', 'added_by']);
 
         $logs = \App\Models\EmployeeLog::query()
             ->where('store_id', $store->id)
@@ -1219,16 +1246,23 @@ class StoreController extends Controller
             ->with('person:id,name')
             ->get(['person_id', 'person_type', 'action_name', 'description', 'meta', 'created_at']);
 
-        $rows = $rows->map(function (array $row) use ($creditSales, $creditCollectionsByEmployee, $debts, $debtCollectionLogs, $logs, $start, $end) {
+        $rows = $rows->map(function (array $row) use ($withdrawals, $creditSales, $creditCollectionsByEmployee, $creditCollectionRows, $debts, $debtCollectionLogs, $absences, $logs) {
             $employeeId = (int) $row['id'];
+            $employeeWithdrawals = $withdrawals->where('person_id', $employeeId);
             $employeeCreditSales = $creditSales->where('person_id', $employeeId);
             $employeeDebts = $debts->where('person_id', $employeeId);
+            $employeeAbsences = $absences->where('person_id', $employeeId);
             $employeeLogs = $logs->where('person_id', $employeeId);
 
             $creditCollections = (float) ($creditCollectionsByEmployee[$employeeId] ?? 0);
 
             $row['credit_sales'] = (float) $employeeCreditSales->sum('amount');
             $row['credit_collections'] = $creditCollections;
+            $row['withdrawal_rows'] = $employeeWithdrawals->sortByDesc(fn ($withdrawal) => $withdrawal->business_date ?? $withdrawal->date ?? $withdrawal->created_at)->values();
+            $row['absence_rows'] = $employeeAbsences->sortByDesc('date')->values();
+            $row['credit_sale_rows'] = $employeeCreditSales->sortByDesc('date')->values();
+            $row['credit_collection_rows'] = $creditCollectionRows->where('person_id', $employeeId)->values();
+            $row['debt_rows'] = $employeeDebts->where('amount', '>', 0)->sortByDesc('date')->values();
             $row['debt_collections'] = abs((float) $employeeDebts->where('amount', '<', 0)->sum('amount'));
             $row['debt_collection_rows'] = $employeeDebts
                 ->where('amount', '<', 0)

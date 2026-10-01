@@ -39,7 +39,13 @@ class DashboardController extends Controller
             ->count();
         $pendingPurchaseOrderAlerts = StorePurchaseOrder::with(['items:id,store_purchase_order_id,inventory_count_attempt'])->where('store_id', $storeId)
             ->where(fn ($query) => $query->where('accountant_id', $accountant->id)->orWhereNull('accountant_id'))
-            ->whereIn('workflow_status', ['returned_for_edit', 'returned_for_count', 'pending_receipt_confirmation'])
+            ->where(function ($query) {
+                $query->whereIn('workflow_status', ['returned_for_edit', 'returned_for_count', 'pending_receipt_confirmation'])
+                    ->orWhere(function ($completedQuery) {
+                        $completedQuery->where('workflow_status', 'approved_and_supplied')
+                            ->where('final_notice_until', '>', now());
+                    });
+            })
             ->latest('updated_at')
             ->limit(5)
             ->get();

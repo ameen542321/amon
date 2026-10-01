@@ -71,46 +71,11 @@
                         <div class="rounded-xl ui-surface-muted-bg border ui-border p-3"><p class="ui-text-muted ui-text-caption">الباقي من الراتب</p><p class="ui-status-success font-bold">{{ number_format($row['net_salary'], 2) }} ر.س</p></div>
                         <div class="rounded-xl ui-surface-muted-bg border ui-border p-3"><p class="ui-text-muted ui-text-caption">نقل / تغيير راتب</p><p class="ui-text-soft font-bold">{{ number_format($row['transfers_count'] ?? 0) }} / {{ number_format($row['salary_changes_count'] ?? 0) }}</p></div>
                     </div>
+                    @include('user.stores.reports.partials.employee-operation-sections', ['row' => $row])
                     @if(!empty($row['changes_summary']))
                         <p class="mt-3 ui-text-caption ui-text-muted ui-surface-muted-bg border ui-border rounded-xl p-3">{{ $row['changes_summary'] }}</p>
                     @endif
 
-                    @if(!empty($row['debt_collection_rows']))
-                        <div class="mt-4 rounded-xl border ui-border ui-status-info-bg overflow-hidden">
-                            <div class="px-4 py-3 border-b ui-border">
-                                <h3 class="text-sm font-bold ui-status-info">تفاصيل تحصيلات المديونية</h3>
-                                <p class="ui-text-caption ui-text-muted mt-1">تظهر هنا التحصيلات بتاريخها ومبلغها ومن نفذ التحصيل. عند وصول أصل المديونية إلى صفر تختفي من قوائم المديونيات القائمة بدون حذف فعلي.</p>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full ui-text-caption">
-                                    <thead class="ui-surface-muted-bg ui-text-muted">
-                                        <tr>
-                                            <th class="px-3 py-2 text-right">رقم التحصيل</th>
-                                            <th class="px-3 py-2 text-right">أصل المديونية</th>
-                                            <th class="px-3 py-2 text-right">التاريخ</th>
-                                            <th class="px-3 py-2 text-right">المبلغ المحصل</th>
-                                            <th class="px-3 py-2 text-right">من حصلها</th>
-                                            <th class="px-3 py-2 text-right">طريقة التحصيل</th>
-                                            <th class="px-3 py-2 text-right">الوصف</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-ui-border ui-text-soft">
-                                        @foreach($row['debt_collection_rows'] as $collection)
-                                            <tr>
-                                                <td class="px-3 py-2 font-mono">#{{ $collection['id'] }}</td>
-                                                <td class="px-3 py-2 font-mono">{{ $collection['parent_id'] ? '#' . $collection['parent_id'] : '—' }}</td>
-                                                <td class="px-3 py-2">{{ $collection['date'] ?? '—' }}</td>
-                                                <td class="px-3 py-2 ui-status-info font-bold">{{ number_format($collection['amount'] ?? 0, 2) }} ر.س</td>
-                                                <td class="px-3 py-2">{{ $collection['collector'] ?? 'غير محدد' }}</td>
-                                                <td class="px-3 py-2">{{ $collection['payment_method_label'] ?? 'كاش' }} <span class="ui-text-muted">({{ number_format($collection['cash_amount'] ?? 0, 2) }} كاش / {{ number_format($collection['card_amount'] ?? 0, 2) }} شبكة)</span>@if(!empty($collection['note']))<span class="block ui-text-muted">{{ $collection['note'] }}</span>@endif</td>
-                                                <td class="px-3 py-2">{{ $collection['description'] ?? '—' }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @endif
                 </div>
             </div>
         @empty
