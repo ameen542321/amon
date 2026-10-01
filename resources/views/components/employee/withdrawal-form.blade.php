@@ -13,7 +13,7 @@
                     <x-ui.help title="سحب موظف" body="سجل المبلغ وتاريخ العملية. يظهر السحب في سجل الموظف وتقارير الشفت." />
                 </div>
 
-                {{-- إصلاح مطبق: إغلاق المودال ومزامنة التاريخ يستخدمان عقود الإجراءات المشتركة. --}}
+                {{-- إغلاق المودال يستخدم عقد الإجراءات المشترك. --}}
                 <button type="button"
                         data-ui-hide="{{ $modalId }}"
                         class="ui-modal-close-danger flex items-center justify-center" aria-label="إغلاق">×</button>
@@ -50,22 +50,13 @@
                 <div>
                     <label class="block ui-text-soft font-medium mb-1">تاريخ السحب</label>
 
-                    <div class="relative">
-                        <input type="text"
-                               name="date"
-                               id="dateInput-{{ $modalId }}"
-                               value="{{ now()->toDateString() }}"
-                               required
-                               class="ui-input w-full px-10 py-3 cursor-pointer">
-
-                        <input type="date"
-                               id="hiddenDate-{{ $modalId }}"
-                               class="absolute inset-0 opacity-0 cursor-pointer"
-                               value="{{ now()->toDateString() }}"
-                               data-ui-sync-value="dateInput-{{ $modalId }}">
-
-                        <i class="fa-solid fa-calendar ui-text-muted absolute left-3 top-1/2 -translate-y-1/2"></i>
-                    </div>
+                    {{-- حقل تاريخ أصلي ظاهر؛ يعمل مباشرة بالماوس واللمس ولا يعتمد على حقل شفاف للمزامنة. --}}
+                    <input type="date"
+                           name="date"
+                           id="dateInput-{{ $modalId }}"
+                           value="{{ old('date', now()->toDateString()) }}"
+                           required
+                           class="ui-input w-full px-4 py-3 cursor-pointer">
                 </div>
 
                 {{-- زر الحفظ --}}

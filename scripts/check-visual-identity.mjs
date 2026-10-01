@@ -184,9 +184,11 @@ if (!appEntry.includes("./features/ui-actions")
     || !uiActionsFeature.includes('[data-ui-sync-value]')) {
     failures.push('ui actions: shared show/hide/print/value-sync feature is not fully wired');
 }
-if ([employeeAbsenceForm, employeeWithdrawalForm].some((view) => !view.includes('data-ui-sync-value='))
+if (!employeeAbsenceForm.includes('data-ui-sync-value=')
+    || !employeeWithdrawalForm.includes('type="date"')
+    || !employeeWithdrawalForm.includes('name="date"')
     || [employeeAbsenceForm, employeeWithdrawalForm, employeeDebtForm].some((view) => !view.includes('data-ui-hide='))) {
-    failures.push('employee form components: modal/date actions must use ui-actions contracts');
+    failures.push('employee form components: modal actions and usable date inputs must keep their shared contracts');
 }
 if (!employeeActionsView.includes('data-ui-reset-details')
     || employeeActionsView.includes('openEmployeeOperationModal(')) {
