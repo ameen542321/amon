@@ -11,17 +11,22 @@ class EmployeeWithdrawalRevisionContractTest extends TestCase
         $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/Store/EmployeeFinanceController.php');
         $routes = file_get_contents(dirname(__DIR__, 2).'/routes/accountant.php');
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/accountants/pos/withdrawals.blade.php');
-        $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/2026_10_02_000001_add_accountant_revision_tracking_to_employee_withdrawals.php');
+        $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/2026_10_02_000002_track_accountant_withdrawal_actions_per_employee.php');
 
-        self::assertStringContainsString("unsignedTinyInteger('accountant_revision_count')->default(0)", $migration);
+        self::assertStringContainsString("Schema::create('employee_withdrawal_accountant_actions'", $migration);
+        self::assertStringContainsString("['store_id', 'person_id', 'person_type', 'business_date', 'action']", $migration);
         self::assertStringContainsString('assertAccountantCanReviseWithdrawal', $controller);
+        self::assertStringContainsString('consumeAccountantWithdrawalAction', $controller);
         self::assertStringContainsString('$withdrawalBusinessDate !== $currentBusinessDate', $controller);
         self::assertStringContainsString('! is_null($withdrawal->daily_balance_id)', $controller);
-        self::assertStringContainsString('(int) $withdrawal->accountant_revision_count >= 1', $controller);
-        self::assertStringContainsString("'accountant_revision_count' => 1", $controller);
+        self::assertStringContainsString("'action' => \$action", $controller);
+        self::assertStringContainsString("\$action === 'update' ? 'التعديل' : 'الحذف'", $controller);
+        self::assertStringContainsString("contains('action', 'update')", $controller);
+        self::assertStringContainsString("contains('action', 'delete')", $controller);
         self::assertStringContainsString("->name('withdrawal.update')", $routes);
         self::assertStringContainsString("->name('withdrawal.destroy')", $routes);
-        self::assertStringContainsString('يمكن تعديل السحب أو حذفه مرة واحدة فقط', $view);
+        self::assertStringContainsString('فرصة تعديل واحدة وفرصة حذف واحدة، وهما مستقلتان', $view);
+        self::assertStringContainsString('يمكن استخدام الفرص نفسها لموظف آخر', $view);
         self::assertStringContainsString('data-ui-confirm-title="تأكيد حذف السحب"', $view);
     }
 

@@ -15,7 +15,7 @@
 
         <div class="ui-alert ui-alert-warning">
             <div class="font-bold">تنبيه التعديل والحذف</div>
-            <p class="mt-1">يمكن تعديل السحب أو حذفه مرة واحدة فقط، وخلال اليوم المحاسبي المفتوح <strong>{{ $currentBusinessDate }}</strong>. بعد استخدام أحد الخيارين لا يسمح للمحاسب بإجراء تعديل آخر على السحب نفسه.</p>
+            <p class="mt-1">لكل موظف خلال اليوم المحاسبي المفتوح <strong>{{ $currentBusinessDate }}</strong>: فرصة تعديل واحدة وفرصة حذف واحدة، وهما مستقلتان. يمكن استخدام الفرص نفسها لموظف آخر.</p>
         </div>
 
         {{-- قسم اختيار الموظف --}}
@@ -85,24 +85,30 @@
                             </p>
                         @endif
                         <div class="mt-3 flex flex-wrap items-center gap-2">
-                            @if($w->can_accountant_revise)
-                                <button type="button"
-                                        data-ui-show="withdrawalEditModal"
-                                        data-ui-edit-form="withdrawalEditForm"
-                                        data-id="{{ $w->id }}"
-                                        data-amount="{{ $w->amount }}"
-                                        data-description="{{ $w->description }}"
-                                        class="ui-btn ui-btn-secondary px-3 py-2 ui-text-caption">تعديل</button>
-                                <form method="POST"
-                                      action="{{ route('accountant.pos.withdrawal.destroy', $w) }}"
-                                      data-ui-confirm="سيتم حذف السحب واستهلاك فرصة التعديل أو الحذف الوحيدة لهذا السحب. هل تريد المتابعة؟"
-                                      data-ui-confirm-title="تأكيد حذف السحب">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="ui-btn ui-btn-danger px-3 py-2 ui-text-caption">حذف</button>
-                                </form>
-                            @elseif((int) $w->accountant_revision_count >= 1)
-                                <span class="ui-badge ui-badge-neutral">استُخدمت فرصة التعديل أو الحذف</span>
+                            @if($w->is_open_accounting_day)
+                                @if($w->can_accountant_edit)
+                                    <button type="button"
+                                            data-ui-show="withdrawalEditModal"
+                                            data-ui-edit-form="withdrawalEditForm"
+                                            data-id="{{ $w->id }}"
+                                            data-amount="{{ $w->amount }}"
+                                            data-description="{{ $w->description }}"
+                                            class="ui-btn ui-btn-secondary px-3 py-2 ui-text-caption">تعديل</button>
+                                @else
+                                    <span class="ui-badge ui-badge-neutral">استُخدمت فرصة تعديل هذا الموظف</span>
+                                @endif
+                                @if($w->can_accountant_delete)
+                                    <form method="POST"
+                                          action="{{ route('accountant.pos.withdrawal.destroy', $w) }}"
+                                          data-ui-confirm="سيتم حذف السحب واستهلاك فرصة الحذف الوحيدة لهذا الموظف اليوم. تبقى فرصة التعديل مستقلة إن لم تُستخدم. هل تريد المتابعة؟"
+                                          data-ui-confirm-title="تأكيد حذف السحب">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="ui-btn ui-btn-danger px-3 py-2 ui-text-caption">حذف</button>
+                                    </form>
+                                @else
+                                    <span class="ui-badge ui-badge-neutral">استُخدمت فرصة حذف هذا الموظف</span>
+                                @endif
                             @else
                                 <span class="ui-badge ui-badge-neutral">خارج اليوم المحاسبي المفتوح</span>
                             @endif
@@ -200,14 +206,14 @@
         <div class="ui-modal-header">
             <div>
                 <h3 class="ui-title text-lg font-bold">تعديل السحب</h3>
-                <p class="ui-text-soft ui-text-caption mt-1">هذه الفرصة متاحة مرة واحدة فقط خلال اليوم المحاسبي المفتوح.</p>
+                <p class="ui-text-soft ui-text-caption mt-1">فرصة تعديل واحدة لكل موظف خلال اليوم المحاسبي المفتوح، وفرصة الحذف مستقلة عنها.</p>
             </div>
             <button type="button" data-ui-hide="withdrawalEditModal" data-ui-scroll-unlock class="ui-modal-close-danger" aria-label="إغلاق">×</button>
         </div>
         <form id="withdrawalEditForm"
               method="POST"
               data-ui-action-template="{{ route('accountant.pos.withdrawal.update', ['withdrawal' => '__ID__']) }}"
-              data-ui-confirm="بعد حفظ التعديل لن تتمكن من تعديل أو حذف هذا السحب مرة أخرى كمحاسب. هل تريد المتابعة؟"
+              data-ui-confirm="بعد الحفظ ستُستهلك فرصة تعديل هذا الموظف اليوم، بينما تبقى فرصة الحذف مستقلة إن لم تُستخدم. هل تريد المتابعة؟"
               data-ui-confirm-title="تأكيد تعديل السحب"
               class="p-5 space-y-4">
             @csrf

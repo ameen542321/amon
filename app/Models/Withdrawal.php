@@ -41,15 +41,11 @@ class Withdrawal extends Model
         'created_at',       // لضبط تاريخ الإنشاء حسب التاريخ المدخل
         'business_date',
         'daily_balance_id',
-        'accountant_revision_count',
-        'accountant_revised_at',
     ];
 
     protected $casts = [
         'date' => 'date',
         'business_date' => 'date',
-        'accountant_revision_count' => 'integer',
-        'accountant_revised_at' => 'datetime',
     ];
 
     /*
