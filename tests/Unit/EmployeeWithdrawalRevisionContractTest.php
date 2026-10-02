@@ -39,6 +39,10 @@ class EmployeeWithdrawalRevisionContractTest extends TestCase
         self::assertStringContainsString("editForm.action = actionTemplate.replace('__ID__'", $actions);
         self::assertStringContainsString('confirmationForm.requestSubmit(submitter)', $dialogs);
         self::assertStringContainsString('confirmationForm.dataset.uiConfirmBusy', $dialogs);
+        self::assertStringContainsString("confirmationForm.hasAttribute('data-ui-confirm-hide-parent')", $dialogs);
+        self::assertStringContainsString("parentDialog.classList.add('hidden')", $dialogs);
+        self::assertStringContainsString("parentDialog.classList.remove('hidden')", $dialogs);
+        self::assertStringContainsString('data-ui-confirm-hide-parent', $view);
         self::assertStringContainsString("import './features/ui-dialogs'", $app);
         self::assertStringContainsString("import './features/ui-actions'", $app);
     }
@@ -63,5 +67,6 @@ class EmployeeWithdrawalRevisionContractTest extends TestCase
         self::assertStringContainsString('type="submit"', $view);
         self::assertStringContainsString('data-ui-confirm-busy="جاري حفظ التعديل..."', $view);
         self::assertStringContainsString('data-ui-confirm-busy="جاري الحذف..."', $view);
+        self::assertSame(2, substr_count($view, 'data-ui-confirm-hide-parent'));
     }
 }

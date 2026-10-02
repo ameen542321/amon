@@ -86,6 +86,7 @@
                               action="{{ route('user.employees.withdrawal.update', $withdrawal) }}"
                               data-ui-confirm="سيتم تعديل بيانات السحب وتسجيل القيم السابقة والجديدة في سجل الموظف. هل تريد المتابعة؟"
                               data-ui-confirm-title="تأكيد تعديل السحب"
+                              data-ui-confirm-hide-parent
                               data-ui-confirm-busy="جاري حفظ التعديل..."
                               class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             @csrf
@@ -99,6 +100,7 @@
                               action="{{ route('user.employees.withdrawal.destroy', $withdrawal) }}"
                               data-ui-confirm="سيتم حذف السحب من الحسابات مع الاحتفاظ ببياناته في سجل التدقيق. هل تريد المتابعة؟"
                               data-ui-confirm-title="تأكيد حذف السحب"
+                              data-ui-confirm-hide-parent
                               data-ui-confirm-busy="جاري الحذف...">
                             @csrf
                             @method('DELETE')

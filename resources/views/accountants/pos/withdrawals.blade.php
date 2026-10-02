@@ -217,6 +217,7 @@
               data-ui-action-template="{{ route('accountant.pos.withdrawal.update', ['withdrawal' => '__ID__']) }}"
               data-ui-confirm="بعد الحفظ ستُستهلك فرصة تعديل هذا الموظف اليوم، بينما تبقى فرصة الحذف مستقلة إن لم تُستخدم. هل تريد المتابعة؟"
               data-ui-confirm-title="تأكيد تعديل السحب"
+              data-ui-confirm-hide-parent
               data-ui-confirm-busy="جاري حفظ التعديل..."
               class="p-5 space-y-4">
             @csrf
