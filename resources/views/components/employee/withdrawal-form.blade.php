@@ -22,6 +22,8 @@
             {{-- الفورم بنفس نظام المسافات في إضافة محاسب --}}
             <form method="POST"
                   action="{{ route('user.employees.withdrawal.store', $employee->id) }}"
+                  data-ui-single-submit
+                  data-ui-busy-text="جاري حفظ السحب..."
                   class="p-5 space-y-4">
 
                 @csrf
@@ -61,7 +63,7 @@
 
                 {{-- زر الحفظ --}}
                 <div class="pt-2">
-                    <button class="ui-btn ui-btn-warning w-full px-6 py-3 font-semibold justify-center">
+                    <button type="submit" class="ui-btn ui-btn-warning w-full px-6 py-3 font-semibold justify-center">
                         <i class="fa-solid fa-check"></i>
                         حفظ السحب
                     </button>
@@ -84,6 +86,7 @@
                               action="{{ route('user.employees.withdrawal.update', $withdrawal) }}"
                               data-ui-confirm="سيتم تعديل بيانات السحب وتسجيل القيم السابقة والجديدة في سجل الموظف. هل تريد المتابعة؟"
                               data-ui-confirm-title="تأكيد تعديل السحب"
+                              data-ui-confirm-busy="جاري حفظ التعديل..."
                               class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             @csrf
                             @method('PUT')
@@ -95,7 +98,8 @@
                         <form method="POST"
                               action="{{ route('user.employees.withdrawal.destroy', $withdrawal) }}"
                               data-ui-confirm="سيتم حذف السحب من الحسابات مع الاحتفاظ ببياناته في سجل التدقيق. هل تريد المتابعة؟"
-                              data-ui-confirm-title="تأكيد حذف السحب">
+                              data-ui-confirm-title="تأكيد حذف السحب"
+                              data-ui-confirm-busy="جاري الحذف...">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="ui-btn ui-btn-danger w-full justify-center">حذف السحب</button>

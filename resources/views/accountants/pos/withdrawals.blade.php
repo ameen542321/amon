@@ -90,6 +90,7 @@
                                     <button type="button"
                                             data-ui-show="withdrawalEditModal"
                                             data-ui-edit-form="withdrawalEditForm"
+                                            data-ui-scroll-lock
                                             data-id="{{ $w->id }}"
                                             data-amount="{{ $w->amount }}"
                                             data-description="{{ $w->description }}"
@@ -101,7 +102,8 @@
                                     <form method="POST"
                                           action="{{ route('accountant.pos.withdrawal.destroy', $w) }}"
                                           data-ui-confirm="سيتم حذف السحب واستهلاك فرصة الحذف الوحيدة لهذا الموظف اليوم. تبقى فرصة التعديل مستقلة إن لم تُستخدم. هل تريد المتابعة؟"
-                                          data-ui-confirm-title="تأكيد حذف السحب">
+                                          data-ui-confirm-title="تأكيد حذف السحب"
+                                          data-ui-confirm-busy="جاري الحذف...">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="ui-btn ui-btn-danger px-3 py-2 ui-text-caption">حذف</button>
@@ -215,6 +217,7 @@
               data-ui-action-template="{{ route('accountant.pos.withdrawal.update', ['withdrawal' => '__ID__']) }}"
               data-ui-confirm="بعد الحفظ ستُستهلك فرصة تعديل هذا الموظف اليوم، بينما تبقى فرصة الحذف مستقلة إن لم تُستخدم. هل تريد المتابعة؟"
               data-ui-confirm-title="تأكيد تعديل السحب"
+              data-ui-confirm-busy="جاري حفظ التعديل..."
               class="p-5 space-y-4">
             @csrf
             @method('PUT')
