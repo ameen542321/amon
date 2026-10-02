@@ -13,6 +13,11 @@
 
     <div class="space-y-4">
 
+        <div class="ui-alert ui-alert-warning">
+            <div class="font-bold">تنبيه التعديل والحذف</div>
+            <p class="mt-1">يمكن تعديل السحب أو حذفه مرة واحدة فقط، وخلال اليوم المحاسبي المفتوح <strong>{{ $currentBusinessDate }}</strong>. بعد استخدام أحد الخيارين لا يسمح للمحاسب بإجراء تعديل آخر على السحب نفسه.</p>
+        </div>
+
         {{-- قسم اختيار الموظف --}}
         <div class="w-full">
             <div class="ui-card p-4 shadow-sm"> {{-- تقليل padding --}}
@@ -79,6 +84,29 @@
                                 {{ Str::limit($w->description, 40) }}
                             </p>
                         @endif
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            @if($w->can_accountant_revise)
+                                <button type="button"
+                                        data-ui-show="withdrawalEditModal"
+                                        data-ui-edit-form="withdrawalEditForm"
+                                        data-id="{{ $w->id }}"
+                                        data-amount="{{ $w->amount }}"
+                                        data-description="{{ $w->description }}"
+                                        class="ui-btn ui-btn-secondary px-3 py-2 ui-text-caption">تعديل</button>
+                                <form method="POST"
+                                      action="{{ route('accountant.pos.withdrawal.destroy', $w) }}"
+                                      data-ui-confirm="سيتم حذف السحب واستهلاك فرصة التعديل أو الحذف الوحيدة لهذا السحب. هل تريد المتابعة؟"
+                                      data-ui-confirm-title="تأكيد حذف السحب">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="ui-btn ui-btn-danger px-3 py-2 ui-text-caption">حذف</button>
+                                </form>
+                            @elseif((int) $w->accountant_revision_count >= 1)
+                                <span class="ui-badge ui-badge-neutral">استُخدمت فرصة التعديل أو الحذف</span>
+                            @else
+                                <span class="ui-badge ui-badge-neutral">خارج اليوم المحاسبي المفتوح</span>
+                            @endif
+                        </div>
                         </div>
                     </div>
                     @empty
@@ -162,6 +190,33 @@
                         class="ui-btn ui-btn-danger flex-1 py-3">
                     إلغاء
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="withdrawalEditModal" class="ui-modal-backdrop hidden">
+    <div class="ui-modal-panel w-full max-w-lg">
+        <div class="ui-modal-header">
+            <div>
+                <h3 class="ui-title text-lg font-bold">تعديل السحب</h3>
+                <p class="ui-text-soft ui-text-caption mt-1">هذه الفرصة متاحة مرة واحدة فقط خلال اليوم المحاسبي المفتوح.</p>
+            </div>
+            <button type="button" data-ui-hide="withdrawalEditModal" data-ui-scroll-unlock class="ui-modal-close-danger" aria-label="إغلاق">×</button>
+        </div>
+        <form id="withdrawalEditForm"
+              method="POST"
+              data-ui-action-template="{{ route('accountant.pos.withdrawal.update', ['withdrawal' => '__ID__']) }}"
+              data-ui-confirm="بعد حفظ التعديل لن تتمكن من تعديل أو حذف هذا السحب مرة أخرى كمحاسب. هل تريد المتابعة؟"
+              data-ui-confirm-title="تأكيد تعديل السحب"
+              class="p-5 space-y-4">
+            @csrf
+            @method('PUT')
+            <label class="block"><span class="ui-label">المبلغ</span><input type="number" name="amount" min="0.01" step="0.01" required data-ui-fill="amount" class="ui-input mt-1"></label>
+            <label class="block"><span class="ui-label">الوصف (اختياري)</span><textarea name="description" rows="3" data-ui-fill="description" class="ui-input mt-1"></textarea></label>
+            <div class="flex gap-2">
+                <button type="submit" class="ui-btn ui-btn-warning flex-1 justify-center">حفظ التعديل</button>
+                <button type="button" data-ui-hide="withdrawalEditModal" data-ui-scroll-unlock class="ui-btn ui-btn-secondary flex-1 justify-center">إلغاء</button>
             </div>
         </form>
     </div>
