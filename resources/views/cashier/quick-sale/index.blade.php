@@ -310,28 +310,31 @@
                                 <template x-for="(group, groupIndex) in laborDescriptionGroups" :key="`${groupIndex}-${group.label}`">
                                     <button type="button"
                                             @click="selectLaborGroup(groupIndex)"
-                                            :class="activeLaborGroupIndex === groupIndex ? 'is-active' : ''"
+                                            :class="selectedLaborGroups[groupIndex] ? 'is-active' : ''"
+                                            :aria-pressed="selectedLaborGroups[groupIndex] ? 'true' : 'false'"
                                             class="ui-quick-sale-preset ui-text-caption transition">
                                         <span x-text="group.label"></span>
                                     </button>
                                 </template>
                             </div>
-                            <div x-show="activeLaborGroupIndex !== null && (laborDescriptionGroups[activeLaborGroupIndex]?.children || []).length" x-transition class="ui-card-muted mb-2 p-3">
-                                <div class="mb-2 flex items-center gap-2">
-                                    <span class="ui-text-caption ui-text-soft">خيارات العمل</span>
-                                    <x-ui.help title="طريقة اختيار تفاصيل العمل" body="اضغط الخيار العادي لإضافته أو إزالته. خيار العداد يزيد مرة مع كل ضغطة، ويمكن إنقاصه بزر الناقص." />
+                            <template x-for="(group, groupIndex) in laborDescriptionGroups" :key="`details-${groupIndex}-${group.label}`">
+                                <div x-show="selectedLaborGroups[groupIndex] && (group.children || []).length" x-transition class="ui-card-muted mb-2 p-3">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="ui-text-caption ui-text-soft" x-text="`خيارات ${group.label}`"></span>
+                                        <x-ui.help title="طريقة اختيار تفاصيل العمل" body="يمكن اختيار أكثر من خيار رئيسي مع خياراته الإضافية. اضغط الخيار العادي لإضافته أو إزالته، وخيار العداد يزيد مع كل ضغطة." />
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="(child, childIndex) in (group.children || [])" :key="`${groupIndex}-${childIndex}-${child.label}`">
+                                            <span class="inline-flex items-center gap-1">
+                                                <button type="button" @click="selectLaborChild(groupIndex, childIndex)" :class="Number(laborChildValues[groupIndex]?.[childIndex] || 0) > 0 ? 'is-active' : ''" class="ui-quick-sale-preset ui-text-caption transition">
+                                                    <span x-text="child.type === 'counter' && Number(laborChildValues[groupIndex]?.[childIndex] || 0) > 0 ? `${child.label} (${laborChildValues[groupIndex][childIndex]})` : child.label"></span>
+                                                </button>
+                                                <button x-show="child.type === 'counter' && Number(laborChildValues[groupIndex]?.[childIndex] || 0) > 0" type="button" @click="decrementLaborChild(groupIndex, childIndex)" class="ui-btn ui-btn-secondary px-3 py-2" :aria-label="`إنقاص ${child.label}`">−</button>
+                                            </span>
+                                        </template>
+                                    </div>
                                 </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <template x-for="(child, childIndex) in (laborDescriptionGroups[activeLaborGroupIndex]?.children || [])" :key="`${childIndex}-${child.label}`">
-                                        <span class="inline-flex items-center gap-1">
-                                            <button type="button" @click="selectLaborChild(childIndex)" :class="Number(laborChildValues[childIndex] || 0) > 0 ? 'is-active' : ''" class="ui-quick-sale-preset ui-text-caption transition">
-                                                <span x-text="child.type === 'counter' && Number(laborChildValues[childIndex] || 0) > 0 ? `${child.label} (${laborChildValues[childIndex]})` : child.label"></span>
-                                            </button>
-                                            <button x-show="child.type === 'counter' && Number(laborChildValues[childIndex] || 0) > 0" type="button" @click="decrementLaborChild(childIndex)" class="ui-btn ui-btn-secondary px-3 py-2" :aria-label="`إنقاص ${child.label}`">−</button>
-                                        </span>
-                                    </template>
-                                </div>
-                            </div>
+                            </template>
                             <textarea x-model="description" placeholder="وصف سريع للعمل..." class="w-full ui-surface-muted-bg border ui-border ui-title rounded-xl px-4 py-3 text-sm outline-none text-right font-bold" rows="2"></textarea>
                         </div>
                     </div>

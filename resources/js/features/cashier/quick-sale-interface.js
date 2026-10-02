@@ -23,7 +23,7 @@ window.quickSale = function quickSale() {
         laborDescriptionGroups: (quickSaleConfig.laborDescriptionGroups || ['تضليل', 'تجليد', 'شغل يد']).map((group) => (
             typeof group === 'string' ? { label: group, children: [] } : { ...group, children: group.children || [] }
         )),
-        activeLaborGroupIndex: null,
+        selectedLaborGroups: {},
         laborChildValues: {},
         items_json: '',
         has_invoice: false,
@@ -170,7 +170,7 @@ window.quickSale = function quickSale() {
             this.sale_type = '';
             this.employee_id = '';
             this.description = '';
-            this.activeLaborGroupIndex = null;
+            this.selectedLaborGroups = {};
             this.laborChildValues = {};
             this.credit_note = '';
             this.hasPartialCredit = false;
@@ -358,40 +358,50 @@ window.quickSale = function quickSale() {
         },
 
         selectLaborGroup(groupIndex) {
-            this.activeLaborGroupIndex = groupIndex;
-            this.laborChildValues = {};
-            this.rebuildLaborDescription();
-        },
-
-        selectLaborChild(childIndex) {
-            const child = this.laborDescriptionGroups[this.activeLaborGroupIndex]?.children?.[childIndex];
-            if (!child) return;
-            const currentValue = Number(this.laborChildValues[childIndex] || 0);
-            if (child.type === 'counter') {
-                const max = Math.max(1, Number(child.max || 4));
-                this.laborChildValues[childIndex] = currentValue >= max ? 0 : currentValue + 1;
+            if (this.selectedLaborGroups[groupIndex]) {
+                delete this.selectedLaborGroups[groupIndex];
+                delete this.laborChildValues[groupIndex];
             } else {
-                this.laborChildValues[childIndex] = currentValue > 0 ? 0 : 1;
+                this.selectedLaborGroups[groupIndex] = true;
+                this.laborChildValues[groupIndex] = {};
             }
             this.rebuildLaborDescription();
         },
 
-        decrementLaborChild(childIndex) {
-            const currentValue = Number(this.laborChildValues[childIndex] || 0);
-            this.laborChildValues[childIndex] = Math.max(0, currentValue - 1);
+        selectLaborChild(groupIndex, childIndex) {
+            const child = this.laborDescriptionGroups[groupIndex]?.children?.[childIndex];
+            if (!child) return;
+            const groupValues = this.laborChildValues[groupIndex] || (this.laborChildValues[groupIndex] = {});
+            const currentValue = Number(groupValues[childIndex] || 0);
+            if (child.type === 'counter') {
+                const max = Math.max(1, Number(child.max || 4));
+                groupValues[childIndex] = currentValue >= max ? 0 : currentValue + 1;
+            } else {
+                groupValues[childIndex] = currentValue > 0 ? 0 : 1;
+            }
+            this.rebuildLaborDescription();
+        },
+
+        decrementLaborChild(groupIndex, childIndex) {
+            const groupValues = this.laborChildValues[groupIndex] || (this.laborChildValues[groupIndex] = {});
+            const currentValue = Number(groupValues[childIndex] || 0);
+            groupValues[childIndex] = Math.max(0, currentValue - 1);
             this.rebuildLaborDescription();
         },
 
         rebuildLaborDescription() {
-            const group = this.laborDescriptionGroups[this.activeLaborGroupIndex];
-            if (!group) return;
-            const selectedChildren = (group.children || []).flatMap((child, childIndex) => {
-                const value = Number(this.laborChildValues[childIndex] || 0);
-                if (value < 1) return [];
+            this.description = this.laborDescriptionGroups.flatMap((group, groupIndex) => {
+                if (!this.selectedLaborGroups[groupIndex]) return [];
+                const groupValues = this.laborChildValues[groupIndex] || {};
+                const selectedChildren = (group.children || []).flatMap((child, childIndex) => {
+                    const value = Number(groupValues[childIndex] || 0);
+                    if (value < 1) return [];
 
-                return [child.type === 'counter' ? `${value} ${child.label}` : child.label];
-            });
-            this.description = [group.label, ...selectedChildren].join(' ');
+                    return [child.type === 'counter' ? `${value} ${child.label}` : child.label];
+                });
+
+                return [[group.label, ...selectedChildren].join(' ')];
+            }).join('، ');
         },
 
         updateFractionPrice(item) {

@@ -25,12 +25,16 @@ class LaborDescriptionHierarchyContractTest extends TestCase
         self::assertStringContainsString('عداد بالضغط', $storeForm);
         self::assertStringContainsString("window.Alpine.data('laborDescriptionEditor'", $storeEditor);
         self::assertStringContainsString('selectLaborGroup(groupIndex)', $quickSaleView);
-        self::assertStringContainsString('selectLaborChild(childIndex)', $quickSaleView);
+        self::assertStringContainsString('selectLaborChild(groupIndex, childIndex)', $quickSaleView);
+        self::assertStringContainsString('selectedLaborGroups[groupIndex]', $quickSaleView);
+        self::assertStringContainsString('يمكن اختيار أكثر من خيار رئيسي مع خياراته الإضافية', $quickSaleView);
         self::assertStringContainsString('طريقة اختيار تفاصيل العمل', $quickSaleView);
         self::assertStringNotContainsString('اختر التفاصيل؛ الضغط المتكرر على العداد يزيد العدد.', $quickSaleView);
         self::assertStringContainsString('@if($hasApprovedTaxNumber ?? false)', $quickSaleView);
         self::assertStringContainsString('الضريبة متاحة لهذا المتجر.', $quickSaleView);
         self::assertStringContainsString('rebuildLaborDescription()', $quickSaleInterface);
-        self::assertStringContainsString("this.description = [group.label, ...selectedChildren].join(' ')", $quickSaleInterface);
+        self::assertStringContainsString('selectedLaborGroups: {}', $quickSaleInterface);
+        self::assertStringContainsString("return [[group.label, ...selectedChildren].join(' ')]", $quickSaleInterface);
+        self::assertStringContainsString("}).join('، ')", $quickSaleInterface);
     }
 }
