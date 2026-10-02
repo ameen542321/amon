@@ -19,6 +19,9 @@
         <x-ui.badge variant="info"><span data-inventory-count-draft-status>تُحفظ مسودة الجرد محليًا في هذا الجهاز</span></x-ui.badge>
         <x-ui.help title="حفظ الكميات" body="يحفظ المتصفح ما تكتبه في قاعدة IndexedDB المحلية لتستكمل الجرد عند العودة. المسودة لا تُرسل تلقائيًا ولا تغيّر المخزون؛ اضغط حفظ جميع الكميات عند توفر الإنترنت لتثبيتها في الخادم." />
     </div>
+    <div class="ui-alert ui-alert-info" role="status" aria-live="polite" data-inventory-count-connection-status>
+        جارٍ التحقق من حالة الاتصال…
+    </div>
 
     <form method="POST" action="{{ route('accountant.inventory-counts.items.bulk-update', $session) }}" class="space-y-4"
           data-inventory-count-form
@@ -93,7 +96,11 @@
           data-ui-confirm-busy="جارٍ إرسال النتائج...">
         @csrf
         <div class="flex items-center gap-2">
-            <button class="ui-btn ui-btn-primary flex-1" @disabled(! $allItemsSaved)>{{ $allItemsSaved ? 'إرسال النتائج للمالك' : 'احفظ كميات المنتجات أولًا' }}</button>
+            <button class="ui-btn ui-btn-primary flex-1"
+                    data-inventory-count-submit
+                    data-server-ready="{{ $allItemsSaved ? 'true' : 'false' }}"
+                    data-online-text="{{ $allItemsSaved ? 'إرسال النتائج للمالك' : 'احفظ كميات المنتجات أولًا' }}"
+                    @disabled(! $allItemsSaved)>{{ $allItemsSaved ? 'إرسال النتائج للمالك' : 'احفظ كميات المنتجات أولًا' }}</button>
             <x-ui.help title="إرسال النتائج" body="يرسل الكميات المحفوظة ولقطات المقارنة إلى المالك، ثم يتوقف التعديل إلا إذا أعاد المالك منتجًا لإعادة الجرد." />
         </div>
     </form>
