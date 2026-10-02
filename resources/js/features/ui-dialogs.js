@@ -26,11 +26,28 @@ document.addEventListener('submit', async (event) => {
     if (!confirmationForm || confirmationForm.dataset.uiConfirmationApproved === 'true') return;
 
     event.preventDefault();
+    const parentDialog = confirmationForm.hasAttribute('data-ui-confirm-hide-parent')
+        ? confirmationForm.closest('.ui-modal-backdrop')
+        : null;
+    const parentWasVisible = parentDialog && !parentDialog.classList.contains('hidden');
+    const pageWasScrollLocked = document.body.classList.contains('ui-scroll-lock');
+
+    if (parentWasVisible) {
+        parentDialog.classList.add('hidden');
+        document.body.classList.remove('ui-scroll-lock');
+    }
+
     const isConfirmed = await requestConfirmation(
         confirmationForm.dataset.uiConfirmTitle || 'تأكيد العملية',
         confirmationForm.dataset.uiConfirm,
     );
-    if (!isConfirmed) return;
+    if (!isConfirmed) {
+        if (parentWasVisible) {
+            parentDialog.classList.remove('hidden');
+            if (pageWasScrollLocked) document.body.classList.add('ui-scroll-lock');
+        }
+        return;
+    }
 
     const submitter = event.submitter || undefined;
     confirmationForm.dataset.uiConfirmationApproved = 'true';

@@ -39,7 +39,13 @@ class DashboardController extends Controller
             ->count();
         $pendingPurchaseOrderAlerts = StorePurchaseOrder::with(['items:id,store_purchase_order_id,inventory_count_attempt'])->where('store_id', $storeId)
             ->where(fn ($query) => $query->where('accountant_id', $accountant->id)->orWhereNull('accountant_id'))
-            ->whereIn('workflow_status', ['returned_for_edit', 'returned_for_count', 'pending_receipt_confirmation'])
+            ->where(function ($query) {
+                $query->whereIn('workflow_status', ['returned_for_edit', 'returned_for_count', 'pending_receipt_confirmation'])
+                    ->orWhere(function ($completedQuery) {
+                        $completedQuery->where('workflow_status', 'approved_and_supplied')
+                            ->where('final_notice_until', '>', now());
+                    });
+            })
             ->latest('updated_at')
             ->limit(5)
             ->get();
@@ -361,7 +367,7 @@ class DashboardController extends Controller
             $actualCash = (float) $validated['actual_cash'];
             $difference = $actualCash - $expectedCash;
             $closedAt = now();
-            $notes = trim((string) ($validated['notes'] ?? ''));
+            $notes = $this->balanceNotesOrReferenceDate($validated['notes'] ?? null, $businessDate);
 
             $dailyBalance = DailyBalance::create([
                 'store_id' => $store->id,
@@ -1172,6 +1178,7 @@ class DashboardController extends Controller
         $shiftContext = app(ShiftLifecycleService::class)->currentShiftContext($store, $endTime);
         $startTime = $shiftContext['shift_start'];
         $businessDate = $shiftContext['business_date'];
+        $balanceNotes = $this->balanceNotesOrReferenceDate($request->input('notes'), $businessDate);
         $canChooseNextShiftBusinessDate = (bool) ($shiftContext['can_choose_next_shift_business_date'] ?? false);
         $nextShiftDecision = $canChooseNextShiftBusinessDate
             ? $request->input('next_shift_decision', 'same_business_date')
@@ -1430,7 +1437,7 @@ class DashboardController extends Controller
                 'difference' => $cashDifference,
             ],
 
-            'notes' => $request->notes,
+            'notes' => $balanceNotes,
         ];
 
         // \Log::info('Creating DailyBalance record...');
@@ -1449,7 +1456,7 @@ class DashboardController extends Controller
             'next_shift_business_date' => $nextShiftBusinessDate,
             'next_shift_decision' => $nextShiftDecision,
             'next_shift_decided_by' => $nextShiftDecision ? $accountant->id : null,
-            'notes' => $request->notes,
+            'notes' => $balanceNotes,
         ]);
 
         app(ShiftOperationBinderService::class)->attachByBusinessDate($dailyBalance, $businessDate, false, true);
@@ -1494,6 +1501,13 @@ class DashboardController extends Controller
         return redirect()->back()->with('error', 'فشل إصدار الموازنة: ' . $e->getMessage())->withInput();
     }
 }
+
+    private function balanceNotesOrReferenceDate(?string $notes, string $businessDate): string
+    {
+        $notes = trim((string) $notes);
+
+        return $notes !== '' ? $notes : Carbon::parse($businessDate)->format('j-n');
+    }
 
 
 

@@ -149,8 +149,16 @@ class StoreController extends Controller
             'inventory_audit_cycle_months' => 'required|integer|in:6,12',
             'inventory_audit_start_mode' => 'required|in:store_created_at,manual',
             'inventory_audit_start_date' => 'nullable|required_if:inventory_audit_start_mode,manual|date',
-            'labor_description_options' => 'nullable|array|max:6',
-            'labor_description_options.*' => 'nullable|string|max:100',
+            'labor_description_options' => 'nullable|array|max:8',
+            'labor_description_options.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children' => 'nullable|array|max:12',
+            'labor_description_options.*.children.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
+            'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
+            'show_quick_sale_tint' => 'required|boolean',
+            'quick_sale_tint_label' => 'nullable|required_if:show_quick_sale_tint,1|string|max:100',
+            'quick_sale_tint_description' => 'nullable|required_if:show_quick_sale_tint,1|string|max:180',
+            'show_latest_quick_sale' => 'required|boolean',
         ]);
 
         $user = auth()->user();
@@ -180,6 +188,10 @@ class StoreController extends Controller
                 ? $request->inventory_audit_start_date
                 : null,
             'labor_description_options' => $this->normalizeLaborDescriptionOptions($request->input('labor_description_options')),
+            'show_quick_sale_tint' => $request->boolean('show_quick_sale_tint'),
+            'quick_sale_tint_label' => trim((string) $request->input('quick_sale_tint_label', 'تضليل')),
+            'quick_sale_tint_description' => trim((string) $request->input('quick_sale_tint_description', 'إضافة عملية تضليل سريعة إلى السلة')),
+            'show_latest_quick_sale' => $request->boolean('show_latest_quick_sale'),
             'logo'                => null,
             'status'              => 'active',
             'slug'                => Str::slug($request->name) . '-' . uniqid(),
@@ -232,12 +244,24 @@ class StoreController extends Controller
             'inventory_audit_cycle_months' => 'required|integer|in:6,12',
             'inventory_audit_start_mode' => 'required|in:store_created_at,manual',
             'inventory_audit_start_date' => 'nullable|required_if:inventory_audit_start_mode,manual|date',
-            'labor_description_options' => 'nullable|array|max:6',
-            'labor_description_options.*' => 'nullable|string|max:100',
+            'labor_description_options' => 'nullable|array|max:8',
+            'labor_description_options.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children' => 'nullable|array|max:12',
+            'labor_description_options.*.children.*.label' => 'required|string|max:100',
+            'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
+            'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
+            'show_quick_sale_tint' => 'required|boolean',
+            'quick_sale_tint_label' => 'nullable|required_if:show_quick_sale_tint,1|string|max:100',
+            'quick_sale_tint_description' => 'nullable|required_if:show_quick_sale_tint,1|string|max:180',
+            'show_latest_quick_sale' => 'required|boolean',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $validated['labor_description_options'] = $this->normalizeLaborDescriptionOptions($validated['labor_description_options'] ?? null);
+        $validated['show_quick_sale_tint'] = $request->boolean('show_quick_sale_tint');
+        $validated['show_latest_quick_sale'] = $request->boolean('show_latest_quick_sale');
+        $validated['quick_sale_tint_label'] = trim((string) ($validated['quick_sale_tint_label'] ?? 'تضليل'));
+        $validated['quick_sale_tint_description'] = trim((string) ($validated['quick_sale_tint_description'] ?? 'إضافة عملية تضليل سريعة إلى السلة'));
         $validated['number_of_shifts'] = (int) $validated['number_of_shifts'];
         $validated['inventory_audit_cycle_months'] = (int) $validated['inventory_audit_cycle_months'];
         if ($validated['inventory_audit_start_mode'] !== 'manual') {
@@ -283,14 +307,42 @@ class StoreController extends Controller
 
     private function normalizeLaborDescriptionOptions(array|string|null $value): array
     {
-        $lines = is_array($value) ? $value : (preg_split('/\R/u', (string) $value) ?: []);
+        $groups = is_array($value) ? $value : (preg_split('/\R/u', (string) $value) ?: []);
+        $normalized = collect($groups)->map(function ($group): ?array {
+            if (is_string($group)) {
+                $label = trim($group);
 
-        $options = array_values(array_slice(array_unique(array_filter(array_map(
-            static fn ($line) => trim($line),
-            $lines
-        ))), 0, 6));
+                return $label === '' ? null : ['label' => $label, 'children' => []];
+            }
 
-        return $options ?: ['تضليل', 'تجليد', 'شغل يد'];
+            $label = trim((string) ($group['label'] ?? ''));
+            if ($label === '') {
+                return null;
+            }
+
+            $children = collect($group['children'] ?? [])->map(function ($child): ?array {
+                $childLabel = trim((string) ($child['label'] ?? ''));
+                if ($childLabel === '') {
+                    return null;
+                }
+
+                $type = ($child['type'] ?? 'toggle') === 'counter' ? 'counter' : 'toggle';
+
+                return [
+                    'label' => $childLabel,
+                    'type' => $type,
+                    'max' => $type === 'counter' ? max(1, min(20, (int) ($child['max'] ?? 4))) : 1,
+                ];
+            })->filter()->unique('label')->values()->take(12)->all();
+
+            return ['label' => $label, 'children' => $children];
+        })->filter()->unique('label')->values()->take(8)->all();
+
+        return $normalized ?: [
+            ['label' => 'تضليل', 'children' => []],
+            ['label' => 'تجليد', 'children' => []],
+            ['label' => 'شغل يد', 'children' => []],
+        ];
     }
 
     /**
@@ -1117,13 +1169,21 @@ class StoreController extends Controller
             ->monthlyRowsForStore($store->id, $month, $start, $end);
 
         $employeeIds = $rows->pluck('id')->map(fn ($id) => (int) $id)->filter()->values();
+        $withdrawals = \App\Models\Withdrawal::query()
+            ->where('store_id', $store->id)
+            ->where('person_type', \App\Models\Employee::class)
+            ->whereIn('person_id', $employeeIds)
+            ->betweenAccountingDates($start, $end)
+            ->with('addedBy:id,name')
+            ->get(['id', 'person_id', 'person_type', 'amount', 'date', 'business_date', 'description', 'added_by', 'created_at']);
+
         $creditSales = \App\Models\CreditSale::query()
             ->where('store_id', $store->id)
             ->where('person_type', \App\Models\Employee::class)
             ->whereIn('person_id', $employeeIds)
             ->betweenOperationDates($start, $end)
-            ->with('person:id,name')
-            ->get(['id', 'person_id', 'person_type', 'amount', 'remaining_amount', 'date', 'description', 'status']);
+            ->with(['person:id,name', 'addedBy:id,name'])
+            ->get(['id', 'person_id', 'person_type', 'amount', 'remaining_amount', 'date', 'description', 'credit_note', 'status', 'added_by']);
 
         $creditCollectionsByEmployee = DB::table('employee_credit_collections')
             ->where('store_id', $store->id)
@@ -1133,6 +1193,25 @@ class StoreController extends Controller
             ->select('person_id', DB::raw('COALESCE(SUM(amount), 0) as aggregate'))
             ->groupBy('person_id')
             ->pluck('aggregate', 'person_id');
+
+        $creditCollectionRows = DB::table('employee_credit_collections')
+            ->leftJoin('users', 'users.id', '=', 'employee_credit_collections.collected_by')
+            ->where('employee_credit_collections.store_id', $store->id)
+            ->where('employee_credit_collections.person_type', \App\Models\Employee::class)
+            ->whereIn('employee_credit_collections.person_id', $employeeIds)
+            ->whereBetween('employee_credit_collections.collection_date', [$start->toDateString(), $end->toDateString()])
+            ->orderByDesc('employee_credit_collections.collection_date')
+            ->orderByDesc('employee_credit_collections.id')
+            ->get([
+                'employee_credit_collections.id',
+                'employee_credit_collections.person_id',
+                'employee_credit_collections.credit_sale_id',
+                'employee_credit_collections.amount',
+                'employee_credit_collections.collection_date',
+                'employee_credit_collections.payment_method_label',
+                'employee_credit_collections.note',
+                'users.name as collector_name',
+            ]);
 
         $debts = \App\Models\Debt::query()
             ->where('store_id', $store->id)
@@ -1155,8 +1234,8 @@ class StoreController extends Controller
             ->where('person_type', \App\Models\Employee::class)
             ->whereIn('person_id', $employeeIds)
             ->betweenOperationDates($start, $end)
-            ->with('person:id,name')
-            ->get(['person_id', 'person_type', 'date', 'penalty_amount', 'description']);
+            ->with(['person:id,name', 'addedBy:id,name'])
+            ->get(['id', 'person_id', 'person_type', 'date', 'penalty_amount', 'description', 'added_by']);
 
         $logs = \App\Models\EmployeeLog::query()
             ->where('store_id', $store->id)
@@ -1167,16 +1246,23 @@ class StoreController extends Controller
             ->with('person:id,name')
             ->get(['person_id', 'person_type', 'action_name', 'description', 'meta', 'created_at']);
 
-        $rows = $rows->map(function (array $row) use ($creditSales, $creditCollectionsByEmployee, $debts, $debtCollectionLogs, $logs, $start, $end) {
+        $rows = $rows->map(function (array $row) use ($withdrawals, $creditSales, $creditCollectionsByEmployee, $creditCollectionRows, $debts, $debtCollectionLogs, $absences, $logs) {
             $employeeId = (int) $row['id'];
+            $employeeWithdrawals = $withdrawals->where('person_id', $employeeId);
             $employeeCreditSales = $creditSales->where('person_id', $employeeId);
             $employeeDebts = $debts->where('person_id', $employeeId);
+            $employeeAbsences = $absences->where('person_id', $employeeId);
             $employeeLogs = $logs->where('person_id', $employeeId);
 
             $creditCollections = (float) ($creditCollectionsByEmployee[$employeeId] ?? 0);
 
             $row['credit_sales'] = (float) $employeeCreditSales->sum('amount');
             $row['credit_collections'] = $creditCollections;
+            $row['withdrawal_rows'] = $employeeWithdrawals->sortByDesc(fn ($withdrawal) => $withdrawal->business_date ?? $withdrawal->date ?? $withdrawal->created_at)->values();
+            $row['absence_rows'] = $employeeAbsences->sortByDesc('date')->values();
+            $row['credit_sale_rows'] = $employeeCreditSales->sortByDesc('date')->values();
+            $row['credit_collection_rows'] = $creditCollectionRows->where('person_id', $employeeId)->values();
+            $row['debt_rows'] = $employeeDebts->where('amount', '>', 0)->sortByDesc('date')->values();
             $row['debt_collections'] = abs((float) $employeeDebts->where('amount', '<', 0)->sum('amount'));
             $row['debt_collection_rows'] = $employeeDebts
                 ->where('amount', '<', 0)

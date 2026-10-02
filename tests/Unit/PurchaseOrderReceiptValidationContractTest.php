@@ -23,6 +23,17 @@ class PurchaseOrderReceiptValidationContractTest extends TestCase
         self::assertStringContainsString('scrollIntoView', $interface);
         self::assertStringContainsString("activeOwnerProductCard.dataset.unresolved = '0'", $interface);
         self::assertStringContainsString("actionLabel.textContent = 'استبدال المنتج'", $interface);
+        self::assertStringContainsString('confirmAccountantReceipt', $interface);
+        self::assertStringContainsString("form.dataset.receiptConfirmed = '1'", $interface);
+        self::assertStringContainsString("value=\"custom\"", $view);
+        self::assertStringContainsString('ownerCustomProductName', $view);
+        self::assertStringContainsString("Rule::in(['link', 'create', 'custom'])", $ownerController);
+        self::assertStringContainsString("'custom_product_name' => \$existingProduct->name", $ownerController);
+        self::assertStringContainsString("'product_id' => null", $ownerController);
+        self::assertStringContainsString("'is_custom' => true", $ownerController);
+        self::assertStringContainsString('replaceReceiptItemIdentity', $ownerController);
+        self::assertStringContainsString("'event' => 'item_deleted'", $ownerController);
+        self::assertStringContainsString("'event' => 'item_added'", $ownerController);
         self::assertStringNotContainsString('window.location.reload()', $interface);
         self::assertStringContainsString('js-owner-product-link-status', $view);
         self::assertStringContainsString('استبدال المنتج', $view);

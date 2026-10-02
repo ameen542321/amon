@@ -165,6 +165,10 @@ final class EmployeeOperationPageViewModel
     {
         return [
             'withdrawal' => ['label' => 'سحب نقدي', 'color' => 'text-blue-400', 'icon' => 'fa-money-bill-transfer'],
+            'withdrawal_accountant_updated' => ['label' => 'تعديل سحب بواسطة المحاسب', 'color' => 'ui-status-warning', 'icon' => 'fa-pen-to-square'],
+            'withdrawal_accountant_deleted' => ['label' => 'حذف سحب بواسطة المحاسب', 'color' => 'ui-status-danger', 'icon' => 'fa-trash'],
+            'withdrawal_owner_updated' => ['label' => 'تعديل سحب بواسطة المالك', 'color' => 'ui-status-info', 'icon' => 'fa-pen-to-square'],
+            'withdrawal_owner_deleted' => ['label' => 'حذف سحب بواسطة المالك', 'color' => 'ui-status-danger', 'icon' => 'fa-trash'],
             'absence' => ['label' => 'غياب', 'color' => 'text-yellow-400', 'icon' => 'fa-user-xmark'],
             'debt' => ['label' => 'مديونية', 'color' => 'text-red-400', 'icon' => 'fa-circle-exclamation'],
             'debt_collect_full' => ['label' => 'تحصيل مديونية كامل', 'color' => 'text-green-400', 'icon' => 'fa-hand-holding-dollar'],

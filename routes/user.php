@@ -306,6 +306,8 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
         Route::post('/{employee}/debt', [EmployeeActionsController::class, 'storeDebt'])->name('debt.store');
         Route::patch('/debt/{debt}', [EmployeeActionsController::class, 'updateDebt'])->name('debt.update');
         Route::post('/{person}/withdrawal', [EmployeeActionsController::class, 'storeWithdrawal'])->name('withdrawal.store');
+        Route::put('/withdrawal/{withdrawal}', [EmployeeActionsController::class, 'updateWithdrawal'])->name('withdrawal.update');
+        Route::delete('/withdrawal/{withdrawal}', [EmployeeActionsController::class, 'destroyWithdrawal'])->name('withdrawal.destroy');
         Route::post('/debt/collect/full/{debt}', [EmployeeActionsController::class, 'collectFull'])->name('debt.collect.full');
         Route::post('/debt/collect/partial/{debt}', [EmployeeActionsController::class, 'collectPartial'])->name('debt.collect.partial');
     });

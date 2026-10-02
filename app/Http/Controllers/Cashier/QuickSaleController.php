@@ -27,16 +27,26 @@ class QuickSaleController extends Controller
     {
         $accountant = auth('accountant')->user();
         $store = $accountant->store;
-        $tintProducts = $this->tintProductsForStore($accountant->store_id);
-        $latestShiftOperation = $this->latestQuickSaleOperationForShift($accountant);
+        $showTintShortcut = (bool) ($store?->show_quick_sale_tint ?? false);
+        $showLatestQuickSale = (bool) ($store?->show_latest_quick_sale ?? true);
+        $tintProducts = $showTintShortcut ? $this->tintProductsForStore($accountant->store_id) : [];
+        $latestShiftOperation = $showLatestQuickSale ? $this->latestQuickSaleOperationForShift($accountant) : null;
         $quickSaleSubmitToken = (string) Str::uuid();
         session(['quick_sale_submit_token' => $quickSaleSubmitToken]);
 
         return response()->view('cashier.quick-sale.index', [
             'tintProducts' => $tintProducts,
             'latestShiftOperation' => $latestShiftOperation,
+            'showTintShortcut' => $showTintShortcut,
+            'tintShortcutLabel' => trim((string) ($store?->quick_sale_tint_label ?: 'تضليل')),
+            'tintShortcutDescription' => trim((string) ($store?->quick_sale_tint_description ?: 'إضافة عملية تضليل سريعة إلى السلة')),
+            'showLatestQuickSale' => $showLatestQuickSale,
             'quickSaleSubmitToken' => $quickSaleSubmitToken,
-            'laborDescriptionOptions' => $store?->labor_description_options_list ?? ['تضليل', 'تجليد', 'شغل يد'],
+            'laborDescriptionGroups' => $store?->labor_description_groups_list ?? [
+                ['label' => 'تضليل', 'children' => []],
+                ['label' => 'تجليد', 'children' => []],
+                ['label' => 'شغل يد', 'children' => []],
+            ],
             'hasApprovedTaxNumber' => filled($store?->tax_number),
             'hasAvailableTintProducts' => collect($tintProducts)->contains(
                 fn (array $product) => $product['quantity'] > 0 && count($product['fractions']) > 0

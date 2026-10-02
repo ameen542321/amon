@@ -10,11 +10,13 @@ use App\Models\CreditSale;
 use App\Models\Withdrawal;
 use App\Models\EmployeeLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Domain\EmployeeOperations\Exceptions\EmployeeOperationException;
 use App\Domain\EmployeeOperations\Policies\EmployeeOperationAccessPolicy;
 use App\Domain\EmployeeOperations\Services\EmployeeOperationService;
 use App\Services\ShiftLifecycleService;
+use App\Services\EmployeeLogService;
 
 class EmployeeFinanceController extends Controller
 {
@@ -64,6 +66,120 @@ class EmployeeFinanceController extends Controller
         }
 
         return back()->with('success', 'تم إضافة السحب بنجاح');
+    }
+
+    public function updateWithdrawal(Request $request, Withdrawal $withdrawal)
+    {
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:255'],
+        ], [], [
+            'amount' => 'مبلغ السحب',
+            'description' => 'وصف السحب',
+        ]);
+
+        try {
+            DB::transaction(function () use ($withdrawal, $validated): void {
+                $lockedWithdrawal = Withdrawal::query()->lockForUpdate()->findOrFail($withdrawal->id);
+                $this->assertAccountantCanReviseWithdrawal($lockedWithdrawal);
+                $this->consumeAccountantWithdrawalAction($lockedWithdrawal, 'update');
+                $oldAmount = (float) $lockedWithdrawal->amount;
+                $oldDescription = $lockedWithdrawal->description;
+
+                $lockedWithdrawal->update([
+                    'amount' => $validated['amount'],
+                    'description' => filled($validated['description'] ?? null) ? trim($validated['description']) : null,
+                ]);
+
+                EmployeeLogService::add(
+                    $lockedWithdrawal->person,
+                    'withdrawal_accountant_updated',
+                    'عدّل المحاسب سحبًا خلال اليوم المحاسبي المفتوح من '.number_format($oldAmount, 2).' إلى '.number_format((float) $validated['amount'], 2).' ريال.',
+                    $validated['amount'],
+                    [
+                        'withdrawal_id' => $lockedWithdrawal->id,
+                        'old_amount' => $oldAmount,
+                        'new_amount' => (float) $validated['amount'],
+                        'old_description' => $oldDescription,
+                        'new_description' => $lockedWithdrawal->description,
+                        'operation_date' => $lockedWithdrawal->business_date?->toDateString(),
+                    ]
+                );
+            });
+        } catch (EmployeeOperationException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return back()->with('success', 'تم تعديل السحب. استُخدمت فرصة التعديل الوحيدة لهذا الموظف اليوم، وما زالت فرصة الحذف مستقلة إن لم تُستخدم.');
+    }
+
+    public function destroyWithdrawal(Withdrawal $withdrawal)
+    {
+        try {
+            DB::transaction(function () use ($withdrawal): void {
+                $lockedWithdrawal = Withdrawal::query()->lockForUpdate()->findOrFail($withdrawal->id);
+                $this->assertAccountantCanReviseWithdrawal($lockedWithdrawal);
+                $this->consumeAccountantWithdrawalAction($lockedWithdrawal, 'delete');
+
+                EmployeeLogService::add(
+                    $lockedWithdrawal->person,
+                    'withdrawal_accountant_deleted',
+                    'حذف المحاسب سحبًا بقيمة '.number_format((float) $lockedWithdrawal->amount, 2).' ريال خلال اليوم المحاسبي المفتوح.',
+                    $lockedWithdrawal->amount,
+                    [
+                        'withdrawal_id' => $lockedWithdrawal->id,
+                        'deleted_amount' => (float) $lockedWithdrawal->amount,
+                        'deleted_description' => $lockedWithdrawal->description,
+                        'operation_date' => $lockedWithdrawal->business_date?->toDateString(),
+                    ]
+                );
+
+                $lockedWithdrawal->delete();
+            });
+        } catch (EmployeeOperationException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return back()->with('success', 'تم حذف السحب وتسجيل العملية. استُخدمت فرصة الحذف الوحيدة لهذا الموظف اليوم، وتبقى فرصة التعديل مستقلة إن لم تُستخدم.');
+    }
+
+    private function assertAccountantCanReviseWithdrawal(Withdrawal $withdrawal): void
+    {
+        $accountant = auth('accountant')->user();
+        if (! $accountant || (int) $withdrawal->store_id !== (int) $accountant->store_id) {
+            abort(403);
+        }
+
+        $currentBusinessDate = app(ShiftLifecycleService::class)
+            ->currentShiftContext((int) $accountant->store_id)['business_date'];
+        $withdrawalBusinessDate = optional($withdrawal->business_date ?? $withdrawal->date)->toDateString();
+
+        if ($withdrawalBusinessDate !== $currentBusinessDate || ! is_null($withdrawal->daily_balance_id)) {
+            throw new EmployeeOperationException('يمكن للمحاسب تعديل أو حذف سحب من اليوم المحاسبي المفتوح فقط.');
+        }
+
+    }
+
+    private function consumeAccountantWithdrawalAction(Withdrawal $withdrawal, string $action): void
+    {
+        $accountant = auth('accountant')->user();
+        $businessDate = optional($withdrawal->business_date ?? $withdrawal->date)->toDateString();
+        $inserted = DB::table('employee_withdrawal_accountant_actions')->insertOrIgnore([
+            'store_id' => $withdrawal->store_id,
+            'person_id' => $withdrawal->person_id,
+            'person_type' => $withdrawal->person_type,
+            'accountant_id' => $accountant->id,
+            'withdrawal_id' => $withdrawal->id,
+            'business_date' => $businessDate,
+            'action' => $action,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if ($inserted !== 1) {
+            $actionLabel = $action === 'update' ? 'التعديل' : 'الحذف';
+            throw new EmployeeOperationException("استُخدمت فرصة {$actionLabel} لهذا الموظف في اليوم المحاسبي الحالي. يمكنك تنفيذها لموظف آخر.");
+        }
     }
 
 
@@ -404,19 +520,34 @@ public function withdrawalPage()
     $people = Employee::where('store_id', $storeId)->get();
 
     $withdrawalBusinessDate = Carbon::parse(app(ShiftLifecycleService::class)->currentShiftContext($storeId)['business_date'] ?? now()->toDateString());
+    $currentBusinessDate = $withdrawalBusinessDate->toDateString();
     $withdrawalMonthStart = $withdrawalBusinessDate->copy()->startOfMonth()->toDateString();
     $withdrawalMonthEnd = $withdrawalBusinessDate->copy()->endOfMonth()->toDateString();
 
     // السجل الجانبي للسحوبات شهري حسب التاريخ، حتى عند العمل على يوم مرجع.
+    $usedAccountantActions = DB::table('employee_withdrawal_accountant_actions')
+        ->where('store_id', $storeId)
+        ->where('business_date', $currentBusinessDate)
+        ->get(['person_id', 'person_type', 'action'])
+        ->groupBy(fn ($action) => $action->person_type.'#'.$action->person_id);
+
     $lastWithdrawals = Withdrawal::where('store_id', $storeId)
         ->with(['person'])
         ->whereRaw('COALESCE(business_date, date, DATE(created_at)) BETWEEN ? AND ?', [$withdrawalMonthStart, $withdrawalMonthEnd])
         ->orderByRaw('COALESCE(business_date, date, DATE(created_at)) DESC')
         ->orderByDesc('id')
         ->take(10)
-        ->get();
+        ->get()
+        ->each(function (Withdrawal $withdrawal) use ($currentBusinessDate, $usedAccountantActions): void {
+            $operationBusinessDate = optional($withdrawal->business_date ?? $withdrawal->date)->toDateString();
+            $isOpenAccountingDay = $operationBusinessDate === $currentBusinessDate && is_null($withdrawal->daily_balance_id);
+            $employeeActions = $usedAccountantActions->get($withdrawal->person_type.'#'.$withdrawal->person_id, collect());
+            $withdrawal->setAttribute('is_open_accounting_day', $isOpenAccountingDay);
+            $withdrawal->setAttribute('can_accountant_edit', $isOpenAccountingDay && ! $employeeActions->contains('action', 'update'));
+            $withdrawal->setAttribute('can_accountant_delete', $isOpenAccountingDay && ! $employeeActions->contains('action', 'delete'));
+        });
 
-    return view('accountants.pos.withdrawals', compact('people', 'lastWithdrawals'));
+    return view('accountants.pos.withdrawals', compact('people', 'lastWithdrawals', 'currentBusinessDate'));
 }
     public function absencePage()
 {

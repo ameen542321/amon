@@ -34,7 +34,6 @@
     "test:pwa:staging": "node scripts/run-pwa-staging-acceptance.mjs",
     "test:pwa:staging-plan": "node scripts/run-pwa-staging-acceptance.mjs --plan",
     "test:pwa:performance": "node scripts/measure-pwa-staging-performance.mjs"
-    "test:pwa:deep-links": "node scripts/check-pwa-notification-deep-links.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
