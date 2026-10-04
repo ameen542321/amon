@@ -51,11 +51,22 @@
         </div>
     @endif
     @if(in_array($session->status, ['pending_owner', 'partially_approved', 'returned_to_accountant']))
-        <form id="inventory-bulk-approval" method="POST" action="{{ route('user.stores.inventory-counts.bulk-approve', [$store, $session]) }}" class="ui-card p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-ui-confirm="سيتم اعتماد كميات المحاسب لكل المنتجات المحددة وتحديث مخزونها. هل تريد المتابعة؟" data-ui-confirm-title="اعتماد المنتجات المحددة">
+        <form id="inventory-bulk-actions" method="POST" action="{{ route('user.stores.inventory-counts.bulk-approve', [$store, $session]) }}" class="ui-card p-4 space-y-4" data-ui-confirm="سيتم تنفيذ الإجراء على جميع المنتجات المحددة. هل تريد المتابعة؟" data-ui-confirm-title="تأكيد الإجراء الجماعي">
             @csrf
-            <div class="flex items-center gap-2"><strong class="ui-title">اعتماد مجموعة منتجات</strong><x-ui.help title="الاعتماد الجماعي" body="حدد المنتجات التي تريد اعتماد كمية المحاسب لها، ثم اضغط اعتماد المنتجات المحددة. يمكنك ترك بقية المنتجات للمراجعة أو إعادتها للمحاسب." /></div>
-            <div><label class="ui-label" for="bulk-approval-date">يوم العمل</label><input id="bulk-approval-date" class="ui-input" type="date" name="approval_business_date" value="{{ $currentBusinessDate }}" min="{{ $session->items->max(fn ($item) => $item->count_business_date?->format('Y-m-d')) }}" required></div>
-            <button class="ui-btn ui-btn-success">اعتماد المنتجات المحددة</button>
+            <div class="flex items-center gap-2"><strong class="ui-title">إجراءات المنتجات المحددة</strong><x-ui.help title="التحديد المتعدد" body="حدد منتجًا أو أكثر من القائمة، ثم اعتمدها معًا أو أعدها كلها للمحاسب بسبب مشترك. التعديل والاعتماد يبقى داخل بطاقة كل منتج لأن لكل منتج كمية صحيحة مختلفة." /></div>
+            <p class="ui-text-soft">حدد المنتجات من مربعات الاختيار، ثم اختر إجراءً واحدًا:</p>
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div class="ui-card-muted p-3 space-y-2">
+                    <label class="ui-label" for="bulk-approval-date">يوم عمل الاعتماد</label>
+                    <input id="bulk-approval-date" class="ui-input" type="date" name="approval_business_date" value="{{ $currentBusinessDate }}" min="{{ $session->items->max(fn ($item) => $item->count_business_date?->format('Y-m-d')) }}">
+                    <button class="ui-btn ui-btn-success w-full" data-ui-confirm-submit="سيتم اعتماد كميات المحاسب للمنتجات المحددة وتحديث مخزونها. هل تريد المتابعة؟" data-ui-confirm-submit-title="اعتماد المنتجات المحددة">اعتماد المحدد</button>
+                </div>
+                <div class="ui-card-muted p-3 space-y-2">
+                    <label class="ui-label" for="bulk-return-reason">سبب إعادة المنتجات المحددة</label>
+                    <input id="bulk-return-reason" class="ui-input" name="reason" minlength="5" maxlength="1000" placeholder="سبب مشترك واضح">
+                    <button class="ui-btn ui-btn-secondary w-full" formaction="{{ route('user.stores.inventory-counts.bulk-return', [$store, $session]) }}" data-ui-confirm-submit="ستعود المنتجات المحددة إلى المحاسب لإعادة جردها دون تغيير المخزون الآن. هل تريد المتابعة؟" data-ui-confirm-submit-title="إعادة المنتجات المحددة">إعادة المحدد للمحاسب</button>
+                </div>
+            </div>
         </form>
     @endif
     @php($approvedSectionShown = false)
@@ -74,7 +85,7 @@
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div class="flex items-start gap-3">
                         @if(in_array($session->status, ['pending_owner', 'partially_approved', 'returned_to_accountant']) && $item->decision === 'pending' && $item->accountant_quantity !== null)
-                            <input type="checkbox" name="items[]" value="{{ $item->id }}" form="inventory-bulk-approval" aria-label="تحديد {{ $item->product_name_snapshot }} للاعتماد">
+                            <input type="checkbox" name="items[]" value="{{ $item->id }}" form="inventory-bulk-actions" aria-label="تحديد {{ $item->product_name_snapshot }} لإجراء جماعي">
                         @endif
                         <div><h2 class="ui-title text-lg font-bold">{{ $item->product_name_snapshot }}</h2><p class="ui-text-caption mt-2">الوحدة: {{ ['piece'=>'حبة','kit'=>'طقم','meter'=>'متر','roll'=>'رول','unit'=>'وحدة'][$item->unit_type] ?? $item->unit_type }}</p></div>
                     </div>
@@ -100,11 +111,14 @@
                     @endif
                 </div>
                 @if(in_array($session->status, ['pending_owner', 'partially_approved', 'returned_to_accountant']) && $item->decision === 'pending')
-                    <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                    <details class="ui-card-muted mt-4 p-3">
+                        <summary class="ui-title cursor-pointer font-bold">فتح إجراءات المنتج</summary>
+                        <div class="mt-3 grid gap-3 lg:grid-cols-3">
                         <form method="POST" action="{{ route('user.stores.inventory-counts.items.decision', [$store, $session, $item]) }}" class="space-y-2" data-ui-confirm="سيتم اعتماد كمية المحاسب وتحديث مخزون المنتج. هل تريد المتابعة؟" data-ui-confirm-title="اعتماد المنتج">@csrf<input type="hidden" name="action" value="approve"><input class="ui-input" type="date" name="approval_business_date" value="{{ $currentBusinessDate }}" min="{{ $item->count_business_date?->format('Y-m-d') }}" required aria-label="يوم عمل الاعتماد"><button class="ui-btn ui-btn-success w-full">اعتماد كمية المحاسب</button></form>
                         <form method="POST" action="{{ route('user.stores.inventory-counts.items.decision', [$store, $session, $item]) }}" class="space-y-2" data-ui-confirm="سيتم اعتماد الكمية التي أدخلتها بدل كمية المحاسب وتحديث المخزون. هل تريد المتابعة؟" data-ui-confirm-title="تعديل واعتماد المنتج">@csrf<input type="hidden" name="action" value="adjust"><input class="ui-input" type="date" name="approval_business_date" value="{{ $currentBusinessDate }}" min="{{ $item->count_business_date?->format('Y-m-d') }}" required aria-label="يوم عمل الاعتماد"><input class="ui-input" name="owner_quantity" type="number" min="0" step="0.001" required placeholder="الكمية الصحيحة"><input class="ui-input" name="reason" required minlength="5" placeholder="سبب التعديل"><button class="ui-btn ui-btn-warning w-full">تعديل واعتماد</button></form>
                         <form method="POST" action="{{ route('user.stores.inventory-counts.items.decision', [$store, $session, $item]) }}" class="space-y-2" data-ui-confirm="سيعود هذا المنتج إلى المحاسب لإعادة عده ولن يتغير المخزون الآن. هل تريد المتابعة؟" data-ui-confirm-title="إعادة المنتج للمحاسب">@csrf<input type="hidden" name="action" value="return"><input class="ui-input" name="reason" required minlength="5" placeholder="سبب إعادة الجرد"><button class="ui-btn ui-btn-secondary w-full">إعادة للمحاسب</button></form>
-                    </div>
+                        </div>
+                    </details>
                 @elseif($item->decision !== 'pending' || $item->accountant_quantity !== null)
                     <p class="ui-text-soft mt-3">{{ ['pending'=>'بانتظار مراجعة صاحب المتجر','returned'=>'أعيد للمحاسب لإعادة العد','recounted'=>'حفظ المحاسب نتيجة الإعادة ولم يرسلها بعد','approved'=>'اعتمد صاحب المتجر نتيجة المحاسب','adjusted_approved'=>'عدّل صاحب المتجر الكمية واعتمدها'][$item->decision] ?? $item->decision }} @if($item->owner_quantity !== null)— الكمية النهائية: {{ $item->owner_quantity }}@endif</p>
                 @endif

@@ -26,6 +26,7 @@ document.addEventListener('submit', async (event) => {
     if (!confirmationForm || confirmationForm.dataset.uiConfirmationApproved === 'true') return;
 
     event.preventDefault();
+    const submitter = event.submitter || undefined;
     const parentDialog = confirmationForm.hasAttribute('data-ui-confirm-hide-parent')
         ? confirmationForm.closest('.ui-modal-backdrop')
         : null;
@@ -38,8 +39,8 @@ document.addEventListener('submit', async (event) => {
     }
 
     const isConfirmed = await requestConfirmation(
-        confirmationForm.dataset.uiConfirmTitle || 'تأكيد العملية',
-        confirmationForm.dataset.uiConfirm,
+        submitter?.dataset.uiConfirmSubmitTitle || confirmationForm.dataset.uiConfirmTitle || 'تأكيد العملية',
+        submitter?.dataset.uiConfirmSubmit || confirmationForm.dataset.uiConfirm,
     );
     if (!isConfirmed) {
         if (parentWasVisible) {
@@ -49,7 +50,6 @@ document.addEventListener('submit', async (event) => {
         return;
     }
 
-    const submitter = event.submitter || undefined;
     confirmationForm.dataset.uiConfirmationApproved = 'true';
     confirmationForm.requestSubmit(submitter);
     if (submitter && confirmationForm.hasAttribute('data-ui-confirm-busy')) {

@@ -225,6 +225,31 @@ class InventoryCountController extends Controller
             ->with('success', 'تم اعتماد المنتجات المحددة وتسجيلها في سجل الجرد.');
     }
 
+    public function bulkReturn(Request $request, Store $store, InventoryCountSession $inventoryCount, InventoryCountService $service)
+    {
+        $this->ownerStore($store);
+        $this->ensureSessionStore($inventoryCount, $store);
+        $data = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*' => 'required|integer|distinct',
+            'reason' => 'required|string|min:5|max:1000',
+        ], [
+            'items.required' => 'حدد منتجًا واحدًا على الأقل لإعادته للمحاسب.',
+            'reason.required' => 'اكتب سبب إعادة المنتجات المحددة للمحاسب.',
+            'reason.min' => 'سبب الإعادة يجب ألا يقل عن خمسة أحرف.',
+        ]);
+
+        $service->returnSelectedItems(
+            $inventoryCount,
+            auth('web')->user(),
+            array_map('intval', $data['items']),
+            trim($data['reason']),
+        );
+
+        return redirect()->to($this->ownerReviewUrl($store, $inventoryCount))
+            ->with('success', 'تمت إعادة المنتجات المحددة للمحاسب لإعادة الجرد.');
+    }
+
     public function destroy(Store $store, InventoryCountSession $inventoryCount)
     {
         $this->ownerStore($store); $this->ensureSessionStore($inventoryCount, $store);

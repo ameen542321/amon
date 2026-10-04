@@ -22,6 +22,8 @@ class InventoryCountReviewWorkflowContractTest extends TestCase
     public function test_owner_review_orders_states_and_returns_to_the_next_pending_item(): void
     {
         $controller = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/InventoryCountController.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Services/InventoryCountService.php');
+        $routes = file_get_contents(dirname(__DIR__, 2).'/routes/user.php');
         $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/inventory-counts/owner/show.blade.php');
 
         self::assertStringContainsString("'pending' => 0", $controller);
@@ -35,5 +37,12 @@ class InventoryCountReviewWorkflowContractTest extends TestCase
         self::assertStringContainsString('اعتماد كمية المحاسب', $view);
         self::assertStringContainsString('تعديل واعتماد', $view);
         self::assertStringContainsString('إعادة للمحاسب', $view);
+        self::assertStringContainsString('inventory-bulk-actions', $view);
+        self::assertStringContainsString('إعادة المحدد للمحاسب', $view);
+        self::assertStringContainsString('فتح إجراءات المنتج', $view);
+        self::assertStringContainsString('public function bulkReturn', $controller);
+        self::assertStringContainsString('returnSelectedItems', $service);
+        self::assertStringContainsString("->name('bulk-return')", $routes);
+        self::assertStringContainsString('data-ui-confirm-submit=', $view);
     }
 }
