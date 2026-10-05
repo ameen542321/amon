@@ -20,7 +20,7 @@ return new class extends Migration
                 $table->string('action', 20);
                 $table->timestamps();
 
-                // لكل موظف: تعديل واحد وحذف واحد في اليوم المحاسبي، ويمكن تكرارهما لموظف آخر.
+                // لكل موظف: تعديل واحد وحذف واحد في اليوم، ويمكن تكرارهما لموظف آخر.
                 $table->unique(
                     ['store_id', 'person_id', 'person_type', 'business_date', 'action'],
                     'employee_withdrawal_accountant_daily_action_unique'

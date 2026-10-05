@@ -94,7 +94,7 @@ class EmployeeFinanceController extends Controller
                 EmployeeLogService::add(
                     $lockedWithdrawal->person,
                     'withdrawal_accountant_updated',
-                    'عدّل المحاسب سحبًا خلال اليوم المحاسبي المفتوح من '.number_format($oldAmount, 2).' إلى '.number_format((float) $validated['amount'], 2).' ريال.',
+                    'عدّل المحاسب سحبًا خلال اليوم المفتوح من '.number_format($oldAmount, 2).' إلى '.number_format((float) $validated['amount'], 2).' ريال.',
                     $validated['amount'],
                     [
                         'withdrawal_id' => $lockedWithdrawal->id,
@@ -124,7 +124,7 @@ class EmployeeFinanceController extends Controller
                 EmployeeLogService::add(
                     $lockedWithdrawal->person,
                     'withdrawal_accountant_deleted',
-                    'حذف المحاسب سحبًا بقيمة '.number_format((float) $lockedWithdrawal->amount, 2).' ريال خلال اليوم المحاسبي المفتوح.',
+                    'حذف المحاسب سحبًا بقيمة '.number_format((float) $lockedWithdrawal->amount, 2).' ريال خلال اليوم المفتوح.',
                     $lockedWithdrawal->amount,
                     [
                         'withdrawal_id' => $lockedWithdrawal->id,
@@ -155,7 +155,7 @@ class EmployeeFinanceController extends Controller
         $withdrawalBusinessDate = optional($withdrawal->business_date ?? $withdrawal->date)->toDateString();
 
         if ($withdrawalBusinessDate !== $currentBusinessDate || ! is_null($withdrawal->daily_balance_id)) {
-            throw new EmployeeOperationException('يمكن للمحاسب تعديل أو حذف سحب من اليوم المحاسبي المفتوح فقط.');
+            throw new EmployeeOperationException('يمكن للمحاسب تعديل أو حذف سحب من اليوم المفتوح فقط.');
         }
 
     }
@@ -178,7 +178,7 @@ class EmployeeFinanceController extends Controller
 
         if ($inserted !== 1) {
             $actionLabel = $action === 'update' ? 'التعديل' : 'الحذف';
-            throw new EmployeeOperationException("استُخدمت فرصة {$actionLabel} لهذا الموظف في اليوم المحاسبي الحالي. يمكنك تنفيذها لموظف آخر.");
+            throw new EmployeeOperationException("استُخدمت فرصة {$actionLabel} لهذا الموظف اليوم. يمكنك تنفيذها لموظف آخر.");
         }
     }
 
