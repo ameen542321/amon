@@ -8,11 +8,12 @@ class SalesCostReportContractTest extends TestCase
 {
     public function test_sales_cost_report_keeps_the_approved_simple_contract(): void
     {
-        $service = file_get_contents(base_path('app/Services/Reports/SalesCostReportService.php'));
-        $routes = file_get_contents(base_path('routes/user.php'));
-        $view = file_get_contents(base_path('resources/views/user/stores/reports/sales-cost.blade.php'));
-        $migration = file_get_contents(base_path('database/migrations/2026_09_27_000001_create_sales_cost_used_dates_table.php'));
-        $controller = file_get_contents(base_path('app/Http/Controllers/Reports/SalesCostReportController.php'));
+        $root = dirname(__DIR__, 2);
+        $service = file_get_contents($root.'/app/Services/Reports/SalesCostReportService.php');
+        $routes = file_get_contents($root.'/routes/user.php');
+        $view = file_get_contents($root.'/resources/views/user/stores/reports/sales-cost.blade.php');
+        $migration = file_get_contents($root.'/database/migrations/2026_09_27_000001_create_sales_cost_used_dates_table.php');
+        $controller = file_get_contents($root.'/app/Http/Controllers/Reports/SalesCostReportController.php');
 
         self::assertStringContainsString('betweenAccountingDates', $service);
         self::assertStringContainsString('$item->total_cost', $service);

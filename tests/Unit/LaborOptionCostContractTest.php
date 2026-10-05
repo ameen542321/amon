@@ -8,11 +8,12 @@ class LaborOptionCostContractTest extends TestCase
 {
     public function test_labor_option_cost_is_calculated_on_the_server_and_not_exposed_to_cashier(): void
     {
-        $controller = file_get_contents(base_path('app/Http/Controllers/Cashier/QuickSaleController.php'));
-        $view = file_get_contents(base_path('resources/views/cashier/quick-sale/index.blade.php'));
-        $sale = file_get_contents(base_path('app/Models/Sale.php'));
-        $migration = file_get_contents(base_path('database/migrations/2026_10_05_000001_add_labor_cost_to_sales_and_cost_usage_tables.php'));
-        $styles = file_get_contents(base_path('resources/css/app.css'));
+        $root = dirname(__DIR__, 2);
+        $controller = file_get_contents($root.'/app/Http/Controllers/Cashier/QuickSaleController.php');
+        $view = file_get_contents($root.'/resources/views/cashier/quick-sale/index.blade.php');
+        $sale = file_get_contents($root.'/app/Models/Sale.php');
+        $migration = file_get_contents($root.'/database/migrations/2026_10_05_000001_add_labor_cost_to_sales_and_cost_usage_tables.php');
+        $styles = file_get_contents($root.'/resources/css/app.css');
 
         self::assertStringContainsString('calculateLaborCost', $controller);
         self::assertStringContainsString("'labor_selections' => 'nullable|json'", $controller);
