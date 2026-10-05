@@ -601,7 +601,7 @@ CREATE TABLE "sales" (
     "products_total" NUMERIC(10,2) NOT NULL DEFAULT 0.00,
     "tax_rate" INTEGER NOT NULL DEFAULT 0,
     "labor_total" NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    "labor_cost" NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    "labor_cost" NUMERIC(12,2) DEFAULT NULL,
     "labor_cost_breakdown" TEXT DEFAULT NULL,
     "final_total" NUMERIC(10,2) NOT NULL DEFAULT 0.00,
     "profit" NUMERIC(10,2) NOT NULL DEFAULT 0.00,
