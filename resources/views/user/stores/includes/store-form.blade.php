@@ -157,14 +157,16 @@
                             <section class="ui-card-muted p-4 space-y-4">
                                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                                     <label class="flex-1"><span class="ui-label">الخيار الرئيسي</span><input class="ui-input mt-1" maxlength="100" required x-model="group.label" :name="`labor_description_options[${groupIndex}][label]`" placeholder="مثال: تضليل"></label>
+                                    <label class="sm:w-48"><span class="ui-label">تكلفة الرئيسي</span><input type="number" class="ui-input mt-1" min="0" step="0.01" x-model.number="group.cost" :name="`labor_description_options[${groupIndex}][cost]`" placeholder="0.00"></label>
                                     <button type="button" class="ui-btn ui-btn-danger" @click="removeGroup(groupIndex)" :disabled="groups.length === 1">حذف الرئيسي</button>
                                 </div>
                                 <div class="space-y-3">
                                     <template x-for="(child, childIndex) in group.children" :key="child.key">
                                         <div class="ui-frame-row grid gap-3 sm:grid-cols-12 sm:items-end">
-                                            <label class="sm:col-span-5"><span class="ui-label">الخيار الفرعي</span><input class="ui-input mt-1" maxlength="100" required x-model="child.label" :name="`labor_description_options[${groupIndex}][children][${childIndex}][label]`" placeholder="مثال: أمامي أو درايش"></label>
+                                            <label class="sm:col-span-4"><span class="ui-label">الخيار الفرعي</span><input class="ui-input mt-1" maxlength="100" required x-model="child.label" :name="`labor_description_options[${groupIndex}][children][${childIndex}][label]`" placeholder="مثال: أمامي أو درايش"></label>
                                             <label class="sm:col-span-3"><span class="ui-label">نوع الاختيار</span><select class="ui-input mt-1" x-model="child.type" :name="`labor_description_options[${groupIndex}][children][${childIndex}][type]`"><option value="toggle">اختيار عادي</option><option value="counter">عداد بالضغط</option></select></label>
-                                            <label class="sm:col-span-2" x-show="child.type === 'counter'"><span class="ui-label">الحد الأعلى</span><input type="number" class="ui-input mt-1" min="1" max="20" step="1" x-model.number="child.max" :required="child.type === 'counter'" :name="`labor_description_options[${groupIndex}][children][${childIndex}][max]`"></label>
+                                            <label class="sm:col-span-2"><span class="ui-label">تكلفة الفرعي</span><input type="number" class="ui-input mt-1" min="0" step="0.01" x-model.number="child.cost" :name="`labor_description_options[${groupIndex}][children][${childIndex}][cost]`" placeholder="0.00"></label>
+                                            <label class="sm:col-span-1" x-show="child.type === 'counter'"><span class="ui-label">الحد</span><input type="number" class="ui-input mt-1" min="1" max="20" step="1" x-model.number="child.max" :required="child.type === 'counter'" :name="`labor_description_options[${groupIndex}][children][${childIndex}][max]`"></label>
                                             <button type="button" class="ui-btn ui-btn-danger sm:col-span-2" @click="removeChild(groupIndex, childIndex)">حذف الفرعي</button>
                                         </div>
                                     </template>

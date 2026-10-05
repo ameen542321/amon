@@ -154,6 +154,9 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
             Route::post('/{store}/reports/sales-cost/mark-used', [SalesCostReportController::class, 'markUsed'])
                 ->middleware('throttle:10,1')
                 ->name('reports.sales-cost.mark-used');
+            Route::patch('/{store}/reports/sales-cost/{sale}/labor-cost', [SalesCostReportController::class, 'updateLaborCost'])
+                ->middleware('throttle:20,1')
+                ->name('reports.sales-cost.labor-cost.update');
             Route::get('/{store}/reports/store-transfers', [StoreController::class, 'reportsStoreTransfers'])->name('reports.store-transfers');
             Route::get('/{store}/reports/store-transfers/pdf', [StoreController::class, 'reportsStoreTransfersPdf'])->name('reports.store-transfers.pdf');
             Route::get('/{store}/reports/last-10-days', [StoreController::class, 'reportsLastTenDays'])->name('reports.last-ten-days');

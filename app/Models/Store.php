@@ -112,7 +112,7 @@ public function getLaborDescriptionGroupsListAttribute(): array
         if (is_string($group)) {
             $label = trim($group);
 
-            return $label === '' ? null : ['label' => $label, 'children' => []];
+            return $label === '' ? null : ['label' => $label, 'cost' => 0.0, 'children' => []];
         }
 
         if (! is_array($group)) {
@@ -128,7 +128,7 @@ public function getLaborDescriptionGroupsListAttribute(): array
             if (is_string($child)) {
                 $childLabel = trim($child);
 
-                return $childLabel === '' ? null : ['label' => $childLabel, 'type' => 'toggle', 'max' => 1];
+                return $childLabel === '' ? null : ['label' => $childLabel, 'type' => 'toggle', 'max' => 1, 'cost' => 0.0];
             }
 
             if (! is_array($child)) {
@@ -146,16 +146,17 @@ public function getLaborDescriptionGroupsListAttribute(): array
                 'label' => $childLabel,
                 'type' => $type,
                 'max' => $type === 'counter' ? max(1, min(20, (int) ($child['max'] ?? 4))) : 1,
+                'cost' => max(0, round((float) ($child['cost'] ?? 0), 2)),
             ];
         })->filter()->unique('label')->values()->all();
 
-        return ['label' => $label, 'children' => $children];
+        return ['label' => $label, 'cost' => max(0, round((float) ($group['cost'] ?? 0), 2)), 'children' => $children];
     })->filter()->unique('label')->values()->take(8)->all();
 
     return $groups ?: [
-        ['label' => 'تضليل', 'children' => []],
-        ['label' => 'تجليد', 'children' => []],
-        ['label' => 'شغل يد', 'children' => []],
+        ['label' => 'تضليل', 'cost' => 0.0, 'children' => []],
+        ['label' => 'تجليد', 'cost' => 0.0, 'children' => []],
+        ['label' => 'شغل يد', 'cost' => 0.0, 'children' => []],
     ];
 }
     // إضافة علاقة الإعدادات إذا كانت موجودة في جداولك
