@@ -404,6 +404,21 @@ window.quickSale = function quickSale() {
             }).join('، ');
         },
 
+        get laborSelectionsJson() {
+            return JSON.stringify(this.laborDescriptionGroups.flatMap((group, groupIndex) => {
+                if (!this.selectedLaborGroups[groupIndex]) return [];
+
+                const groupValues = this.laborChildValues[groupIndex] || {};
+                return [{
+                    group_index: groupIndex,
+                    children: (group.children || []).flatMap((child, childIndex) => {
+                        const count = Number(groupValues[childIndex] || 0);
+                        return count > 0 ? [{ child_index: childIndex, count }] : [];
+                    }),
+                }];
+            }));
+        },
+
         updateFractionPrice(item) {
             if (item.fraction_id === 'custom') {
                 item.is_custom = true;
