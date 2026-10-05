@@ -42,11 +42,19 @@ class QuickSaleController extends Controller
             'tintShortcutDescription' => trim((string) ($store?->quick_sale_tint_description ?: 'إضافة عملية تضليل سريعة إلى السلة')),
             'showLatestQuickSale' => $showLatestQuickSale,
             'quickSaleSubmitToken' => $quickSaleSubmitToken,
-            'laborDescriptionGroups' => $store?->labor_description_groups_list ?? [
+            // لا تُرسل التكلفة الداخلية إلى جهاز المحاسب؛ الخادم يعيد حسابها من إعدادات المتجر عند الحفظ.
+            'laborDescriptionGroups' => collect($store?->labor_description_groups_list ?? [
                 ['label' => 'تضليل', 'children' => []],
                 ['label' => 'تجليد', 'children' => []],
                 ['label' => 'شغل يد', 'children' => []],
-            ],
+            ])->map(fn (array $group): array => [
+                'label' => $group['label'],
+                'children' => collect($group['children'] ?? [])->map(fn (array $child): array => [
+                    'label' => $child['label'],
+                    'type' => $child['type'],
+                    'max' => $child['max'],
+                ])->values()->all(),
+            ])->values()->all(),
             'hasApprovedTaxNumber' => filled($store?->tax_number),
             'hasAvailableTintProducts' => collect($tintProducts)->contains(
                 fn (array $product) => $product['quantity'] > 0 && count($product['fractions']) > 0
@@ -200,6 +208,7 @@ class QuickSaleController extends Controller
     $rules = [
         'items'         => 'required|json',
         'labor_total'   => 'required|numeric|min:0',
+        'labor_selections' => 'nullable|json',
         'tax_rate'      => 'required|integer|in:0,15',
         'paid_amount'   => 'required|numeric|min:0',
         'sale_type'     => 'required|in:cash,card,credit,mixed',
@@ -239,6 +248,9 @@ class QuickSaleController extends Controller
         $accountant = auth('accountant')->user();
         $storeId = $accountant->store_id;
         $userId = $accountant->user_id;
+        [$laborCost, $laborCostBreakdown] = (float) $validated['labor_total'] > 0
+            ? $this->calculateLaborCost($accountant->store, (string) ($validated['labor_selections'] ?? '[]'))
+            : [0.0, []];
         $operationTimestamp = now();
         $shiftContext = app(ShiftLifecycleService::class)->currentShiftContext($storeId);
         $operationBusinessDate = Carbon::parse($shiftContext['business_date'] ?? $operationTimestamp->toDateString());
@@ -585,6 +597,7 @@ class QuickSaleController extends Controller
 
         // أجرة اليد تبقى كما هي في النظام الحالي. وعملية أجرة اليد دون منتجات
         // لا تدخل شرط الرول أعلاه، لذلك لا يتغير مسارها أو احتسابها.
+        // تبقى معادلة ربح البيع الحالية كما هي؛ تكلفة الخيارات لقطة مستقلة مخصصة لتقرير التكلفة.
         $totalProfit += $request->labor_total;
 
         $operationName = mb_substr($tintOperationNames->implode(' - '), 0, 500);
@@ -603,6 +616,8 @@ class QuickSaleController extends Controller
             'products_total'   => $productsTotal,
             'tax_rate'         => $request->tax_rate,
             'labor_total'      => $request->labor_total,
+            'labor_cost'       => $laborCost,
+            'labor_cost_breakdown' => $laborCostBreakdown,
             'final_total'      => $finalTotal,
             'total'            => $finalTotal,
             'paid_amount'      => $paidAmount,
@@ -724,7 +739,81 @@ class QuickSaleController extends Controller
 
         return redirect()->back()->with('error', 'حدث خطأ تقني: ' . $e->getMessage())->withInput();
     }
-}
+    }
+
+    /**
+     * يحسب تكلفة خيارات العمل من إعدادات المتجر الموثوقة، لا من قيم يرسلها المتصفح.
+     */
+    private function calculateLaborCost($store, string $encodedSelections): array
+    {
+        $selections = json_decode($encodedSelections, true);
+        if (! is_array($selections)) {
+            return [0.0, []];
+        }
+
+        $groups = $store?->labor_description_groups_list ?? [];
+        $total = 0.0;
+        $breakdown = [];
+        $usedGroups = [];
+
+        foreach ($selections as $selection) {
+            if (! is_array($selection) || ! isset($selection['group_index'])) {
+                continue;
+            }
+
+            $groupIndex = filter_var($selection['group_index'], FILTER_VALIDATE_INT);
+            $group = $groupIndex !== false ? ($groups[$groupIndex] ?? null) : null;
+            if (! is_array($group) || isset($usedGroups[$groupIndex])) {
+                continue;
+            }
+            $usedGroups[$groupIndex] = true;
+
+            $groupCost = max(0, round((float) ($group['cost'] ?? 0), 2));
+            $groupTotal = $groupCost;
+            $children = [];
+            $usedChildren = [];
+
+            foreach (($selection['children'] ?? []) as $selectedChild) {
+                if (! is_array($selectedChild) || ! isset($selectedChild['child_index'])) {
+                    continue;
+                }
+
+                $childIndex = filter_var($selectedChild['child_index'], FILTER_VALIDATE_INT);
+                $child = $childIndex !== false ? ($group['children'][$childIndex] ?? null) : null;
+                if (! is_array($child) || isset($usedChildren[$childIndex])) {
+                    continue;
+                }
+                $usedChildren[$childIndex] = true;
+
+                $maximum = ($child['type'] ?? 'toggle') === 'counter' ? max(1, (int) ($child['max'] ?? 1)) : 1;
+                $count = max(0, min($maximum, (int) ($selectedChild['count'] ?? 0)));
+                if ($count === 0) {
+                    continue;
+                }
+
+                $unitCost = max(0, round((float) ($child['cost'] ?? 0), 2));
+                $childTotal = round($unitCost * $count, 2);
+                $groupTotal += $childTotal;
+                $children[] = [
+                    'label' => $child['label'],
+                    'count' => $count,
+                    'unit_cost' => $unitCost,
+                    'total_cost' => $childTotal,
+                ];
+            }
+
+            $groupTotal = round($groupTotal, 2);
+            $total += $groupTotal;
+            $breakdown[] = [
+                'label' => $group['label'],
+                'cost' => $groupCost,
+                'children' => $children,
+                'total_cost' => $groupTotal,
+            ];
+        }
+
+        return [round($total, 2), $breakdown];
+    }
 
     public function operationStatus(string $clientOperationId)
     {
