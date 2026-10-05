@@ -8,20 +8,32 @@ class SalesCostReportContractTest extends TestCase
 {
     public function test_sales_cost_report_keeps_the_approved_simple_contract(): void
     {
-        $service = file_get_contents(base_path('app/Services/Reports/SalesCostReportService.php'));
-        $routes = file_get_contents(base_path('routes/user.php'));
-        $view = file_get_contents(base_path('resources/views/user/stores/reports/sales-cost.blade.php'));
-        $migration = file_get_contents(base_path('database/migrations/2026_09_27_000001_create_sales_cost_used_dates_table.php'));
+        $root = dirname(__DIR__, 2);
+        $service = file_get_contents($root.'/app/Services/Reports/SalesCostReportService.php');
+        $routes = file_get_contents($root.'/routes/user.php');
+        $view = file_get_contents($root.'/resources/views/user/stores/reports/sales-cost.blade.php');
+        $migration = file_get_contents($root.'/database/migrations/2026_09_27_000001_create_sales_cost_used_dates_table.php');
+        $controller = file_get_contents($root.'/app/Http/Controllers/Reports/SalesCostReportController.php');
 
         self::assertStringContainsString('betweenAccountingDates', $service);
         self::assertStringContainsString('$item->total_cost', $service);
         self::assertStringContainsString("'sales_total'", $service);
         self::assertStringContainsString("'products_cost'", $service);
         self::assertStringContainsString("'labor_total'", $service);
+        self::assertStringContainsString("'labor_cost'", $service);
+        self::assertStringContainsString("'total_cost'", $service);
+        self::assertStringContainsString("'missing_labor_cost_count'", $service);
         self::assertStringContainsString('insertOrIgnore', $service);
         self::assertStringContainsString("Route::get('/{store}/reports/sales-cost'", $routes);
         self::assertStringContainsString("Route::post('/{store}/reports/sales-cost/mark-used'", $routes);
+        self::assertStringContainsString("Route::patch('/{store}/reports/sales-cost/{sale}/labor-cost'", $routes);
+        self::assertStringContainsString('updateLaborCost', $controller);
+        self::assertStringContainsString("'min:0'", $controller);
         self::assertStringContainsString('استبعاد الأيام المستخدمة', $view);
+        self::assertStringContainsString('تكلفة خيارات العمل', $view);
+        self::assertStringContainsString('إجمالي التكلفة', $view);
+        self::assertStringContainsString('غير متوفرة لعملية قديمة', $view);
+        self::assertStringContainsString('إدخال تكلفة العملية السابقة', $view);
         self::assertStringNotContainsString('<style', $view);
         self::assertStringNotContainsString('style=', $view);
         self::assertStringContainsString("unique(['store_id', 'business_date']", $migration);

@@ -585,6 +585,7 @@
                     @csrf
                     <input type="hidden" name="items" x-model="items_json">
                     <input type="hidden" name="labor_total" :value="Math.round(labor_total)">
+                    <input type="hidden" name="labor_selections" :value="laborSelectionsJson">
                     <input type="hidden" name="paid_amount" :value="sale_type === 'credit' ? 0 : (sale_type === 'mixed' ? Math.round(mixedTotal) : Math.round(paid_amount))">
                     <input type="hidden" name="tax_rate" x-model="tax_rate">
                     <input type="hidden" name="sale_type" x-model="sale_type">

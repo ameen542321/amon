@@ -80,7 +80,7 @@
                     <div class="ui-card-muted p-3 space-y-3">
                         <div class="flex items-center justify-between gap-3">
                             <span class="ui-title font-bold">سحب #{{ $withdrawal->id }}</span>
-                            <span class="ui-text-soft ui-text-caption">اليوم المحاسبي: {{ $withdrawal->accounting_date_display ?? optional($withdrawal->business_date ?? $withdrawal->date)->format('Y-m-d') }}</span>
+                            <span class="ui-text-soft ui-text-caption">اليوم: {{ $withdrawal->accounting_date_display ?? optional($withdrawal->business_date ?? $withdrawal->date)->format('Y-m-d') }}</span>
                         </div>
                         <form method="POST"
                               action="{{ route('user.employees.withdrawal.update', $withdrawal) }}"
@@ -88,13 +88,13 @@
                               data-ui-confirm-title="تأكيد تعديل السحب"
                               data-ui-confirm-hide-parent
                               data-ui-confirm-busy="جاري حفظ التعديل..."
-                              class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              class="grid grid-cols-1 gap-3">
                             @csrf
                             @method('PUT')
                             <label><span class="ui-label">المبلغ</span><input type="number" name="amount" min="0.01" step="0.01" required value="{{ $withdrawal->amount }}" class="ui-input mt-1"></label>
                             <label><span class="ui-label">التاريخ</span><input type="date" name="date" required value="{{ optional($withdrawal->date ?? $withdrawal->business_date)->format('Y-m-d') }}" class="ui-input mt-1"></label>
-                            <label class="sm:col-span-2"><span class="ui-label">الوصف</span><input type="text" name="description" maxlength="255" value="{{ $withdrawal->description }}" class="ui-input mt-1"></label>
-                            <button type="submit" class="ui-btn ui-btn-secondary justify-center sm:col-span-2">حفظ التعديل</button>
+                            <label><span class="ui-label">الوصف</span><input type="text" name="description" maxlength="255" value="{{ $withdrawal->description }}" class="ui-input mt-1"></label>
+                            <button type="submit" class="ui-btn ui-btn-secondary justify-center">حفظ التعديل</button>
                         </form>
                         <form method="POST"
                               action="{{ route('user.employees.withdrawal.destroy', $withdrawal) }}"

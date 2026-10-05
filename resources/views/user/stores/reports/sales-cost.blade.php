@@ -51,7 +51,7 @@
         </div>
     @endif
 
-    <section class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <article class="rounded-2xl border ui-border ui-card p-4">
             <p class="ui-text-soft">إجمالي المبيعات</p>
             <p class="mt-2 text-xl font-black ui-title">{{ $money($summary['sales_total']) }} ريال</p>
@@ -65,10 +65,27 @@
             <p class="mt-2 text-xl font-black ui-title">{{ $money($summary['labor_total']) }} ريال</p>
         </article>
         <article class="rounded-2xl border ui-border ui-card p-4">
+            <p class="ui-text-soft">تكلفة خيارات العمل</p>
+            <p class="mt-2 text-xl font-black ui-status-success">{{ $money($summary['labor_cost']) }} ريال</p>
+        </article>
+        <article class="rounded-2xl border ui-border ui-card p-4">
+            <p class="ui-text-soft">إجمالي التكلفة</p>
+            <p class="mt-2 text-xl font-black ui-status-success">{{ $money($summary['total_cost']) }} ريال</p>
+        </article>
+        <article class="rounded-2xl border ui-border ui-card p-4">
             <p class="ui-text-soft">عدد العمليات</p>
             <p class="mt-2 text-xl font-black ui-title">{{ number_format($summary['operations_count']) }}</p>
         </article>
     </section>
+
+    @if($summary['missing_labor_cost_count'] > 0)
+        <div class="ui-alert ui-alert-warning mb-5" role="alert">
+            <div>
+                <p class="ui-alert-title font-black">تكلفة خيارات العمل غير متوفرة لبعض العمليات القديمة</p>
+                <p class="ui-alert-body mt-1">عددها {{ number_format($summary['missing_labor_cost_count']) }}. لم تُقدّر هذه التكلفة بأسعار الخيارات الحالية حتى لا تتغير النتائج التاريخية، وإجمالي التكلفة أدناه يجمع القيم المحفوظة المتاحة فقط.</p>
+            </div>
+        </div>
+    @endif
 
     <section class="overflow-hidden rounded-3xl border ui-border ui-card shadow-xl">
         <div class="flex flex-col gap-3 border-b ui-border p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -103,11 +120,21 @@
                     </div>
                     <p class="mt-3 ui-text-soft">{{ $row['description'] }}</p>
                     @if($row['products'])<p class="mt-1 ui-text-muted">{{ $row['products'] }}</p>@endif
-                    <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <dl class="mt-3 grid grid-cols-2 gap-2 text-center">
                         <div><dt class="ui-text-muted">المبيعات</dt><dd class="font-black ui-title">{{ $money($row['sales_total']) }}</dd></div>
                         <div><dt class="ui-text-muted">التكلفة</dt><dd class="font-black ui-status-success">{{ $money($row['products_cost']) }}</dd></div>
                         <div><dt class="ui-text-muted">شغل اليد</dt><dd class="font-black ui-title">{{ $money($row['labor_total']) }}</dd></div>
+                        <div><dt class="ui-text-muted">تكلفة العمل</dt><dd class="font-black {{ $row['has_labor_cost_snapshot'] ? 'ui-status-success' : 'ui-status-warning' }}">{{ $row['has_labor_cost_snapshot'] ? $money($row['labor_cost']) : 'غير متوفرة' }}</dd></div>
                     </dl>
+                    @if(!$row['has_labor_cost_snapshot'] && !$usedDates->has($row['business_date']))
+                        <form method="POST" action="{{ route('user.stores.reports.sales-cost.labor-cost.update', [$store, $row['id']]) }}" class="mt-3 flex items-end gap-2">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="from" value="{{ $from }}"><input type="hidden" name="to" value="{{ $to }}"><input type="hidden" name="q" value="{{ $search }}">@if($excludeUsed)<input type="hidden" name="exclude_used" value="1">@endif
+                            <label class="flex-1"><span class="ui-label">إدخال تكلفة العملية السابقة</span><input class="ui-input mt-1" type="number" name="labor_cost" min="0" max="99999999.99" step="0.01" required placeholder="0.00"></label>
+                            <button class="ui-btn ui-btn-primary" type="submit">حفظ</button>
+                        </form>
+                    @endif
+                    @if($row['labor_cost_breakdown'])<p class="mt-2 ui-text-muted">خيارات التكلفة: {{ $row['labor_cost_breakdown'] }}</p>@endif
                     <p class="mt-3 ui-text-muted">{{ $row['cost_source'] }}</p>
                 </article>
             @empty
@@ -116,10 +143,10 @@
         </div>
 
         <div class="hidden overflow-x-auto md:block">
-            <table class="ui-table w-full min-w-[900px]">
+            <table class="ui-table w-full min-w-[1050px]">
                 <thead>
                     <tr>
-                        <th>التاريخ</th><th>العملية</th><th>الوصف والمنتجات</th><th>المبيعات</th><th>تكلفة المنتجات</th><th>شغل اليد</th><th>الحالة</th>
+                        <th>التاريخ</th><th>العملية</th><th>الوصف والمنتجات</th><th>المبيعات</th><th>تكلفة المنتجات</th><th>شغل اليد</th><th>تكلفة العمل</th><th>إجمالي التكلفة</th><th>الحالة</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -131,10 +158,26 @@
                             <td>{{ $money($row['sales_total']) }}</td>
                             <td><strong class="ui-status-success">{{ $money($row['products_cost']) }}</strong><p class="ui-text-muted">{{ $row['cost_source'] }}</p></td>
                             <td>{{ $money($row['labor_total']) }}</td>
+                            <td>
+                                @if($row['has_labor_cost_snapshot'])
+                                    <strong class="ui-status-success">{{ $money($row['labor_cost']) }}</strong>@if($row['labor_cost_breakdown'])<p class="ui-text-muted">{{ $row['labor_cost_breakdown'] }}</p>@endif
+                                @else
+                                    <span class="ui-badge ui-badge-warning">غير متوفرة لعملية قديمة</span>
+                                    @unless($usedDates->has($row['business_date']))
+                                        <form method="POST" action="{{ route('user.stores.reports.sales-cost.labor-cost.update', [$store, $row['id']]) }}" class="mt-2 flex items-center gap-2">
+                                            @csrf @method('PATCH')
+                                            <input type="hidden" name="from" value="{{ $from }}"><input type="hidden" name="to" value="{{ $to }}"><input type="hidden" name="q" value="{{ $search }}">@if($excludeUsed)<input type="hidden" name="exclude_used" value="1">@endif
+                                            <input class="ui-input" type="number" name="labor_cost" min="0" max="99999999.99" step="0.01" required aria-label="تكلفة العمل للعملية السابقة" placeholder="0.00">
+                                            <button class="ui-btn ui-btn-primary" type="submit">حفظ</button>
+                                        </form>
+                                    @endunless
+                                @endif
+                            </td>
+                            <td><strong class="ui-status-success">{{ $money($row['total_cost']) }}</strong></td>
                             <td>@if($usedDates->has($row['business_date']))<span class="ui-badge ui-badge-warning">مستخدم</span>@else<span class="ui-badge ui-badge-success">متاح</span>@endif</td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="p-10 text-center ui-text-muted">لا توجد عمليات مطابقة للفترة والبحث.</td></tr>
+                        <tr><td colspan="9" class="p-10 text-center ui-text-muted">لا توجد عمليات مطابقة للفترة والبحث.</td></tr>
                     @endforelse
                 </tbody>
             </table>

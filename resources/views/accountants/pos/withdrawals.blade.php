@@ -15,7 +15,7 @@
 
         <div class="ui-alert ui-alert-warning">
             <div class="font-bold">تنبيه التعديل والحذف</div>
-            <p class="mt-1">لكل موظف خلال اليوم المحاسبي المفتوح <strong>{{ $currentBusinessDate }}</strong>: فرصة تعديل واحدة وفرصة حذف واحدة، وهما مستقلتان. يمكن استخدام الفرص نفسها لموظف آخر.</p>
+            <p class="mt-1">لكل موظف خلال اليوم المفتوح <strong>{{ $currentBusinessDate }}</strong>: فرصة تعديل واحدة وفرصة حذف واحدة، وهما مستقلتان. يمكن استخدام الفرص نفسها لموظف آخر.</p>
         </div>
 
         {{-- قسم اختيار الموظف --}}
@@ -112,7 +112,7 @@
                                     <span class="ui-badge ui-badge-neutral">استُخدمت فرصة حذف هذا الموظف</span>
                                 @endif
                             @else
-                                <span class="ui-badge ui-badge-neutral">خارج اليوم المحاسبي المفتوح</span>
+                                <span class="ui-badge ui-badge-neutral">خارج اليوم المفتوح</span>
                             @endif
                         </div>
                         </div>
@@ -187,16 +187,16 @@
 
             {{-- الأزرار المصغرة --}}
             <div class="flex gap-2 pt-2">
+                <button type="button" data-ui-hide="withdrawalModal" data-ui-reset-form="withdrawalForm" data-ui-scroll-unlock
+                        class="ui-btn ui-btn-danger flex-1 py-3">
+                    إلغاء
+                </button>
                 <button type="submit"
                         class="ui-btn ui-btn-warning flex-1 py-3 disabled:opacity-50">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                     حفظ
-                </button>
-                <button type="button" data-ui-hide="withdrawalModal" data-ui-reset-form="withdrawalForm" data-ui-scroll-unlock
-                        class="ui-btn ui-btn-danger flex-1 py-3">
-                    إلغاء
                 </button>
             </div>
         </form>
@@ -208,7 +208,7 @@
         <div class="ui-modal-header">
             <div>
                 <h3 class="ui-title text-lg font-bold">تعديل السحب</h3>
-                <p class="ui-text-soft ui-text-caption mt-1">فرصة تعديل واحدة لكل موظف خلال اليوم المحاسبي المفتوح، وفرصة الحذف مستقلة عنها.</p>
+                <p class="ui-text-soft ui-text-caption mt-1">فرصة تعديل واحدة لكل موظف خلال اليوم المفتوح، وفرصة الحذف مستقلة عنها.</p>
             </div>
             <button type="button" data-ui-hide="withdrawalEditModal" data-ui-scroll-unlock class="ui-modal-close-danger" aria-label="إغلاق">×</button>
         </div>
@@ -225,8 +225,8 @@
             <label class="block"><span class="ui-label">المبلغ</span><input type="number" name="amount" min="0.01" step="0.01" required data-ui-fill="amount" class="ui-input mt-1"></label>
             <label class="block"><span class="ui-label">الوصف (اختياري)</span><textarea name="description" rows="3" data-ui-fill="description" class="ui-input mt-1"></textarea></label>
             <div class="flex gap-2">
+                <button type="button" data-ui-hide="withdrawalEditModal" data-ui-scroll-unlock class="ui-btn ui-btn-danger flex-1 justify-center">إلغاء</button>
                 <button type="submit" class="ui-btn ui-btn-warning flex-1 justify-center">حفظ التعديل</button>
-                <button type="button" data-ui-hide="withdrawalEditModal" data-ui-scroll-unlock class="ui-btn ui-btn-secondary flex-1 justify-center">إلغاء</button>
             </div>
         </form>
     </div>
