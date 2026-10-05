@@ -54,6 +54,8 @@ class SalesCostReportService
             'sales_total' => round((float) $rows->sum('sales_total'), 2),
             'products_cost' => round((float) $rows->sum('products_cost'), 2),
             'labor_total' => round((float) $rows->sum('labor_total'), 2),
+            'labor_cost' => round((float) $rows->sum('labor_cost'), 2),
+            'total_cost' => round((float) $rows->sum('total_cost'), 2),
             'operations_count' => $rows->count(),
         ];
 
@@ -91,6 +93,7 @@ class SalesCostReportService
                     'sales_total' => round((float) $rows->sum('sales_total'), 2),
                     'products_cost' => round((float) $rows->sum('products_cost'), 2),
                     'labor_total' => round((float) $rows->sum('labor_total'), 2),
+                    'labor_cost' => round((float) $rows->sum('labor_cost'), 2),
                     'operations_count' => $rows->count(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -114,6 +117,8 @@ class SalesCostReportService
             ? (float) $items->sum('total_cost')
             : max(0, (float) ($sale->products_total ?? 0) + (float) ($sale->labor_total ?? 0) - (float) ($sale->profit ?? 0));
 
+        $laborCost = round((float) ($sale->labor_cost ?? 0), 2);
+
         return [
             'id' => (int) $sale->id,
             'business_date' => $this->businessDate($sale),
@@ -122,6 +127,10 @@ class SalesCostReportService
             'sales_total' => (float) ($sale->final_total ?? $sale->total ?? 0),
             'products_cost' => round($productsCost, 2),
             'labor_total' => (float) ($sale->labor_total ?? 0),
+            'labor_cost' => $laborCost,
+            'labor_cost_breakdown' => collect($sale->labor_cost_breakdown ?? [])
+                ->pluck('label')->filter()->implode('، '),
+            'total_cost' => round($productsCost + $laborCost, 2),
             'accountant' => $sale->accountant?->name ?: 'غير محدد',
             'cost_source' => $allItemsHaveSavedCost ? 'محفوظة وقت البيع' : 'تقديرية لعملية قديمة',
         ];

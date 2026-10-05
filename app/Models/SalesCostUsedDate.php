@@ -14,6 +14,7 @@ class SalesCostUsedDate extends Model
         'sales_total',
         'products_cost',
         'labor_total',
+        'labor_cost',
         'operations_count',
     ];
 
@@ -22,6 +23,7 @@ class SalesCostUsedDate extends Model
         'sales_total' => 'float',
         'products_cost' => 'float',
         'labor_total' => 'float',
+        'labor_cost' => 'float',
         'operations_count' => 'integer',
     ];
 }
