@@ -277,9 +277,10 @@ public function pdf(Store $store, StorePurchaseOrder $order)
             'product_action' => $request->input('product_action') ?: ($request->filled('existing_product_id') ? 'link' : 'create'),
         ]);
         $validated = $request->validate([
-            'product_action' => ['required', Rule::in(['link', 'create'])],
+            'product_action' => ['required', Rule::in(['link', 'create', 'custom'])],
             'existing_product_id' => ['nullable', Rule::requiredIf(fn () => $request->input('product_action') === 'link'), Rule::exists('products', 'id')->where(fn ($query) => $query->where('store_id', $store->id))],
             'name' => ['nullable', Rule::requiredIf(fn () => $request->input('product_action') === 'create'), 'string', 'max:255'],
+            'custom_product_name' => ['nullable', Rule::requiredIf(fn () => $request->input('product_action') === 'custom'), 'string', 'max:255'],
             'category_id' => ['nullable', Rule::requiredIf(fn () => $request->input('product_action') === 'create'), Rule::exists('categories', 'id')->where(fn ($query) => $query->where('store_id', $store->id))],
             'owner_unit_type' => ['nullable', Rule::requiredIf(fn () => $request->input('product_action') === 'create'), Rule::in(['piece', 'kit', 'roll'])],
             'receipt_total_cost' => ['nullable', 'numeric', 'min:0'],
@@ -305,19 +306,44 @@ public function pdf(Store $store, StorePurchaseOrder $order)
 
         if ($validated['product_action'] === 'link') {
             $existingProduct = Product::where('store_id', $store->id)->findOrFail($validated['existing_product_id']);
-            $item->update([
+            $this->replaceReceiptItemIdentity($order, $item, [
                 'product_id' => $existingProduct->id,
                 'matched_product_id' => null,
+                'custom_product_name' => $existingProduct->name,
                 'add_to_owner_purchases' => $existingProduct->isOwnerPurchaseOnly(),
+                'update_product_cost' => false,
             ]);
 
             return response()->json([
-                'message' => 'تم ربط المنتج الموجود بالطلبية.',
+                'message' => 'تم حذف ارتباط المنتج السابق واستبداله بالمنتج الموجود المحدد.',
                 'product' => ['id' => $existingProduct->id, 'name' => $existingProduct->name],
                 'item' => [
                     'id' => $item->id,
                     'owner_purchase_only' => $existingProduct->isOwnerPurchaseOnly(),
                     'product_name' => $existingProduct->name,
+                    'is_custom' => false,
+                ],
+            ]);
+        }
+
+        if ($validated['product_action'] === 'custom') {
+            $customProductName = trim($validated['custom_product_name']);
+            $this->replaceReceiptItemIdentity($order, $item, [
+                'product_id' => null,
+                'matched_product_id' => null,
+                'custom_product_name' => $customProductName,
+                'add_to_owner_purchases' => true,
+                'update_product_cost' => false,
+            ]);
+
+            return response()->json([
+                'message' => 'تم حذف ارتباط المنتج السابق واستبداله بسطر منتج مخصص ضمن مشتريات المالك.',
+                'product' => null,
+                'item' => [
+                    'id' => $item->id,
+                    'owner_purchase_only' => true,
+                    'product_name' => $customProductName,
+                    'is_custom' => true,
                 ],
             ]);
         }
@@ -386,8 +412,10 @@ public function pdf(Store $store, StorePurchaseOrder $order)
             $item->update([
                 'product_id' => $product->id,
                 'matched_product_id' => null,
+                'custom_product_name' => $product->name,
                 'unit_type' => $unitType,
                 'add_to_owner_purchases' => ! $isSaleProduct,
+                'update_product_cost' => false,
             ]);
 
             if ($isRoll) {
@@ -412,8 +440,38 @@ public function pdf(Store $store, StorePurchaseOrder $order)
                 'id' => $item->id,
                 'owner_purchase_only' => $validated['usage_type'] !== Product::USAGE_TYPE_SALE,
                 'product_name' => $product->name,
+                'is_custom' => false,
             ],
         ], 201);
+    }
+
+    /**
+     * يستبدل هوية بند الاستلام مع إبقاء سجل الكميات والتكلفة على البند نفسه،
+     * ويسجل حذف الاسم السابق وإضافة الاسم الجديد في سجل الطلبية.
+     */
+    private function replaceReceiptItemIdentity(StorePurchaseOrder $order, StorePurchaseOrderItem $item, array $replacement): void
+    {
+        DB::transaction(function () use ($order, $item, $replacement): void {
+            $lockedItem = StorePurchaseOrderItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            $previousName = $lockedItem->productName();
+            $lockedItem->update($replacement);
+            $replacementName = $lockedItem->fresh(['product', 'matchedProduct'])->productName();
+
+            $eventBase = [
+                'from_status' => $order->workflow_status,
+                'to_status' => $order->workflow_status,
+                'actor_type' => 'user',
+                'actor_id' => auth('web')->id(),
+            ];
+            $order->events()->create($eventBase + [
+                'event' => 'item_deleted',
+                'data' => ['product_name' => $previousName],
+            ]);
+            $order->events()->create($eventBase + [
+                'event' => 'item_added',
+                'data' => ['product_name' => $replacementName],
+            ]);
+        });
     }
 
 

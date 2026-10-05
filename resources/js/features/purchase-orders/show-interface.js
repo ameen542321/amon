@@ -181,6 +181,22 @@ if (root) {
         const accountantReceiptForm = document.getElementById('receipt-confirmation');
         const receiptForms = [accountantReceiptForm, receiptReviewForm].filter(Boolean);
 
+        const confirmAccountantReceipt = async () => {
+            const message = 'سيتم تثبيت كميات وتكاليف الاستلام وإرسال الطلبية إلى المالك للمراجعة. هل أنت متأكد من تأكيد الاستلام؟';
+            if (typeof Swal === 'undefined') return window.confirm(message);
+
+            const result = await Swal.fire({
+                title: 'تأكيد استلام الطلبية',
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، تأكيد الاستلام',
+                cancelButtonText: 'مراجعة البيانات',
+            });
+
+            return result.isConfirmed;
+        };
+
         const revealReceiptTarget = (target) => {
             if (!target) return;
             const card = target.closest('.js-receive-item');
@@ -280,9 +296,17 @@ if (root) {
                 }
             });
 
-            form.addEventListener('submit', (event) => {
+            form.addEventListener('submit', async (event) => {
                 const issues = collectIssues();
-                if (issues.length === 0) return;
+                if (issues.length === 0) {
+                    if (form !== accountantReceiptForm || form.dataset.receiptConfirmed === '1') return;
+                    event.preventDefault();
+                    if (await confirmAccountantReceipt()) {
+                        form.dataset.receiptConfirmed = '1';
+                        form.requestSubmit();
+                    }
+                    return;
+                }
                 event.preventDefault();
                 issues.forEach(({ target }) => target?.setAttribute?.('aria-invalid', 'true'));
                 showReceiptValidation(form, issues);
@@ -428,6 +452,8 @@ if (root) {
         const ownerExistingProductSearch = document.getElementById('ownerExistingProductSearch');
         const ownerProductLinkFields = document.getElementById('ownerProductLinkFields');
         const ownerProductCreateFields = document.getElementById('ownerProductCreateFields');
+        const ownerProductCustomFields = document.getElementById('ownerProductCustomFields');
+        const ownerCustomProductName = document.getElementById('ownerCustomProductName');
         const ownerProductUnitChoice = document.getElementById('ownerProductUnitChoice');
         const ownerProductFractions = document.getElementById('ownerProductFractions');
         const ownerProductFractionsList = document.getElementById('ownerProductFractionsList');
@@ -441,6 +467,7 @@ if (root) {
         let activeOwnerProductCard = null;
 
         const isCreatingOwnerProduct = () => ownerProductForm?.querySelector('input[name="product_action"]:checked')?.value === 'create';
+        const isCustomOwnerProduct = () => ownerProductForm?.querySelector('input[name="product_action"]:checked')?.value === 'custom';
 
         const toggleOwnerProductUsage = () => {
             const creating = isCreatingOwnerProduct();
@@ -467,11 +494,18 @@ if (root) {
 
         const toggleExistingProductLink = () => {
             const creating = isCreatingOwnerProduct();
-            ownerProductLinkFields?.classList.toggle('hidden', creating);
+            const custom = isCustomOwnerProduct();
+            ownerProductLinkFields?.classList.toggle('hidden', creating || custom);
             ownerProductCreateFields?.classList.toggle('hidden', !creating);
-            ownerExistingProduct?.toggleAttribute('required', !creating);
+            ownerProductCustomFields?.classList.toggle('hidden', !custom);
+            ownerExistingProduct?.toggleAttribute('required', !creating && !custom);
             ownerProductName?.toggleAttribute('required', creating);
-            if (ownerProductSubmitText) ownerProductSubmitText.textContent = creating ? 'إنشاء المنتج وربطه بالطلبية' : 'ربط المنتج بالطلبية';
+            ownerCustomProductName?.toggleAttribute('required', custom);
+            if (ownerProductSubmitText) {
+                ownerProductSubmitText.textContent = custom
+                    ? 'استبدال بسطر منتج مخصص'
+                    : (creating ? 'إنشاء المنتج واستبدال البند' : 'استبدال بمنتج موجود');
+            }
             toggleOwnerProductUnitFields();
             toggleOwnerProductUsage();
         };
@@ -599,17 +633,26 @@ if (root) {
                     activeOwnerProductCard.dataset.unresolved = '0';
                     const ownerPurchaseOnly = Boolean(data.item?.owner_purchase_only);
                     activeOwnerProductCard.dataset.owner = ownerPurchaseOnly ? '1' : '0';
+                    const replacementName = data.item?.product_name || data.product?.name || '';
+                    activeOwnerProductCard.dataset.productName = replacementName;
+                    activeOwnerProductCard.querySelectorAll('.js-owner-product-display-name').forEach((label) => {
+                        label.textContent = replacementName;
+                    });
 
                     const ownerPurchaseCheckbox = activeOwnerProductCard.querySelector('input[name$="[add_to_owner_purchases]"][type="checkbox"]');
                     if (ownerPurchaseCheckbox) ownerPurchaseCheckbox.checked = ownerPurchaseOnly;
 
                     const linkedBadge = activeOwnerProductCard.querySelector('.js-owner-product-link-status');
                     if (linkedBadge) {
-                        linkedBadge.textContent = `المنتج مربوط: ${data.item?.product_name || data.product?.name || ''}`.trim();
-                        linkedBadge.classList.remove('hidden');
+                        linkedBadge.textContent = data.item?.is_custom
+                            ? `سطر مخصص: ${replacementName}`
+                            : `المنتج مربوط: ${replacementName}`;
+                        linkedBadge.classList.toggle('hidden', !replacementName);
                     }
                     const actionLabel = activeOwnerProductCard.querySelector('.js-owner-product-action-label');
                     if (actionLabel) actionLabel.textContent = 'استبدال المنتج';
+                    const actionButton = activeOwnerProductCard.querySelector('.js-open-owner-product-modal');
+                    if (actionButton) actionButton.dataset.ownerProductName = replacementName;
                 }
 
                 closeOwnerProductModal();

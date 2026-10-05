@@ -38,8 +38,7 @@
 
         {{-- مساحة العمل الرئيسية: بحث، تضليل، وسلة. تتحول إلى مساحة أعرض في الشاشات الكبيرة بدل تمدد عشوائي. --}}
         <div class="space-y-3">
-            @if($hasAvailableTintProducts)
-            @if(!empty($latestShiftOperation))
+            @if(($showLatestQuickSale ?? true) && !empty($latestShiftOperation))
 
                 <div class="overflow-hidden rounded-2xl border ui-border ui-status-info-bg px-3 py-2 shadow-lg " aria-label="آخر عملية مسجلة ضمن الشفت الحالي">
                     <div class="flex items-center gap-3 whitespace-nowrap ui-text-caption font-bold ui-status-info quick-sale-marquee-track sm:text-sm">
@@ -57,6 +56,7 @@
                 </div>
             @endif
             {{-- يظهر زر التضليل فقط عند وجود رول تضليل متوفر وله خيارات تجزئة. --}}
+            @if(($showTintShortcut ?? false) && $hasAvailableTintProducts)
             <div class="rounded-2xl border ui-border ui-card   p-3 shadow-lg sm:p-4">
                 <button type="button"
                         @click="window.dispatchEvent(new CustomEvent('open-tint-sale-modal'))"
@@ -64,8 +64,8 @@
                     <span class="flex min-w-0 items-center gap-3">
                         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ui-surface-strong-bg text-xl">◩</span>
                         <span class="min-w-0">
-                            <span class="block text-sm font-black sm:text-base">تضليل</span>
-                            <span class="mt-0.5 block ui-text-caption ui-status-info sm:ui-text-caption">إضافة عملية تضليل سريعة إلى السلة</span>
+                            <span class="block text-sm font-black sm:text-base">{{ $tintShortcutLabel ?? 'تضليل' }}</span>
+                            <span class="mt-0.5 block ui-text-caption ui-status-info sm:ui-text-caption">{{ $tintShortcutDescription ?? 'إضافة عملية تضليل سريعة إلى السلة' }}</span>
                         </span>
                     </span>
                     <span class="shrink-0 text-lg" aria-hidden="true">←</span>
@@ -305,20 +305,41 @@
 
                         <div x-show="labor_total > 0" x-transition class="ui-section-divider ui-section-divider-sm">
                             <label class="ui-text-muted ui-text-caption font-bold block mb-1 pr-1 italic text-right">📝 وصف العمل / ملاحظات</label>
-                            {{-- أزرار جاهزة لتسريع كتابة وصف عمل اليد بدون التأثير على الإدخال اليدوي --}}
+                            {{-- مجموعات رئيسية وفرعية تضبط النص فقط ولا تغير أي حساب أو مخزون. --}}
                             <div class="flex flex-wrap gap-2 mb-2">
-                                <template x-for="option in laborDescriptionOptions" :key="option">
+                                <template x-for="(group, groupIndex) in laborDescriptionGroups" :key="`${groupIndex}-${group.label}`">
                                     <button type="button"
-                                            @click="appendLaborDescription(option)"
+                                            @click="selectLaborGroup(groupIndex)"
+                                            :class="selectedLaborGroups[groupIndex] ? 'is-active' : ''"
+                                            :aria-pressed="selectedLaborGroups[groupIndex] ? 'true' : 'false'"
                                             class="ui-quick-sale-preset ui-text-caption transition">
-                                        <span x-text="option"></span>
+                                        <span x-text="group.label"></span>
                                     </button>
                                 </template>
                             </div>
+                            <template x-for="(group, groupIndex) in laborDescriptionGroups" :key="`details-${groupIndex}-${group.label}`">
+                                <div x-show="selectedLaborGroups[groupIndex] && (group.children || []).length" x-transition class="ui-card-muted mb-2 p-3">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="ui-text-caption ui-text-soft" x-text="`خيارات ${group.label}`"></span>
+                                        <x-ui.help title="طريقة اختيار تفاصيل العمل" body="يمكن اختيار أكثر من خيار رئيسي مع خياراته الإضافية. اضغط الخيار العادي لإضافته أو إزالته، وخيار العداد يزيد مع كل ضغطة." />
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="(child, childIndex) in (group.children || [])" :key="`${groupIndex}-${childIndex}-${child.label}`">
+                                            <span class="inline-flex items-center gap-1">
+                                                <button type="button" @click="selectLaborChild(groupIndex, childIndex)" :class="Number(laborChildValues[groupIndex]?.[childIndex] || 0) > 0 ? 'is-active' : ''" class="ui-quick-sale-preset ui-text-caption transition">
+                                                    <span x-text="child.type === 'counter' && Number(laborChildValues[groupIndex]?.[childIndex] || 0) > 0 ? `${child.label} (${laborChildValues[groupIndex][childIndex]})` : child.label"></span>
+                                                </button>
+                                                <button x-show="child.type === 'counter' && Number(laborChildValues[groupIndex]?.[childIndex] || 0) > 0" type="button" @click="decrementLaborChild(groupIndex, childIndex)" class="ui-btn ui-btn-secondary px-3 py-2" :aria-label="`إنقاص ${child.label}`">−</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
                             <textarea x-model="description" placeholder="وصف سريع للعمل..." class="w-full ui-surface-muted-bg border ui-border ui-title rounded-xl px-4 py-3 text-sm outline-none text-right font-bold" rows="2"></textarea>
                         </div>
                     </div>
 
+                    @if($hasApprovedTaxNumber ?? false)
                     <div class="rounded-xl border ui-border ui-surface-muted-bg p-3 sm:col-span-2">
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             <div>
@@ -328,11 +349,13 @@
                                     <option value="15">ضريبة (15%)</option>
                                 </select>
                             </div>
-                            <div class="hidden rounded-xl border ui-border ui-status-warning-bg px-3 py-2 ui-text-caption font-bold leading-6 ui-status-warning md:flex md:items-center">
-                                تنبيه: عند اختيارك لقيمة ضريبة وانت لا تمتلك رقما ضريبيا معتمدا فانت تعرض نفسك للمسالة القانونية
+                            <div class="flex items-center gap-2 rounded-xl border ui-border ui-status-info-bg px-3 py-2 ui-text-caption font-bold leading-6 ui-status-info">
+                                <x-ui.help title="احتساب الضريبة" body="تظهر هذه الخيارات لأن المتجر يملك رقمًا ضريبيًا مسجلًا. اختر النسبة المناسبة للعملية." />
+                                <span>الضريبة متاحة لهذا المتجر.</span>
                             </div>
                         </div>
                     </div>
+                    @endif
 
                     <div class="space-y-4 ui-card p-4 sm:col-span-2">
                         {{-- أزرار أنواع الدفع --}}
@@ -487,61 +510,66 @@
                     </div>
                 </div>
 
-                <div class="ui-surface-muted-bg rounded-xl p-4 mb-6 grid grid-cols-1 gap-3 border ui-border text-right text-sm sm:grid-cols-2">
-                    <div class="flex justify-between ui-text-muted font-bold items-center">
-                        <span>أجور اليد:</span>
-                        <span x-text="Math.round(labor_total || 0) + ' ر.س'"></span>
-                    </div>
-                    <div class="flex justify-between ui-text-muted font-bold items-center">
-                        <span>الضريبة:</span>
-                        <span x-text="Math.round(tax_value) + ' ر.س'"></span>
-                    </div>
-                    <div class="flex justify-between ui-text-muted font-bold items-center">
-                        <span>مجموع المنتجات:</span>
-                        <span x-text="Math.round(items_total) + ' ر.س'"></span>
-                    </div>
-                    <div class="ui-frame-row ui-section-divider-sm ui-title font-bold text-xl">
-                        <span class="ui-status-info font-black">الإجمالي النهائي:</span>
-                        <span class="ui-status-info text-2xl font-black" x-text="Math.round(final_total) + ' ر.س'"></span>
-                    </div>
-                    <div class="ui-frame-row ui-section-divider-sm ui-status-warning font-bold">
-                        <span x-text="sale_type === 'credit' ? 'إجمالي الأجل:' : 'المتبقي (أجل):'"></span>
-                        <span class="font-black" x-text="Math.round(Math.max(0, remaining)) + ' ر.س'"></span>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    {{-- ✅ خيار إنشاء الفاتورة مع زر التوضيح المعتمد --}}
-                    <div class="flex items-center gap-2 ui-surface-muted-bg p-3 rounded-xl border ui-border mt-4">
-                        <input type="checkbox" x-model="has_invoice" id="has_invoice" class="w-5 h-5 rounded ui-border ui-surface-muted-bg ui-status-info ">
-                        <label for="has_invoice" class="ui-title text-sm font-bold cursor-pointer">إصدار فاتورة ضريبية للمطبوعات</label>
-                        <button type="button" data-ui-help-title="الفاتورة الضريبية" data-ui-help-body="عند تفعيل هذا الخيار سيتم إنشاء فاتورة ضريبية بعد حفظ عملية البيع." class="mr-auto inline-flex h-5 w-5 items-center justify-center rounded-full border ui-border ui-text-caption ui-text-muted cursor-help ui-surface-muted-bg"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></button>
-                    </div>
-                </div>
-
-
-                <div class="ui-card p-4 space-y-3">
-                    <h3 class="ui-title font-black text-sm">ملخص العملية قبل التأكيد</h3>
-                    <div class="grid grid-cols-2 gap-3 ui-text-caption">
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted">نوع الدفع</div>
-                            <div class="ui-title font-black mt-1" x-text="sale_type ? (sale_type === 'cash' ? 'كاش' : sale_type === 'card' ? 'شبكة' : sale_type === 'mixed' ? 'مختلط' : 'آجل') : 'غير محدد'"></div>
+                {{-- ملخص موحد: يجمع مكونات الإجمالي وحالة الدفع دون تغيير أي معادلة مالية. --}}
+                <div class="ui-card p-4 space-y-4" data-quick-sale-operation-summary>
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h3 class="ui-title font-black text-base">ملخص العملية</h3>
+                            <p class="ui-text-soft ui-text-caption mt-1">راجع المبالغ وطريقة الدفع قبل التأكيد.</p>
                         </div>
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted">الإجمالي</div>
-                            <div class="ui-status-info font-black mt-1" x-text="Math.round(final_total) + ' ر.س'"></div>
+                        <i class="fa-solid fa-receipt ui-status-info text-xl" aria-hidden="true"></i>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div class="ui-frame-row ui-text-soft font-bold">
+                            <span>مجموع المنتجات</span>
+                            <span class="ui-title font-black" x-text="Math.round(items_total) + ' ر.س'"></span>
                         </div>
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted">المدفوع</div>
-                            <div class="ui-status-success font-black mt-1" x-text="sale_type === 'mixed' ? (Math.round(mixedTotal) + ' ر.س') : (sale_type === 'credit' ? '0 ر.س' : (Math.round(paid_amount || 0) + ' ر.س'))"></div>
+                        <div class="ui-frame-row ui-text-soft font-bold">
+                            <span>أجور اليد</span>
+                            <span class="ui-title font-black" x-text="Math.round(labor_total || 0) + ' ر.س'"></span>
                         </div>
-                        <div class="ui-surface-muted-bg rounded-lg px-3 py-2 border ui-border">
-                            <div class="ui-text-muted" x-text="sale_type === 'credit' ? 'الأجل' : 'المتبقي'"></div>
-                            <div class="ui-status-warning font-black mt-1" x-text="Math.round(Math.max(0, remaining)) + ' ر.س'"></div>
+                        @if($hasApprovedTaxNumber ?? false)
+                        <div class="ui-frame-row ui-text-soft font-bold sm:col-span-2">
+                            <span>الضريبة</span>
+                            <span class="ui-title font-black" x-text="Math.round(tax_value) + ' ر.س'"></span>
+                        </div>
+                        @endif
+                    </div>
+
+                    <div class="ui-frame-row ui-status-info font-black text-lg">
+                        <span>الإجمالي النهائي</span>
+                        <span class="text-2xl" x-text="Math.round(final_total) + ' ر.س'"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div class="ui-frame-row ui-text-soft font-bold">
+                            <span>نوع الدفع</span>
+                            <span class="ui-title font-black" x-text="sale_type ? (sale_type === 'cash' ? 'كاش' : sale_type === 'card' ? 'شبكة' : sale_type === 'mixed' ? 'مختلط' : 'آجل') : 'غير محدد'"></span>
+                        </div>
+                        <div class="ui-frame-row ui-status-success font-bold">
+                            <span>المدفوع</span>
+                            <span class="font-black" x-text="sale_type === 'mixed' ? (Math.round(mixedTotal) + ' ر.س') : (sale_type === 'credit' ? '0 ر.س' : (Math.round(paid_amount || 0) + ' ر.س'))"></span>
+                        </div>
+                        <div class="ui-frame-row ui-status-warning font-bold">
+                            <span x-text="sale_type === 'credit' ? 'إجمالي الأجل' : 'المتبقي'"></span>
+                            <span class="font-black" x-text="Math.round(Math.max(0, remaining)) + ' ر.س'"></span>
                         </div>
                     </div>
                     <div x-show="employee_id" class="ui-text-caption ui-text-muted ui-section-divider ui-section-divider-sm">
                         الموظف المرتبط: <span class="font-black ui-title" x-text="creditPersons.find(person => String(person.id) === String(employee_id))?.name || 'غير معروف'"></span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    {{-- يبقى إصدار الفاتورة متاحاً، وتتغير التسمية فقط بحسب وجود الرقم الضريبي. --}}
+                    <div class="flex items-center gap-2 ui-surface-muted-bg p-3 rounded-xl border ui-border mt-4">
+                        <input type="checkbox" x-model="has_invoice" id="has_invoice" class="w-5 h-5 rounded ui-border ui-surface-muted-bg ui-status-info ">
+                        <label for="has_invoice" class="ui-title text-sm font-bold cursor-pointer">{{ ($hasApprovedTaxNumber ?? false) ? 'إصدار فاتورة ضريبية للمطبوعات' : 'إصدار فاتورة إلكترونية' }}</label>
+                        <button type="button"
+                                data-ui-help-title="{{ ($hasApprovedTaxNumber ?? false) ? 'الفاتورة الضريبية' : 'الفاتورة الإلكترونية' }}"
+                                data-ui-help-body="{{ ($hasApprovedTaxNumber ?? false) ? 'عند تفعيل هذا الخيار سيتم إنشاء فاتورة ضريبية بعد حفظ عملية البيع.' : 'عند تفعيل هذا الخيار سيتم إنشاء فاتورة إلكترونية بعد حفظ عملية البيع.' }}"
+                                class="mr-auto inline-flex h-5 w-5 items-center justify-center rounded-full border ui-border ui-text-caption ui-text-muted cursor-help ui-surface-muted-bg"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></button>
                     </div>
                 </div>
 
@@ -557,6 +585,7 @@
                     @csrf
                     <input type="hidden" name="items" x-model="items_json">
                     <input type="hidden" name="labor_total" :value="Math.round(labor_total)">
+                    <input type="hidden" name="labor_selection" :value="JSON.stringify(laborSelectionPayload())">
                     <input type="hidden" name="paid_amount" :value="sale_type === 'credit' ? 0 : (sale_type === 'mixed' ? Math.round(mixedTotal) : Math.round(paid_amount))">
                     <input type="hidden" name="tax_rate" x-model="tax_rate">
                     <input type="hidden" name="sale_type" x-model="sale_type">
@@ -589,7 +618,11 @@
 
 {{-- عقد إعداد البيع السريع: ينقل المسارات والحالات فقط، وتبقى الحسابات والتحقق في الوحدة المستخرجة دون تغيير. --}}
 <div class="hidden" data-quick-sale-config="{{ json_encode([
-    'laborDescriptionOptions' => $laborDescriptionOptions ?? ['تضليل', 'تجليد', 'شغل يد'],
+    'laborDescriptionGroups' => $laborDescriptionGroups ?? [
+        ['label' => 'تضليل', 'children' => []],
+        ['label' => 'تجليد', 'children' => []],
+        ['label' => 'شغل يد', 'children' => []],
+    ],
     'hasStoreTaxNumber' => (bool) auth('accountant')->user()->store->tax_number,
     'hasApprovedTaxNumber' => (bool) ($hasApprovedTaxNumber ?? false),
     'clearPendingOnSuccess' => (bool) session('success'),

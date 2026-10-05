@@ -51,7 +51,7 @@
         </div>
     @endif
 
-    <section class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-6">
         <article class="rounded-2xl border ui-border ui-card p-4">
             <p class="ui-text-soft">إجمالي المبيعات</p>
             <p class="mt-2 text-xl font-black ui-title">{{ $money($summary['sales_total']) }} ريال</p>
@@ -61,8 +61,16 @@
             <p class="mt-2 text-xl font-black ui-status-success">{{ $money($summary['products_cost']) }} ريال</p>
         </article>
         <article class="rounded-2xl border ui-border ui-card p-4">
-            <p class="ui-text-soft">شغل اليد</p>
+            <p class="ui-text-soft">مبيعات شغل اليد</p>
             <p class="mt-2 text-xl font-black ui-title">{{ $money($summary['labor_total']) }} ريال</p>
+        </article>
+        <article class="rounded-2xl border ui-border ui-card p-4">
+            <p class="ui-text-soft">تكلفة شغل اليد</p>
+            <p class="mt-2 text-xl font-black ui-status-warning">{{ $money($summary['labor_cost']) }} ريال</p>
+        </article>
+        <article class="rounded-2xl border ui-border ui-card p-4">
+            <p class="ui-text-soft">إجمالي التكلفة</p>
+            <p class="mt-2 text-xl font-black ui-status-success">{{ $money($summary['total_cost']) }} ريال</p>
         </article>
         <article class="rounded-2xl border ui-border ui-card p-4">
             <p class="ui-text-soft">عدد العمليات</p>
@@ -74,7 +82,7 @@
         <div class="flex flex-col gap-3 border-b ui-border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-lg font-black ui-title">العمليات المطابقة</h2>
-                <p class="mt-1 ui-text-muted">التكلفة المحفوظة وقت البيع هي الأدق، وتظهر العمليات القديمة الناقصة كتقديرية.</p>
+                <p class="mt-1 ui-text-muted">تكلفة المنتجات وتكلفة شغل اليد المحفوظتان وقت البيع هما المصدر الأدق، وتبقى العمليات القديمة بلا تكلفة شغل يد بقيمة صفر.</p>
             </div>
             @if($rows->isNotEmpty() && $matchedDates->diff($overlappingUsedDates)->isNotEmpty())
                 <form method="POST" action="{{ route('user.stores.reports.sales-cost.mark-used', $store) }}">
@@ -103,10 +111,11 @@
                     </div>
                     <p class="mt-3 ui-text-soft">{{ $row['description'] }}</p>
                     @if($row['products'])<p class="mt-1 ui-text-muted">{{ $row['products'] }}</p>@endif
-                    <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <dl class="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                         <div><dt class="ui-text-muted">المبيعات</dt><dd class="font-black ui-title">{{ $money($row['sales_total']) }}</dd></div>
                         <div><dt class="ui-text-muted">التكلفة</dt><dd class="font-black ui-status-success">{{ $money($row['products_cost']) }}</dd></div>
-                        <div><dt class="ui-text-muted">شغل اليد</dt><dd class="font-black ui-title">{{ $money($row['labor_total']) }}</dd></div>
+                        <div><dt class="ui-text-muted">مبيعات شغل اليد</dt><dd class="font-black ui-title">{{ $money($row['labor_total']) }}</dd></div>
+                        <div><dt class="ui-text-muted">تكلفة شغل اليد</dt><dd class="font-black ui-status-warning">{{ $money($row['labor_cost']) }}</dd>@if($row['labor_cost_breakdown'])<dd class="ui-text-muted">{{ collect($row['labor_cost_breakdown'])->map(fn ($entry) => $entry['label'].' '.$money($entry['cost']))->implode('، ') }}</dd>@endif</div>
                     </dl>
                     <p class="mt-3 ui-text-muted">{{ $row['cost_source'] }}</p>
                 </article>
@@ -116,10 +125,10 @@
         </div>
 
         <div class="hidden overflow-x-auto md:block">
-            <table class="ui-table w-full min-w-[900px]">
+            <table class="ui-table w-full min-w-[1100px]">
                 <thead>
                     <tr>
-                        <th>التاريخ</th><th>العملية</th><th>الوصف والمنتجات</th><th>المبيعات</th><th>تكلفة المنتجات</th><th>شغل اليد</th><th>الحالة</th>
+                        <th>التاريخ</th><th>العملية</th><th>الوصف والمنتجات</th><th>المبيعات</th><th>تكلفة المنتجات</th><th>مبيعات شغل اليد</th><th>تكلفة شغل اليد</th><th>الحالة</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -131,10 +140,11 @@
                             <td>{{ $money($row['sales_total']) }}</td>
                             <td><strong class="ui-status-success">{{ $money($row['products_cost']) }}</strong><p class="ui-text-muted">{{ $row['cost_source'] }}</p></td>
                             <td>{{ $money($row['labor_total']) }}</td>
+                            <td><strong class="ui-status-warning">{{ $money($row['labor_cost']) }}</strong>@if($row['labor_cost_breakdown'])<p class="ui-text-muted">{{ collect($row['labor_cost_breakdown'])->map(fn ($entry) => $entry['label'].' '.$money($entry['cost']))->implode('، ') }}</p>@endif</td>
                             <td>@if($usedDates->has($row['business_date']))<span class="ui-badge ui-badge-warning">مستخدم</span>@else<span class="ui-badge ui-badge-success">متاح</span>@endif</td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="p-10 text-center ui-text-muted">لا توجد عمليات مطابقة للفترة والبحث.</td></tr>
+                        <tr><td colspan="8" class="p-10 text-center ui-text-muted">لا توجد عمليات مطابقة للفترة والبحث.</td></tr>
                     @endforelse
                 </tbody>
             </table>

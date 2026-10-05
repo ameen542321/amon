@@ -18,6 +18,8 @@ class Sale extends Model
         'products_total',  // مجموع قطع الغيار فقط (قبل الضريبة)
         'tax_rate',        // نسبة الضريبة المطبقة (0 أو 15)
         'labor_total',     // أجور اليد (صافي - لا تخضع للضريبة حسب طلبك)
+        'labor_cost',      // تكلفة داخلية لشغل اليد لا تظهر في شاشة البيع
+        'labor_cost_breakdown',
         'final_total',     // الإجمالي النهائي (المنتجات + ضريبتها + أجور اليد)
         'paid_amount',     // المبلغ المدفوع فعلياً
         // ✅ إضافة الحقول الجديدة
@@ -42,6 +44,8 @@ class Sale extends Model
     protected $casts = [
         'products_total'   => 'double',
         'labor_total'      => 'double',
+        'labor_cost'       => 'double',
+        'labor_cost_breakdown' => 'array',
         'final_total'      => 'double',
         'paid_amount'      => 'double',
         // ✅ إضافة الحقول الجديدة في الـ casts

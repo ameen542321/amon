@@ -616,7 +616,7 @@
                         <label class="ui-text-soft ui-text-caption mb-1 block">ملاحظات (اختياري):</label>
                         <textarea name="notes" rows="2" x-model="notes"
                             class="w-full ui-card px-3 py-2 ui-title text-sm outline-none ui-focus-info-border"
-                            placeholder="اكتب أي ملاحظة عن العجز أو الزيادة هنا..."></textarea>
+                            placeholder="اتركه فارغًا لإضافة تاريخ اليوم المرجعي تلقائيًا، مثل 2-10"></textarea>
                     </div>
 
                     @if($canChooseNextShiftBusinessDate)

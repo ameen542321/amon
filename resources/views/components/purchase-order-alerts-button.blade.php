@@ -14,6 +14,7 @@
         'returned_for_edit' => 'معادة للتعديل',
         'returned_for_count' => 'معادة للجرد',
         'pending_receipt_confirmation' => 'بانتظار تأكيد الاستلام',
+        'approved_and_supplied' => 'تم الاعتماد والاستلام المخزني',
     ];
     $statusBadgeClasses = [
         'pending_owner_review' => 'ui-badge-info',
@@ -24,6 +25,7 @@
         'returned_for_edit' => 'ui-badge-warning',
         'returned_for_count' => 'ui-badge-warning',
         'pending_receipt_confirmation' => 'ui-badge-success',
+        'approved_and_supplied' => 'ui-badge-success',
     ];
 @endphp
 
@@ -50,7 +52,7 @@
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-cart-flatbed ui-status-info" aria-hidden="true"></i>
                         <h2 class="ui-title font-bold">تنبيهات طلبيات التوريد</h2>
-                        <x-ui.help title="تنبيهات الطلبيات" body="تعرض هذه النافذة الطلبيات التي تنتظر منك إجراءً. اضغط على الطلبية لفتحها وإكمال الخطوة المطلوبة." />
+                        <x-ui.help title="تنبيهات الطلبيات" body="تعرض هذه النافذة الطلبيات التي تنتظر إجراءً، كما تعرض اكتمال الاعتماد والاستلام المخزني لمدة 24 ساعة. اضغط الطلبية لفتح تفاصيلها." />
                         <span class="ui-badge ui-badge-info">{{ $alerts->count() }}</span>
                     </div>
                     <button type="button" @click="purchaseOrderAlertsOpen = false" class="ui-modal-close-danger" aria-label="إغلاق">×</button>
@@ -79,6 +81,7 @@
                                 'returned_after_count' => 'أعاد المحاسب الطلبية بعد تنفيذ الجرد — الجولة '.$countReturnNumber,
                                 'pending_inventory_approval' => 'تم تأكيد الاستلام؛ جاهزة للاعتماد المخزني',
                                 'pending_owner_receipt_review' => 'أكد المحاسب الاستلام؛ راجع البيانات',
+                                'approved_and_supplied' => 'تم الاعتماد والاستلام المخزني',
                                 default => $statusLabels[$pendingOrder->workflow_status] ?? 'تحتاج مراجعة',
                             };
                         @endphp

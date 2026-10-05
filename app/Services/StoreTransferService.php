@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Accountant;
 use App\Models\Product;
+use App\Models\StockMovement;
 use App\Models\Store;
 use App\Models\StoreTransfer;
 use App\Models\StoreTransferItem;
@@ -70,6 +71,11 @@ class StoreTransferService
                     : ($lockedProduct->is_splittable ? ['kit', 'piece'] : ['unit']);
                 if (!in_array($unitType, $allowedUnits, true)) {
                     throw ValidationException::withMessages(["items.{$index}.unit_type" => "وحدة النقل المحددة لا تناسب المنتج {$lockedProduct->name}."]);
+                }
+                if (! in_array($unitType, ['meter', 'meters'], true) && abs($quantity - round($quantity)) > 0.000001) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.quantity" => "كمية {$lockedProduct->name} يجب أن تكون عددًا صحيحًا عند النقل بوحدة ".StockMovement::unitLabelForSnapshot($lockedProduct, $unitType).'. استخدم وحدة المتر فقط للكميات العشرية.',
+                    ]);
                 }
                 $normalizedQuantity = $lockedProduct->normalizeQuantityByUnit($quantity, $unitType);
                 if ($normalizedQuantity <= 0) {

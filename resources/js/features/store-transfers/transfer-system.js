@@ -60,6 +60,9 @@ document.addEventListener('alpine:init', () => {
             }
             return [{ value: 'unit', label: 'حبة / وحدة' }];
         },
+        quantityStep(item) {
+            return ['meter', 'meters'].includes(item.unit_type) ? '0.001' : '1';
+        },
     }));
 });
 

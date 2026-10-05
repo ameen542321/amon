@@ -161,6 +161,34 @@ class EmployeeService
                     }
                 },
             ],
+        ], [
+            'store_id.required' => 'يجب اختيار متجر الموظف.',
+            'store_id.exists' => 'المتجر المحدد غير صحيح أو غير متاح لك.',
+            'name.required' => 'يجب إدخال اسم الموظف.',
+            'name.string' => 'اسم الموظف يجب أن يكون نصًا.',
+            'name.max' => 'اسم الموظف يجب ألا يتجاوز 255 حرفًا.',
+            'salary.required' => 'يجب إدخال الراتب الشهري.',
+            'salary.numeric' => 'الراتب الشهري يجب أن يكون رقمًا صحيحًا.',
+            'salary.min' => 'الراتب الشهري لا يمكن أن يكون أقل من صفر.',
+            'accountant_email.required' => 'يجب إدخال البريد الإلكتروني للمحاسب.',
+            'accountant_email.email' => 'صيغة البريد الإلكتروني للمحاسب غير صحيحة.',
+            'accountant_email.unique' => 'البريد الإلكتروني للمحاسب مستخدم مسبقًا.',
+            'accountant_password.string' => 'كلمة المرور الجديدة يجب أن تكون نصًا.',
+            'accountant_password.min' => 'كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.',
+            'accountant_password.confirmed' => 'تأكيد كلمة المرور الجديدة غير مطابق.',
+            'salary_effective_mode.in' => 'طريقة تطبيق الراتب المحددة غير صحيحة.',
+            'salary_effective_date.required_if' => 'يجب تحديد تاريخ سريان الراتب عند اختيار تاريخ مخصص.',
+            'salary_effective_date.date' => 'تاريخ سريان الراتب غير صحيح.',
+            'transfer_effective_date.date' => 'تاريخ نقل الموظف غير صحيح.',
+        ], [
+            'store_id' => 'متجر الموظف',
+            'name' => 'اسم الموظف',
+            'salary' => 'الراتب الشهري',
+            'accountant_email' => 'البريد الإلكتروني للمحاسب',
+            'accountant_password' => 'كلمة المرور الجديدة',
+            'salary_effective_mode' => 'طريقة تطبيق الراتب',
+            'salary_effective_date' => 'تاريخ سريان الراتب',
+            'transfer_effective_date' => 'تاريخ نقل الموظف',
         ]);
 
         $oldStoreId = (int) $employee->store_id;

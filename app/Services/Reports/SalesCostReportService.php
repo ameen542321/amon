@@ -54,6 +54,8 @@ class SalesCostReportService
             'sales_total' => round((float) $rows->sum('sales_total'), 2),
             'products_cost' => round((float) $rows->sum('products_cost'), 2),
             'labor_total' => round((float) $rows->sum('labor_total'), 2),
+            'labor_cost' => round((float) $rows->sum('labor_cost'), 2),
+            'total_cost' => round((float) $rows->sum(fn (array $row): float => $row['products_cost'] + $row['labor_cost']), 2),
             'operations_count' => $rows->count(),
         ];
 
@@ -91,6 +93,7 @@ class SalesCostReportService
                     'sales_total' => round((float) $rows->sum('sales_total'), 2),
                     'products_cost' => round((float) $rows->sum('products_cost'), 2),
                     'labor_total' => round((float) $rows->sum('labor_total'), 2),
+                    'labor_cost' => round((float) $rows->sum('labor_cost'), 2),
                     'operations_count' => $rows->count(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -122,6 +125,11 @@ class SalesCostReportService
             'sales_total' => (float) ($sale->final_total ?? $sale->total ?? 0),
             'products_cost' => round($productsCost, 2),
             'labor_total' => (float) ($sale->labor_total ?? 0),
+            'labor_cost' => (float) ($sale->labor_cost ?? 0),
+            'labor_cost_breakdown' => collect($sale->labor_cost_breakdown ?? [])->map(fn (array $entry): array => [
+                'label' => (string) ($entry['label'] ?? ''),
+                'cost' => round((float) ($entry['cost'] ?? 0), 2),
+            ])->filter(fn (array $entry): bool => $entry['label'] !== '')->values()->all(),
             'accountant' => $sale->accountant?->name ?: 'غير محدد',
             'cost_source' => $allItemsHaveSavedCost ? 'محفوظة وقت البيع' : 'تقديرية لعملية قديمة',
         ];

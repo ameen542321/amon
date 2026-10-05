@@ -61,7 +61,7 @@ class ProductQuantityFormatter
     public static function stockSnapshot(Product $product, float $quantity): string
     {
         if ($product->product_type !== 'fractional' && ! ((bool) $product->is_splittable && (int) $product->items_per_unit > 1)) {
-            return self::number($quantity) . ' حبة';
+            return self::number($quantity, 3) . ' حبة';
         }
 
         return self::format($product, $quantity, false);
@@ -169,8 +169,8 @@ class ProductQuantityFormatter
         return $complete ?: ($remainder ?: $empty);
     }
 
-    public static function number(float $value): string
+    public static function number(float $value, int $precision = 2): string
     {
-        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+        return rtrim(rtrim(number_format($value, $precision, '.', ''), '0'), '.');
     }
 }

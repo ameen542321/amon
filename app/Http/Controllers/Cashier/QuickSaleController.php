@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Employee;
 use App\Models\SaleItem;
 use App\Models\CreditSale;
+use App\Models\Store;
 use App\Services\ShiftLifecycleService;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -27,16 +28,26 @@ class QuickSaleController extends Controller
     {
         $accountant = auth('accountant')->user();
         $store = $accountant->store;
-        $tintProducts = $this->tintProductsForStore($accountant->store_id);
-        $latestShiftOperation = $this->latestQuickSaleOperationForShift($accountant);
+        $showTintShortcut = (bool) ($store?->show_quick_sale_tint ?? false);
+        $showLatestQuickSale = (bool) ($store?->show_latest_quick_sale ?? true);
+        $tintProducts = $showTintShortcut ? $this->tintProductsForStore($accountant->store_id) : [];
+        $latestShiftOperation = $showLatestQuickSale ? $this->latestQuickSaleOperationForShift($accountant) : null;
         $quickSaleSubmitToken = (string) Str::uuid();
         session(['quick_sale_submit_token' => $quickSaleSubmitToken]);
 
         return response()->view('cashier.quick-sale.index', [
             'tintProducts' => $tintProducts,
             'latestShiftOperation' => $latestShiftOperation,
+            'showTintShortcut' => $showTintShortcut,
+            'tintShortcutLabel' => trim((string) ($store?->quick_sale_tint_label ?: 'تضليل')),
+            'tintShortcutDescription' => trim((string) ($store?->quick_sale_tint_description ?: 'إضافة عملية تضليل سريعة إلى السلة')),
+            'showLatestQuickSale' => $showLatestQuickSale,
             'quickSaleSubmitToken' => $quickSaleSubmitToken,
-            'laborDescriptionOptions' => $store?->labor_description_options_list ?? ['تضليل', 'تجليد', 'شغل يد'],
+            'laborDescriptionGroups' => $store?->labor_description_groups_list ?? [
+                ['label' => 'تضليل', 'children' => []],
+                ['label' => 'تجليد', 'children' => []],
+                ['label' => 'شغل يد', 'children' => []],
+            ],
             'hasApprovedTaxNumber' => filled($store?->tax_number),
             'hasAvailableTintProducts' => collect($tintProducts)->contains(
                 fn (array $product) => $product['quantity'] > 0 && count($product['fractions']) > 0
@@ -190,6 +201,7 @@ class QuickSaleController extends Controller
     $rules = [
         'items'         => 'required|json',
         'labor_total'   => 'required|numeric|min:0',
+        'labor_selection' => 'nullable|json',
         'tax_rate'      => 'required|integer|in:0,15',
         'paid_amount'   => 'required|numeric|min:0',
         'sale_type'     => 'required|in:cash,card,credit,mixed',
@@ -228,6 +240,10 @@ class QuickSaleController extends Controller
     try {
         $accountant = auth('accountant')->user();
         $storeId = $accountant->store_id;
+        $store = $accountant->store()->firstOrFail();
+        $laborCostCalculation = (float) $request->labor_total > 0
+            ? $this->calculateConfiguredLaborCost($store, $validated['labor_selection'] ?? null)
+            : ['total' => 0.0, 'breakdown' => []];
         $userId = $accountant->user_id;
         $operationTimestamp = now();
         $shiftContext = app(ShiftLifecycleService::class)->currentShiftContext($storeId);
@@ -593,6 +609,8 @@ class QuickSaleController extends Controller
             'products_total'   => $productsTotal,
             'tax_rate'         => $request->tax_rate,
             'labor_total'      => $request->labor_total,
+            'labor_cost'       => $laborCostCalculation['total'],
+            'labor_cost_breakdown' => $laborCostCalculation['breakdown'],
             'final_total'      => $finalTotal,
             'total'            => $finalTotal,
             'paid_amount'      => $paidAmount,
@@ -715,6 +733,53 @@ class QuickSaleController extends Controller
         return redirect()->back()->with('error', 'حدث خطأ تقني: ' . $e->getMessage())->withInput();
     }
 }
+
+    private function calculateConfiguredLaborCost(Store $store, ?string $selectionJson): array
+    {
+        $selection = json_decode((string) $selectionJson, true);
+        if (! is_array($selection)) {
+            return ['total' => 0.0, 'breakdown' => []];
+        }
+
+        $groups = collect($store->labor_description_groups_list)->keyBy('label');
+        $total = 0.0;
+        $usedGroups = [];
+        $breakdown = [];
+
+        foreach (array_slice($selection, 0, 8) as $selectedGroup) {
+            $groupLabel = trim((string) ($selectedGroup['group_label'] ?? ''));
+            if ($groupLabel === '' || isset($usedGroups[$groupLabel]) || ! $groups->has($groupLabel)) {
+                continue;
+            }
+            $usedGroups[$groupLabel] = true;
+            $group = $groups->get($groupLabel);
+            $groupCost = (float) ($group['cost'] ?? 0);
+            $groupDetails = [];
+            $usedChildren = [];
+            $children = collect($group['children'] ?? [])->keyBy('label');
+
+            foreach (array_slice((array) ($selectedGroup['children'] ?? []), 0, 12) as $selectedChild) {
+                $childLabel = trim((string) ($selectedChild['child_label'] ?? ''));
+                if ($childLabel === '' || isset($usedChildren[$childLabel]) || ! $children->has($childLabel)) {
+                    continue;
+                }
+                $usedChildren[$childLabel] = true;
+                $child = $children->get($childLabel);
+                $max = ($child['type'] ?? 'toggle') === 'counter' ? max(1, (int) ($child['max'] ?? 1)) : 1;
+                $count = max(0, min($max, (int) ($selectedChild['count'] ?? 0)));
+                $childCost = round((float) ($child['cost'] ?? 0) * $count, 2);
+                $groupCost += $childCost;
+                if ($count > 0) {
+                    $groupDetails[] = ['label' => $childLabel, 'count' => $count, 'cost' => $childCost];
+                }
+            }
+            $groupCost = round(max(0, $groupCost), 2);
+            $total += $groupCost;
+            $breakdown[] = ['label' => $groupLabel, 'cost' => $groupCost, 'children' => $groupDetails];
+        }
+
+        return ['total' => round(max(0, $total), 2), 'breakdown' => $breakdown];
+    }
 
     public function operationStatus(string $clientOperationId)
     {

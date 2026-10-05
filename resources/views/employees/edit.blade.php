@@ -27,7 +27,7 @@
     <div class="ui-card shadow-xl rounded-xl p-4 sm:p-8">
 
         {{-- إصلاح مطبق: حُفظ نص التحذير التشغيلي ونُقل تأكيد الحفظ إلى الحوار المركزي. --}}
-        <form action="{{ route('user.employees.update', $employee->id) }}" method="POST" class="space-y-6"
+        <form action="{{ route('user.employees.update', $employee->id) }}" method="POST" class="space-y-6" data-employee-edit-form
               data-ui-confirm="إذا تم تغيير المتجر: سيتم نقل المديونيات فقط، وستبقى السحوبات والغيابات وتقارير الرواتب على المتجر الذي حدثت فيه حتى تظهر كاملة في تقرير الموظف والتقارير الشهرية. هل تريد المتابعة؟"
               data-ui-confirm-title="تأكيد تحديث الموظف">
             @csrf
@@ -104,11 +104,11 @@
                 @enderror
                 <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border ui-border ui-surface-strong-bg p-3">
                     <label class="flex items-center gap-2 text-sm ui-text-soft">
-                        <input type="radio" name="salary_effective_mode" value="today" class="ui-brand-text" checked>
+                        <input type="radio" name="salary_effective_mode" value="today" class="ui-brand-text" @checked(old('salary_effective_mode', 'today') === 'today')>
                         تطبيق تغيير الراتب من تاريخ اليوم
                     </label>
                     <label class="flex items-center gap-2 text-sm ui-text-soft">
-                        <input type="radio" name="salary_effective_mode" value="custom" class="ui-brand-text">
+                        <input type="radio" name="salary_effective_mode" value="custom" class="ui-brand-text" @checked(old('salary_effective_mode') === 'custom')>
                         تحديد تاريخ من الشهر الحالي
                     </label>
                     <div class="sm:col-span-2">
@@ -116,7 +116,8 @@
                             <label class="ui-text-soft text-sm">تاريخ تطبيق الراتب</label>
                             <x-ui.help title="تاريخ تطبيق الراتب" body="يُستخدم هذا التاريخ في البطاقات والإحصائيات والتقارير عند احتساب الراتب داخل الشهر." />
                         </div>
-                        <input type="date" name="salary_effective_date" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}"
+                        <input type="date" name="salary_effective_date" value="{{ old('salary_effective_date') }}" min="{{ now()->startOfMonth()->toDateString() }}" max="{{ now()->endOfMonth()->toDateString() }}"
+                               data-salary-effective-date
                                class="w-full ui-card ui-text-soft rounded-lg px-3 py-2">
                     </div>
                     @error('salary_effective_date')

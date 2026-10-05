@@ -154,6 +154,17 @@ class InventoryCountController extends Controller
     {
         $this->ownerStore($store); $this->ensureSessionStore($inventoryCount, $store);
         $inventoryCount->load(['items.product', 'accountant']);
+        $inventoryCount->setRelation('items', $inventoryCount->items
+            ->sortBy(fn (InventoryCountSessionItem $item) => [
+                match ($item->decision) {
+                    'pending' => 0,
+                    'returned', 'recounted' => 1,
+                    'approved', 'adjusted_approved' => 2,
+                    default => 1,
+                },
+                $item->id,
+            ])
+            ->values());
         $currentBusinessDate = app(ShiftLifecycleService::class)->currentShiftContext($store->id)['business_date'];
         $legacyAudits = InventoryLog::with('user')
             ->where('store_id', $store->id)
@@ -194,7 +205,8 @@ class InventoryCountController extends Controller
         $data = $request->validate(['action' => ['required', Rule::in(['approve', 'adjust', 'return'])], 'approval_business_date' => 'required_unless:action,return|nullable|date', 'owner_quantity' => 'required_if:action,adjust|nullable|numeric|min:0', 'reason' => 'required_if:action,adjust,return|nullable|string|min:5|max:1000']);
         if ($data['action'] === 'return') { if (mb_strlen(trim((string) ($data['reason'] ?? ''))) < 5) throw ValidationException::withMessages(['reason' => 'اكتب سببًا واضحًا لإعادة المنتج للمحاسب.']); $service->returnItem($item, auth('web')->user(), $data['reason']); }
         else { $service->approveItem($item, auth('web')->user(), $data['approval_business_date'], $data['action'] === 'adjust' ? (float) $data['owner_quantity'] : null, $data['reason'] ?? null); }
-        return back()->with('success', 'تم حفظ قرارك للمنتج.');
+        return redirect()->to($this->ownerReviewUrl($store, $inventoryCount, $item->id))
+            ->with('success', 'تم حفظ قرارك للمنتج والانتقال إلى المنتج التالي بانتظار المراجعة.');
     }
 
     public function bulkApprove(Request $request, Store $store, InventoryCountSession $inventoryCount, InventoryCountService $service)
@@ -209,7 +221,33 @@ class InventoryCountController extends Controller
 
         $service->approveSelectedItems($inventoryCount, auth('web')->user(), array_map('intval', $data['items']), $data['approval_business_date']);
 
-        return back()->with('success', 'تم اعتماد المنتجات المحددة وتسجيلها في سجل الجرد.');
+        return redirect()->to($this->ownerReviewUrl($store, $inventoryCount))
+            ->with('success', 'تم اعتماد المنتجات المحددة وتسجيلها في سجل الجرد.');
+    }
+
+    public function bulkReturn(Request $request, Store $store, InventoryCountSession $inventoryCount, InventoryCountService $service)
+    {
+        $this->ownerStore($store);
+        $this->ensureSessionStore($inventoryCount, $store);
+        $data = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*' => 'required|integer|distinct',
+            'reason' => 'required|string|min:5|max:1000',
+        ], [
+            'items.required' => 'حدد منتجًا واحدًا على الأقل لإعادته للمحاسب.',
+            'reason.required' => 'اكتب سبب إعادة المنتجات المحددة للمحاسب.',
+            'reason.min' => 'سبب الإعادة يجب ألا يقل عن خمسة أحرف.',
+        ]);
+
+        $service->returnSelectedItems(
+            $inventoryCount,
+            auth('web')->user(),
+            array_map('intval', $data['items']),
+            trim($data['reason']),
+        );
+
+        return redirect()->to($this->ownerReviewUrl($store, $inventoryCount))
+            ->with('success', 'تمت إعادة المنتجات المحددة للمحاسب لإعادة الجرد.');
     }
 
     public function destroy(Store $store, InventoryCountSession $inventoryCount)
@@ -254,6 +292,18 @@ class InventoryCountController extends Controller
     }
 
     private function selectionKey(Store $store): string { return 'inventory_count_selection_'.$store->id; }
+
+    private function ownerReviewUrl(Store $store, InventoryCountSession $session, ?int $processedItemId = null): string
+    {
+        $pendingItems = $session->items()->where('decision', 'pending');
+        $pending = $processedItemId
+            ? (clone $pendingItems)->where('id', '>', $processedItemId)->orderBy('id')->value('id')
+            : null;
+        $pending ??= (clone $pendingItems)->orderBy('id')->value('id');
+        $anchor = $pending ? 'inventory-item-'.$pending : 'inventory-review-summary';
+
+        return route('user.stores.inventory-counts.show', [$store, $session]).'#'.$anchor;
+    }
     private function eligibleProductsQuery(Store $store)
     {
         $auditCutoff = now()->startOfDay()->subDays(30)->toDateString();

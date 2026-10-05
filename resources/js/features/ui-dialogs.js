@@ -26,13 +26,30 @@ document.addEventListener('submit', async (event) => {
     if (!confirmationForm || confirmationForm.dataset.uiConfirmationApproved === 'true') return;
 
     event.preventDefault();
-    const isConfirmed = await requestConfirmation(
-        confirmationForm.dataset.uiConfirmTitle || 'تأكيد العملية',
-        confirmationForm.dataset.uiConfirm,
-    );
-    if (!isConfirmed) return;
-
     const submitter = event.submitter || undefined;
+    const parentDialog = confirmationForm.hasAttribute('data-ui-confirm-hide-parent')
+        ? confirmationForm.closest('.ui-modal-backdrop')
+        : null;
+    const parentWasVisible = parentDialog && !parentDialog.classList.contains('hidden');
+    const pageWasScrollLocked = document.body.classList.contains('ui-scroll-lock');
+
+    if (parentWasVisible) {
+        parentDialog.classList.add('hidden');
+        document.body.classList.remove('ui-scroll-lock');
+    }
+
+    const isConfirmed = await requestConfirmation(
+        submitter?.dataset.uiConfirmSubmitTitle || confirmationForm.dataset.uiConfirmTitle || 'تأكيد العملية',
+        submitter?.dataset.uiConfirmSubmit || confirmationForm.dataset.uiConfirm,
+    );
+    if (!isConfirmed) {
+        if (parentWasVisible) {
+            parentDialog.classList.remove('hidden');
+            if (pageWasScrollLocked) document.body.classList.add('ui-scroll-lock');
+        }
+        return;
+    }
+
     confirmationForm.dataset.uiConfirmationApproved = 'true';
     confirmationForm.requestSubmit(submitter);
     if (submitter && confirmationForm.hasAttribute('data-ui-confirm-busy')) {

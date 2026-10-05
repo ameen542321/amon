@@ -1,5 +1,6 @@
 import './bootstrap';
 import './features/font-readiness';
+import './features/number-input-wheel-guard';
 import './features/pwa/register-service-worker';
 import './features/pwa/client-storage-lifecycle';
 import './features/pwa/outbox-sync';
@@ -18,6 +19,7 @@ import './features/invoices/create-form';
 import './features/invoices/edit-form';
 import './features/accountant/expense-interface';
 import './features/employees/actions-interface';
+import './features/employees/edit-interface';
 import './features/employees/index-interface';
 import './features/employees/debt-interface';
 import './features/employees/owner-credit-collection-preview';
@@ -39,6 +41,7 @@ import './features/accountant/inventory-count';
 // سلوك المبيعات اليومية مستخرج من Blade مع عقد إعداد يحفظ بيانات الصفحة الحالية.
 import './features/stores/daily-sales';
 import './features/stores/store-sales-chart';
+import './features/stores/labor-description-editor';
 import './features/admin-notification-recipients';
 import './features/security-session-monitor';
 import './features/store-products/product-form-shared';

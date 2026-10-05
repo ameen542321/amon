@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Debt;
+use App\Models\Withdrawal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Services\EmployeeLogService;
 use App\Domain\EmployeeOperations\Exceptions\EmployeeOperationException;
 use App\Domain\EmployeeOperations\Policies\EmployeeOperationAccessPolicy;
 use App\Domain\EmployeeOperations\Queries\FindEmployeeOperationPerson;
@@ -52,6 +55,77 @@ class EmployeeActionsController extends Controller
         }
 
         return back()->with('success', 'تم إضافة السحب بنجاح');
+    }
+
+    public function updateWithdrawal(Request $request, Withdrawal $withdrawal)
+    {
+        $person = $this->authorizeWithdrawalAccess($withdrawal);
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'date' => ['required', 'date'],
+            'description' => ['nullable', 'string', 'max:255'],
+        ], [], [
+            'amount' => 'مبلغ السحب',
+            'date' => 'تاريخ السحب',
+            'description' => 'وصف السحب',
+        ]);
+
+        DB::transaction(function () use ($withdrawal, $person, $validated): void {
+            $lockedWithdrawal = Withdrawal::query()->lockForUpdate()->findOrFail($withdrawal->id);
+            $oldData = $lockedWithdrawal->only(['amount', 'date', 'business_date', 'description']);
+            $operationDate = \Carbon\Carbon::parse($validated['date'])->toDateString();
+            $previousAccountingDate = optional($lockedWithdrawal->business_date ?? $lockedWithdrawal->date)->toDateString();
+
+            $lockedWithdrawal->update([
+                'amount' => $validated['amount'],
+                'date' => $operationDate,
+                'business_date' => $operationDate,
+                // نحافظ على ربط الإقفال عند تعديل المبلغ/الوصف فقط، ونفك الربط إذا نقل المالك العملية إلى يوم آخر.
+                'daily_balance_id' => $operationDate === $previousAccountingDate ? $lockedWithdrawal->daily_balance_id : null,
+                'month' => \Carbon\Carbon::parse($operationDate)->format('Y-m'),
+                'description' => filled($validated['description'] ?? null) ? trim($validated['description']) : null,
+            ]);
+
+            EmployeeLogService::add(
+                $person,
+                'withdrawal_owner_updated',
+                'عدّل المالك السحب رقم #'.$lockedWithdrawal->id.' إلى '.number_format((float) $validated['amount'], 2).' ريال.',
+                $validated['amount'],
+                [
+                    'withdrawal_id' => $lockedWithdrawal->id,
+                    'old_data' => $oldData,
+                    'new_data' => $lockedWithdrawal->only(['amount', 'date', 'business_date', 'description']),
+                    'operation_date' => $operationDate,
+                ]
+            );
+        });
+
+        return back()->with('success', 'تم تعديل السحب بنجاح وتسجيل التغيير في سجل الموظف.');
+    }
+
+    public function destroyWithdrawal(Withdrawal $withdrawal)
+    {
+        $person = $this->authorizeWithdrawalAccess($withdrawal);
+
+        DB::transaction(function () use ($withdrawal, $person): void {
+            $lockedWithdrawal = Withdrawal::query()->lockForUpdate()->findOrFail($withdrawal->id);
+
+            EmployeeLogService::add(
+                $person,
+                'withdrawal_owner_deleted',
+                'حذف المالك السحب رقم #'.$lockedWithdrawal->id.' بقيمة '.number_format((float) $lockedWithdrawal->amount, 2).' ريال.',
+                $lockedWithdrawal->amount,
+                [
+                    'withdrawal_id' => $lockedWithdrawal->id,
+                    'deleted_data' => $lockedWithdrawal->only(['amount', 'date', 'business_date', 'description']),
+                    'operation_date' => optional($lockedWithdrawal->business_date ?? $lockedWithdrawal->date)->toDateString(),
+                ]
+            );
+
+            $lockedWithdrawal->delete();
+        });
+
+        return back()->with('success', 'تم حذف السحب وتسجيل الحذف في سجل الموظف.');
     }
 
 
@@ -226,6 +300,19 @@ public function updateDebt(Request $request, $debtId)
 
         if (!$person) {
             abort(404, 'لم يتم العثور على صاحب المديونية');
+        }
+
+        $this->authorizePerson($person);
+
+        return $person;
+    }
+
+    private function authorizeWithdrawalAccess(Withdrawal $withdrawal)
+    {
+        $person = $withdrawal->person;
+
+        if (! $person) {
+            abort(404, 'لم يتم العثور على صاحب السحب');
         }
 
         $this->authorizePerson($person);

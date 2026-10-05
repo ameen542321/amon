@@ -19,8 +19,12 @@ window.quickSale = function quickSale() {
         creditPersons: [],
         description: '',
         credit_note: '',
-        // خيارات وصف عمل اليد الأكثر استخداماً (تظهر كأزرار أعلى حقل الوصف).
-        laborDescriptionOptions: quickSaleConfig.laborDescriptionOptions || ['تضليل', 'تجليد', 'شغل يد'],
+        // مجموعات وصف عمل اليد يحددها المالك، مع خيارات فرعية عادية أو عدادات.
+        laborDescriptionGroups: (quickSaleConfig.laborDescriptionGroups || ['تضليل', 'تجليد', 'شغل يد']).map((group) => (
+            typeof group === 'string' ? { label: group, children: [] } : { ...group, children: group.children || [] }
+        )),
+        selectedLaborGroups: {},
+        laborChildValues: {},
         items_json: '',
         has_invoice: false,
         hasPartialCredit: false,
@@ -166,6 +170,8 @@ window.quickSale = function quickSale() {
             this.sale_type = '';
             this.employee_id = '';
             this.description = '';
+            this.selectedLaborGroups = {};
+            this.laborChildValues = {};
             this.credit_note = '';
             this.hasPartialCredit = false;
             this.partial_credit_amount = 0;
@@ -351,22 +357,65 @@ window.quickSale = function quickSale() {
             this.calculateItemTotal(item);
         },
 
-        appendLaborDescription(option) {
-            const currentValue = (this.description || '').trim();
-
-            // إذا كان الوصف فارغاً نضع الخيار مباشرة كنص ابتدائي.
-            if (!currentValue) {
-                this.description = option;
-                return;
+        selectLaborGroup(groupIndex) {
+            if (this.selectedLaborGroups[groupIndex]) {
+                delete this.selectedLaborGroups[groupIndex];
+                delete this.laborChildValues[groupIndex];
+            } else {
+                this.selectedLaborGroups[groupIndex] = true;
+                this.laborChildValues[groupIndex] = {};
             }
+            this.rebuildLaborDescription();
+        },
 
-            // منع تكرار نفس الخيار داخل الوصف عند الضغط عليه أكثر من مرة.
-            if (currentValue.includes(option)) {
-                return;
+        selectLaborChild(groupIndex, childIndex) {
+            const child = this.laborDescriptionGroups[groupIndex]?.children?.[childIndex];
+            if (!child) return;
+            const groupValues = this.laborChildValues[groupIndex] || (this.laborChildValues[groupIndex] = {});
+            const currentValue = Number(groupValues[childIndex] || 0);
+            if (child.type === 'counter') {
+                const max = Math.max(1, Number(child.max || 4));
+                groupValues[childIndex] = currentValue >= max ? 0 : currentValue + 1;
+            } else {
+                groupValues[childIndex] = currentValue > 0 ? 0 : 1;
             }
+            this.rebuildLaborDescription();
+        },
 
-            // عند وجود نص سابق: نضيف الخيار الجديد في نهاية الوصف مع فاصل واضح.
-            this.description = `${currentValue} - ${option}`;
+        decrementLaborChild(groupIndex, childIndex) {
+            const groupValues = this.laborChildValues[groupIndex] || (this.laborChildValues[groupIndex] = {});
+            const currentValue = Number(groupValues[childIndex] || 0);
+            groupValues[childIndex] = Math.max(0, currentValue - 1);
+            this.rebuildLaborDescription();
+        },
+
+        rebuildLaborDescription() {
+            this.description = this.laborDescriptionGroups.flatMap((group, groupIndex) => {
+                if (!this.selectedLaborGroups[groupIndex]) return [];
+                const groupValues = this.laborChildValues[groupIndex] || {};
+                const selectedChildren = (group.children || []).flatMap((child, childIndex) => {
+                    const value = Number(groupValues[childIndex] || 0);
+                    if (value < 1) return [];
+
+                    return [child.type === 'counter' ? `${value} ${child.label}` : child.label];
+                });
+
+                return [[group.label, ...selectedChildren].join(' ')];
+            }).join('، ');
+        },
+
+        laborSelectionPayload() {
+            return this.laborDescriptionGroups.flatMap((group, groupIndex) => {
+                if (!this.selectedLaborGroups[groupIndex]) return [];
+                const groupValues = this.laborChildValues[groupIndex] || {};
+                const children = (group.children || []).flatMap((child, childIndex) => {
+                    const count = Number(groupValues[childIndex] || 0);
+
+                    return count > 0 ? [{ child_label: child.label, count }] : [];
+                });
+
+                return [{ group_label: group.label, children }];
+            });
         },
 
         updateFractionPrice(item) {

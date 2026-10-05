@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const storeId = form.dataset.inventoryCountStoreId;
     const serverVersion = form.dataset.inventoryCountVersion;
     const draftStatus = document.querySelector('[data-inventory-count-draft-status]');
+    const connectionStatus = document.querySelector('[data-inventory-count-connection-status]');
+    const submitButton = document.querySelector('[data-inventory-count-submit]');
     const draftFields = [...form.querySelectorAll('[name^="items["]')];
     const maxDraftAge = 30 * 24 * 60 * 60 * 1000;
     let saveTimer = null;
@@ -51,6 +53,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const setStatus = (text) => {
         if (draftStatus) draftStatus.textContent = text;
+    };
+
+    const updateConnectionState = () => {
+        const online = navigator.onLine;
+        if (connectionStatus) {
+            connectionStatus.textContent = online
+                ? 'متصل — يمكن تثبيت المسودة وإرسال النتائج'
+                : 'دون اتصال — أدخل الكميات واحفظ المسودة محليًا، والإرسال النهائي متوقف';
+        }
+        if (submitButton) {
+            submitButton.disabled = !online || submitButton.dataset.serverReady !== 'true';
+            submitButton.textContent = online
+                ? submitButton.dataset.onlineText
+                : 'الإرسال النهائي يتطلب الإنترنت';
+        }
     };
 
     const valuesSnapshot = () => Object.fromEntries(draftFields.map((field) => [field.name, field.value]));
@@ -235,10 +252,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') flushDraft();
     });
-    window.addEventListener('offline', () => setStatus('أنت دون اتصال — يمكنك تجهيز المسودة للإرسال عند عودة الشبكة'));
+    window.addEventListener('offline', () => {
+        setStatus('أنت دون اتصال — يمكنك تجهيز المسودة للإرسال عند عودة الشبكة');
+        updateConnectionState();
+    });
+    window.addEventListener('online', updateConnectionState);
     window.addEventListener('carled:outbox-synced', async () => {
         await deleteDraft(storageKey).catch(() => undefined);
         setStatus('تم تثبيت مسودة الجرد في الخادم — حدّث الصفحة قبل متابعة التعديل');
     });
     window.addEventListener('carled:outbox-conflict', () => setStatus('تغيرت الجلسة على الخادم — راجع أحدث البيانات قبل إعادة الإرسال'));
+    updateConnectionState();
 });
