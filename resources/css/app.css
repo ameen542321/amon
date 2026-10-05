@@ -456,6 +456,15 @@ html.ui-font-loading body > :not(.ui-page-loader) {
         box-shadow: 0 0 0 4px rgba(0, 196, 180, .12);
     }
 
+    /* يجعل مؤشرات التاريخ والوقت الأصلية واضحة وفق سمة التطبيق في Chromium/WebKit. */
+    html.dark .ui-input:is([type="date"], [type="datetime-local"], [type="month"], [type="time"]) {
+        color-scheme: dark;
+    }
+
+    html.light .ui-input:is([type="date"], [type="datetime-local"], [type="month"], [type="time"]) {
+        color-scheme: light;
+    }
+
     /* يحدد حقل التحقق الخاطئ بصريًا مع إبقاء الرسالة النصية هي المصدر الأساسي للخطأ. */
     .ui-input[aria-invalid="true"],
     .ui-input.ui-input-invalid {

@@ -19,10 +19,14 @@ class LaborDescriptionHierarchyContractTest extends TestCase
         self::assertStringContainsString('getLaborDescriptionGroupsListAttribute', $store);
         self::assertStringContainsString("=== 'counter' ? 'counter' : 'toggle'", $store);
         self::assertStringContainsString("labor_description_options.*.children.*.type", $controller);
+        self::assertStringContainsString("labor_description_options.*.cost", $controller);
+        self::assertStringContainsString("labor_description_options.*.children.*.cost", $controller);
         self::assertStringContainsString("'laborDescriptionGroups'", $quickSaleController);
         self::assertStringContainsString('laborDescriptionEditor', $storeForm);
         self::assertStringContainsString('إضافة خيار رئيسي', $storeForm);
         self::assertStringContainsString('عداد بالضغط', $storeForm);
+        self::assertStringContainsString('تكلفة الرئيسي', $storeForm);
+        self::assertStringContainsString('تكلفة الفرعي', $storeForm);
         self::assertStringContainsString("window.Alpine.data('laborDescriptionEditor'", $storeEditor);
         self::assertStringContainsString('selectLaborGroup(groupIndex)', $quickSaleView);
         self::assertStringContainsString('selectLaborChild(groupIndex, childIndex)', $quickSaleView);
@@ -36,5 +40,8 @@ class LaborDescriptionHierarchyContractTest extends TestCase
         self::assertStringContainsString('selectedLaborGroups: {}', $quickSaleInterface);
         self::assertStringContainsString("return [[group.label, ...selectedChildren].join(' ')]", $quickSaleInterface);
         self::assertStringContainsString("}).join('، ')", $quickSaleInterface);
+        self::assertStringContainsString('laborSelectionsJson', $quickSaleInterface);
+        self::assertStringNotContainsString('group.cost', $quickSaleView);
+        self::assertStringNotContainsString('child.cost', $quickSaleView);
     }
 }
