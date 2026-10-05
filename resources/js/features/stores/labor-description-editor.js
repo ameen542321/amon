@@ -13,6 +13,7 @@ document.addEventListener('alpine:init', () => {
             return {
                 key: this.nextKey++,
                 label: String(normalized?.label || '').trim(),
+                cost: Math.max(0, Number(normalized?.cost || 0)),
                 children: (Array.isArray(normalized?.children) ? normalized.children : [])
                     .map((child) => this.makeChild(child))
                     .filter((child) => child.label),
@@ -27,6 +28,7 @@ document.addEventListener('alpine:init', () => {
                 label: String(normalized?.label || '').trim(),
                 type,
                 max: type === 'counter' ? Math.max(1, Math.min(20, Number(normalized?.max || 4))) : 1,
+                cost: Math.max(0, Number(normalized?.cost || 0)),
             };
         },
         addGroup() {

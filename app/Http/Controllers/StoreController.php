@@ -151,10 +151,12 @@ class StoreController extends Controller
             'inventory_audit_start_date' => 'nullable|required_if:inventory_audit_start_mode,manual|date',
             'labor_description_options' => 'nullable|array|max:8',
             'labor_description_options.*.label' => 'required|string|max:100',
+            'labor_description_options.*.cost' => 'nullable|numeric|min:0|max:99999999.99',
             'labor_description_options.*.children' => 'nullable|array|max:12',
             'labor_description_options.*.children.*.label' => 'required|string|max:100',
             'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
             'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
+            'labor_description_options.*.children.*.cost' => 'nullable|numeric|min:0|max:99999999.99',
             'show_quick_sale_tint' => 'required|boolean',
             'quick_sale_tint_label' => 'nullable|required_if:show_quick_sale_tint,1|string|max:100',
             'quick_sale_tint_description' => 'nullable|required_if:show_quick_sale_tint,1|string|max:180',
@@ -246,10 +248,12 @@ class StoreController extends Controller
             'inventory_audit_start_date' => 'nullable|required_if:inventory_audit_start_mode,manual|date',
             'labor_description_options' => 'nullable|array|max:8',
             'labor_description_options.*.label' => 'required|string|max:100',
+            'labor_description_options.*.cost' => 'nullable|numeric|min:0|max:99999999.99',
             'labor_description_options.*.children' => 'nullable|array|max:12',
             'labor_description_options.*.children.*.label' => 'required|string|max:100',
             'labor_description_options.*.children.*.type' => 'required|in:toggle,counter',
             'labor_description_options.*.children.*.max' => 'nullable|integer|min:1|max:20',
+            'labor_description_options.*.children.*.cost' => 'nullable|numeric|min:0|max:99999999.99',
             'show_quick_sale_tint' => 'required|boolean',
             'quick_sale_tint_label' => 'nullable|required_if:show_quick_sale_tint,1|string|max:100',
             'quick_sale_tint_description' => 'nullable|required_if:show_quick_sale_tint,1|string|max:180',
@@ -312,7 +316,7 @@ class StoreController extends Controller
             if (is_string($group)) {
                 $label = trim($group);
 
-                return $label === '' ? null : ['label' => $label, 'children' => []];
+                return $label === '' ? null : ['label' => $label, 'cost' => 0.0, 'children' => []];
             }
 
             $label = trim((string) ($group['label'] ?? ''));
@@ -332,16 +336,17 @@ class StoreController extends Controller
                     'label' => $childLabel,
                     'type' => $type,
                     'max' => $type === 'counter' ? max(1, min(20, (int) ($child['max'] ?? 4))) : 1,
+                    'cost' => max(0, round((float) ($child['cost'] ?? 0), 2)),
                 ];
             })->filter()->unique('label')->values()->take(12)->all();
 
-            return ['label' => $label, 'children' => $children];
+            return ['label' => $label, 'cost' => max(0, round((float) ($group['cost'] ?? 0), 2)), 'children' => $children];
         })->filter()->unique('label')->values()->take(8)->all();
 
         return $normalized ?: [
-            ['label' => 'تضليل', 'children' => []],
-            ['label' => 'تجليد', 'children' => []],
-            ['label' => 'شغل يد', 'children' => []],
+            ['label' => 'تضليل', 'cost' => 0.0, 'children' => []],
+            ['label' => 'تجليد', 'cost' => 0.0, 'children' => []],
+            ['label' => 'شغل يد', 'cost' => 0.0, 'children' => []],
         ];
     }
 

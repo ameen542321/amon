@@ -18,10 +18,16 @@ class SalesCostReportContractTest extends TestCase
         self::assertStringContainsString("'sales_total'", $service);
         self::assertStringContainsString("'products_cost'", $service);
         self::assertStringContainsString("'labor_total'", $service);
+        self::assertStringContainsString("'labor_cost'", $service);
+        self::assertStringContainsString("'total_cost'", $service);
+        self::assertStringContainsString("'missing_labor_cost_count'", $service);
         self::assertStringContainsString('insertOrIgnore', $service);
         self::assertStringContainsString("Route::get('/{store}/reports/sales-cost'", $routes);
         self::assertStringContainsString("Route::post('/{store}/reports/sales-cost/mark-used'", $routes);
         self::assertStringContainsString('استبعاد الأيام المستخدمة', $view);
+        self::assertStringContainsString('تكلفة خيارات العمل', $view);
+        self::assertStringContainsString('إجمالي التكلفة', $view);
+        self::assertStringContainsString('غير متوفرة لعملية قديمة', $view);
         self::assertStringNotContainsString('<style', $view);
         self::assertStringNotContainsString('style=', $view);
         self::assertStringContainsString("unique(['store_id', 'business_date']", $migration);
