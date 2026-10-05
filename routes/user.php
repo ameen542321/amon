@@ -132,6 +132,7 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
                 Route::post('/{inventoryCount}/cancel', [InventoryCountController::class, 'cancel'])->name('cancel');
                 Route::post('/{inventoryCount}/items/{item}/decision', [InventoryCountController::class, 'decide'])->name('items.decision');
                 Route::post('/{inventoryCount}/bulk-approve', [InventoryCountController::class, 'bulkApprove'])->name('bulk-approve');
+                Route::post('/{inventoryCount}/bulk-return', [InventoryCountController::class, 'bulkReturn'])->name('bulk-return');
                 Route::get('/{inventoryCount}/pdf', [InventoryCountController::class, 'pdf'])->name('pdf');
                 Route::delete('/{inventoryCount}', [InventoryCountController::class, 'destroy'])->name('destroy');
             });
@@ -306,6 +307,8 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
         Route::post('/{employee}/debt', [EmployeeActionsController::class, 'storeDebt'])->name('debt.store');
         Route::patch('/debt/{debt}', [EmployeeActionsController::class, 'updateDebt'])->name('debt.update');
         Route::post('/{person}/withdrawal', [EmployeeActionsController::class, 'storeWithdrawal'])->name('withdrawal.store');
+        Route::put('/withdrawal/{withdrawal}', [EmployeeActionsController::class, 'updateWithdrawal'])->name('withdrawal.update');
+        Route::delete('/withdrawal/{withdrawal}', [EmployeeActionsController::class, 'destroyWithdrawal'])->name('withdrawal.destroy');
         Route::post('/debt/collect/full/{debt}', [EmployeeActionsController::class, 'collectFull'])->name('debt.collect.full');
         Route::post('/debt/collect/partial/{debt}', [EmployeeActionsController::class, 'collectPartial'])->name('debt.collect.partial');
     });

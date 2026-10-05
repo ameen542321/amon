@@ -284,7 +284,7 @@
 ])
 
 <!-- المودالات -->
-@include('components.employee.withdrawal-form', ['person' => $employee])
+@include('components.employee.withdrawal-form', ['employee' => $employee, 'withdrawals' => $operationDetails['withdrawals']])
 @include('components.employee.absence-form', ['person' => $employee])
 @include('components.employee.debt-form', ['person' => $employee])
 {{-- المالك يعاين الأجل من تفاصيل البيع الآجل فقط؛ الإضافة والتحصيل تتم من واجهات المحاسب/نقطة البيع حتى لا تختلط الصلاحيات. --}}

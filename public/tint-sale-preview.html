@@ -431,6 +431,13 @@
     </div>
 </div>
 <script>
+document.addEventListener('wheel', event => {
+    const input = event.target.closest?.('input[type="number"]');
+    if (!input || document.activeElement !== input || input.disabled || input.readOnly) return;
+    event.preventDefault();
+    input.blur();
+}, { capture:true, passive:false });
+
 // تقرأ المعاينة منتجات الرول الحقيقية من قسم «تضليل» فقط مع خيارات التجزئة التابعة لها.
 // نوع التضليل والحجم والدرجة تُستخرج من صيغة الاسم المعتمدة: النوع + الحجم + الدرجة.
 const previewProductsUrl = (() => {

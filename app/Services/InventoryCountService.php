@@ -243,6 +243,31 @@ class InventoryCountService
         });
     }
 
+    public function returnSelectedItems(InventoryCountSession $session, User $owner, array $itemIds, string $reason): void
+    {
+        DB::transaction(function () use ($session, $owner, $itemIds, $reason): void {
+            $lockedSession = InventoryCountSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
+            if ($lockedSession->owner_id !== $owner->id || ! in_array($lockedSession->status, ['pending_owner', 'partially_approved', 'returned_to_accountant'], true)) {
+                throw ValidationException::withMessages(['items' => 'الجلسة غير متاحة لإعادة المنتجات حاليًا.']);
+            }
+
+            $uniqueItemIds = array_values(array_unique($itemIds));
+            $items = $lockedSession->items()->whereIn('id', $uniqueItemIds)->where('decision', 'pending')->lockForUpdate()->get();
+            if ($items->count() !== count($uniqueItemIds)) {
+                throw ValidationException::withMessages(['items' => 'بعض المنتجات المحددة لم تعد متاحة للإعادة. حدّث الصفحة وحاول مجددًا.']);
+            }
+
+            foreach ($items as $item) {
+                $item->update([
+                    'decision' => 'returned',
+                    'owner_adjustment_reason' => trim($reason),
+                    'attempt' => $item->attempt + 1,
+                ]);
+            }
+            $lockedSession->update(['status' => 'returned_to_accountant']);
+        });
+    }
+
     private function refreshSessionStatus(InventoryCountSession $session): void
     {
         $session->refresh();

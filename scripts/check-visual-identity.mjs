@@ -184,9 +184,11 @@ if (!appEntry.includes("./features/ui-actions")
     || !uiActionsFeature.includes('[data-ui-sync-value]')) {
     failures.push('ui actions: shared show/hide/print/value-sync feature is not fully wired');
 }
-if ([employeeAbsenceForm, employeeWithdrawalForm].some((view) => !view.includes('data-ui-sync-value='))
+if (!employeeAbsenceForm.includes('data-ui-sync-value=')
+    || !employeeWithdrawalForm.includes('type="date"')
+    || !employeeWithdrawalForm.includes('name="date"')
     || [employeeAbsenceForm, employeeWithdrawalForm, employeeDebtForm].some((view) => !view.includes('data-ui-hide='))) {
-    failures.push('employee form components: modal/date actions must use ui-actions contracts');
+    failures.push('employee form components: modal actions and usable date inputs must keep their shared contracts');
 }
 if (!employeeActionsView.includes('data-ui-reset-details')
     || employeeActionsView.includes('openEmployeeOperationModal(')) {
@@ -1045,8 +1047,10 @@ if (transferForm.includes('data-select-search') || transferForm.includes('ابح
 }
 
 const storeForm = fs.readFileSync('resources/views/user/stores/includes/store-form.blade.php', 'utf8');
-if (!storeForm.includes('name="labor_description_options[]"') || storeForm.includes('تحديث المعلومات المسجلة في النظام')) {
-    failures.push('store edit must keep separate labor fields and the approved short wording');
+if (!storeForm.includes('labor_description_options[${groupIndex}][label]')
+    || !storeForm.includes('labor_description_options[${groupIndex}][children]')
+    || storeForm.includes('تحديث المعلومات المسجلة في النظام')) {
+    failures.push('store edit must keep the hierarchical labor description editor and the approved short wording');
 }
 
 const storeShow = fs.readFileSync('resources/views/user/stores/show.blade.php', 'utf8');

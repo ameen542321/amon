@@ -2359,9 +2359,15 @@ html.ui-font-loading body > :not(.ui-page-loader) {
     }
 
     .ui-quick-sale-preset:hover,
-    .ui-quick-sale-preset:focus-visible {
+    .ui-quick-sale-preset:focus-visible,
+    .ui-quick-sale-preset.is-active {
         border-color: var(--ui-brand);
         color: var(--ui-text);
+    }
+
+    .ui-quick-sale-preset.is-active {
+        background: color-mix(in srgb, var(--ui-brand) 16%, var(--ui-surface-strong));
+        box-shadow: 0 6px 16px rgba(0, 196, 180, .14);
     }
 
     .ui-quick-sale-confirm {

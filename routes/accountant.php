@@ -149,6 +149,8 @@ Route::middleware(['accountant.unified'])->group(function () {
         Route::prefix('pos')->name('pos.')->group(function () {
             Route::get('/withdrawal', [EmployeeFinanceController::class, 'withdrawalPage'])->name('withdrawal.page');
             Route::post('/withdrawal/store/{employee}', [EmployeeFinanceController::class, 'storeWithdrawal'])->name('withdrawal.store');
+            Route::put('/withdrawal/{withdrawal}', [EmployeeFinanceController::class, 'updateWithdrawal'])->name('withdrawal.update');
+            Route::delete('/withdrawal/{withdrawal}', [EmployeeFinanceController::class, 'destroyWithdrawal'])->name('withdrawal.destroy');
 
             Route::get('/expense', [ExpenseController::class, 'index'])->name('expense.page');
             Route::post('/expense/store', [ExpenseController::class, 'store'])->name('expense.store');

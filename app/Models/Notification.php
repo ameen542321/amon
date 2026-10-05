@@ -79,6 +79,12 @@ class Notification extends Model
             ->where(function (Builder $hiddenQuery) use ($recipient): void {
                 $hiddenQuery->whereNull('read_by')
                     ->orWhereJsonDoesntContain('read_by', $recipient->hiddenMarker());
+            })
+            ->where(function (Builder $expiryQuery): void {
+                // إشعار اكتمال طلبية التوريد معلومة مؤقتة: يظهر 24 ساعة من إنشائه ثم يختفي دون حذف سجل التدقيق.
+                $expiryQuery->whereNull('template_key')
+                    ->orWhere('template_key', '!=', 'purchase_order_approved_and_supplied')
+                    ->orWhere('created_at', '>=', now()->subHours(24));
             });
     }
 
