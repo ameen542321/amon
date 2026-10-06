@@ -756,7 +756,9 @@ class QuickSaleController extends Controller
         $breakdown = [];
         $usedGroups = [];
 
-        foreach ($selections as $selection) {
+        // طابق الحدود نفسها المطبقة على إعدادات المتجر، حتى لا يستطيع طلب معدل
+        // إجبار الخادم على معالجة قائمة غير محدودة أو بنية children غير صالحة.
+        foreach (array_slice($selections, 0, 8) as $selection) {
             if (! is_array($selection) || ! isset($selection['group_index'])) {
                 continue;
             }
@@ -773,7 +775,12 @@ class QuickSaleController extends Controller
             $children = [];
             $usedChildren = [];
 
-            foreach (($selection['children'] ?? []) as $selectedChild) {
+            $selectedChildren = $selection['children'] ?? [];
+            if (! is_array($selectedChildren)) {
+                $selectedChildren = [];
+            }
+
+            foreach (array_slice($selectedChildren, 0, 12) as $selectedChild) {
                 if (! is_array($selectedChild) || ! isset($selectedChild['child_index'])) {
                     continue;
                 }
