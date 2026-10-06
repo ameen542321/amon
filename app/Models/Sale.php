@@ -60,6 +60,12 @@ class Sale extends Model
         'business_date'    => 'date',
     ];
 
+    public function canEditLaborCost(): bool
+    {
+        return (float) $this->labor_total > 0
+            && ($this->labor_cost === null || (float) $this->labor_cost === 0.0);
+    }
+
     // --- العلاقات (Relationships) ---
 
     // المتجر الذي تمت فيه العملية

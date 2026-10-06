@@ -126,14 +126,14 @@
                         <div><dt class="ui-text-muted">شغل اليد</dt><dd class="font-black ui-title">{{ $money($row['labor_total']) }}</dd></div>
                         <div><dt class="ui-text-muted">تكلفة العمل</dt><dd class="font-black {{ $row['has_labor_cost_snapshot'] ? 'ui-status-success' : 'ui-status-warning' }}">{{ $row['has_labor_cost_snapshot'] ? $money($row['labor_cost']) : 'غير متوفرة' }}</dd></div>
                     </dl>
-                    @unless($usedDates->has($row['business_date']))
+                    @if($row['can_edit_labor_cost'] && !$usedDates->has($row['business_date']))
                         <form method="POST" action="{{ route('user.stores.reports.sales-cost.labor-cost.update', [$store, $row['id']]) }}" class="mt-3 flex items-end gap-2">
                             @csrf @method('PATCH')
                             <input type="hidden" name="from" value="{{ $from }}"><input type="hidden" name="to" value="{{ $to }}"><input type="hidden" name="q" value="{{ $search }}">@if($excludeUsed)<input type="hidden" name="exclude_used" value="1">@endif
                             <label class="flex-1"><span class="ui-label">إدخال تكلفة العملية السابقة</span><input class="ui-input mt-1" type="number" name="labor_cost" min="0" max="99999999.99" step="0.01" required value="{{ $row['labor_cost'] }}" placeholder="0.00"></label>
                             <button class="ui-btn ui-btn-primary" type="submit">حفظ</button>
                         </form>
-                    @endunless
+                    @endif
                     @if($row['labor_cost_breakdown'])<p class="mt-2 ui-text-muted">خيارات التكلفة: {{ $row['labor_cost_breakdown'] }}</p>@endif
                     <p class="mt-3 ui-text-muted">{{ $row['cost_source'] }}</p>
                 </article>
@@ -164,14 +164,14 @@
                                 @else
                                     <span class="ui-badge ui-badge-warning">غير متوفرة لعملية قديمة</span>
                                 @endif
-                                @unless($usedDates->has($row['business_date']))
+                                @if($row['can_edit_labor_cost'] && !$usedDates->has($row['business_date']))
                                     <form method="POST" action="{{ route('user.stores.reports.sales-cost.labor-cost.update', [$store, $row['id']]) }}" class="mt-2 flex items-center gap-2">
                                         @csrf @method('PATCH')
                                         <input type="hidden" name="from" value="{{ $from }}"><input type="hidden" name="to" value="{{ $to }}"><input type="hidden" name="q" value="{{ $search }}">@if($excludeUsed)<input type="hidden" name="exclude_used" value="1">@endif
                                         <input class="ui-input" type="number" name="labor_cost" min="0" max="99999999.99" step="0.01" required aria-label="تكلفة العمل للعملية السابقة" value="{{ $row['labor_cost'] }}" placeholder="0.00">
                                         <button class="ui-btn ui-btn-primary" type="submit">حفظ</button>
                                     </form>
-                                @endunless
+                                @endif
                             </td>
                             <td><strong class="ui-status-success">{{ $money($row['total_cost']) }}</strong></td>
                             <td>@if($usedDates->has($row['business_date']))<span class="ui-badge ui-badge-warning">مستخدم</span>@else<span class="ui-badge ui-badge-success">متاح</span>@endif</td>

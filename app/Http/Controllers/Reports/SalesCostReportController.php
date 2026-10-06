@@ -40,6 +40,7 @@ class SalesCostReportController extends Controller
     {
         $access->ensureOwnerCanAccess($request->user(), $store);
         abort_unless((int) $sale->store_id === (int) $store->id, 404);
+        abort_unless($sale->canEditLaborCost(), 422, 'يمكن تعديل تكلفة شغل اليد فقط عندما تكون صفرًا أو غير مسجلة.');
 
         $validated = $request->validate([
             'labor_cost' => ['required', 'numeric', 'min:0', 'max:99999999.99'],

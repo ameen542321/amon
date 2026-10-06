@@ -131,6 +131,7 @@ class SalesCostReportService
             'labor_total' => (float) ($sale->labor_total ?? 0),
             'labor_cost' => $laborCost,
             'has_labor_cost_snapshot' => $hasLaborCostSnapshot,
+            'can_edit_labor_cost' => $sale->canEditLaborCost(),
             'labor_cost_breakdown' => collect($sale->labor_cost_breakdown ?? [])
                 ->pluck('label')->filter()->implode('، '),
             'total_cost' => round($productsCost + ($laborCost ?? 0), 2),
