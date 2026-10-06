@@ -11,8 +11,8 @@ return new class extends Migration
     public function up(): void
     {
         $this->addColumnIfMissing('sales', 'labor_cost', function (Blueprint $table): void {
-                // تبقى null للعمليات السابقة حتى لا توحي قيمة صفرية بأن تكلفتها التاريخية كانت معروفة.
-                $table->decimal('labor_cost', 12, 2)->nullable()->after('labor_total');
+            // تبقى null للعمليات السابقة حتى لا توحي قيمة صفرية بأن تكلفتها التاريخية كانت معروفة.
+            $table->decimal('labor_cost', 12, 2)->nullable()->after('labor_total');
         });
 
         $this->addColumnIfMissing('sales', 'labor_cost_breakdown', function (Blueprint $table): void {

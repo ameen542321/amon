@@ -17,6 +17,9 @@ class LaborOptionCostContractTest extends TestCase
 
         self::assertStringContainsString('calculateLaborCost', $controller);
         self::assertStringContainsString("'labor_selections' => 'nullable|json'", $controller);
+        self::assertStringContainsString('array_slice($selections, 0, 8)', $controller);
+        self::assertStringContainsString('is_array($selectedChildren)', $controller);
+        self::assertStringContainsString('array_slice($selectedChildren, 0, 12)', $controller);
         self::assertStringContainsString("'label' => \$group['label']", $controller);
         self::assertStringNotContainsString("'cost' => \$group['cost']", $controller);
         self::assertStringContainsString('name="labor_selections"', $view);
@@ -29,7 +32,7 @@ class LaborOptionCostContractTest extends TestCase
         self::assertStringContainsString('addColumnIfMissing', $migration);
         self::assertStringContainsString('information_schema.columns', $migration);
         self::assertStringContainsString("\$sqlState === '42S21'", $migration);
-        self::assertStringContainsString("str_contains(strtolower($exception->getMessage()), 'duplicate column')", $migration);
+        self::assertStringContainsString("str_contains(strtolower(\$exception->getMessage()), 'duplicate column')", $migration);
         self::assertStringContainsString("->nullable()->after('labor_total')", $migration);
         self::assertStringContainsString('html.dark .ui-input:is([type="date"]', $styles);
         self::assertStringContainsString('color-scheme: dark', $styles);
