@@ -30,10 +30,11 @@ class SalesCostReportContractTest extends TestCase
         self::assertStringContainsString('updateLaborCost', $controller);
         self::assertStringContainsString("'min:0'", $controller);
         self::assertStringContainsString('استبعاد الأيام المستخدمة', $view);
-        self::assertStringContainsString('تكلفة خيارات العمل', $view);
+        self::assertStringContainsString('تكلفة شغل اليد', $view);
         self::assertStringContainsString('إجمالي التكلفة', $view);
-        self::assertStringContainsString('غير متوفرة لعملية قديمة', $view);
-        self::assertStringContainsString('إدخال تكلفة العملية السابقة', $view);
+        self::assertStringContainsString('حفظ المحدد', $view);
+        self::assertStringNotContainsString('cost_source', $view);
+        self::assertStringContainsString('data-cost-row', $view);
         self::assertStringNotContainsString('<style', $view);
         self::assertStringNotContainsString('style=', $view);
         self::assertStringContainsString("unique(['store_id', 'business_date']", $migration);

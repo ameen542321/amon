@@ -3137,3 +3137,27 @@ html.ui-font-loading body > :not(.ui-page-loader) {
         color: var(--ui-brand);
     }
 }
+
+/* صفحة التكلفة: سجل واحد متجاوب وأعمدة مالية موحدة. */
+.ui-cost-report { padding-block: 1rem; }
+.ui-cost-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; background: var(--ui-surface-muted); border-bottom: 1px solid var(--ui-border); }
+.ui-cost-toolbar form { margin-inline-start: auto; }
+.ui-cost-select { display: inline-flex; align-items: center; gap: .6rem; min-height: 2.75rem; cursor: pointer; }
+.ui-cost-select input { width: 1.25rem; height: 1.25rem; accent-color: var(--ui-brand); }
+.ui-cost-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+.ui-cost-head { display: none; }
+.ui-cost-row { padding: 1.25rem; border-bottom: 1px solid var(--ui-border); scroll-margin-block-start: 6rem; }
+.ui-cost-row:last-child { border-bottom: 0; }
+.ui-cost-row > :first-child, .ui-cost-total, .ui-cost-state { grid-column: 1 / -1; }
+.ui-cost-row:target, .ui-cost-row[data-selected="true"] { background: var(--ui-surface-muted); box-shadow: inset 3px 0 0 var(--ui-brand); }
+.ui-cost-row:focus-visible { outline: 2px solid var(--ui-brand); outline-offset: -2px; }
+.ui-cost-amount { display: flex; flex-direction: column; gap: .5rem; }
+.ui-cost-total { border: 1px solid var(--ui-border); border-radius: .875rem; padding: 1rem; }
+.ui-cost-state { display: flex; align-items: flex-start; }
+@media (min-width: 1024px) {
+    .ui-cost-columns { grid-template-columns: minmax(0, 2fr) minmax(0, .8fr) minmax(0, .8fr) minmax(15rem, 1.4fr) minmax(0, .8fr); align-items: start; }
+    .ui-cost-head { display: grid; padding: 1rem 1.25rem; background: var(--ui-surface-muted); color: var(--ui-text-soft); font-weight: 700; border-bottom: 1px solid var(--ui-border); }
+    .ui-cost-row > :first-child, .ui-cost-total, .ui-cost-state { grid-column: auto; }
+    .ui-cost-mobile-label { display: none; }
+    .ui-cost-total { border: 0; padding: 0; }
+}

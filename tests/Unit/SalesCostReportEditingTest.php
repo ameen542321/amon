@@ -46,6 +46,7 @@ class SalesCostReportEditingTest extends TestCase
             'total_cost' => 10 + ($cost ?? 0), 'cost_source' => 'محفوظة وقت البيع',
         ];
         $html = view('user.stores.reports.sales-cost', [
+            'errors' => new \Illuminate\Support\ViewErrorBag,
             'store' => $store, 'from' => $date, 'to' => $date, 'search' => '',
             'excludeUsed' => false, 'rows' => collect([$row]),
             'summary' => $row + ['operations_count' => 1, 'missing_labor_cost_count' => $cost === null ? 1 : 0],
@@ -54,11 +55,14 @@ class SalesCostReportEditingTest extends TestCase
             'overlappingUsedDates' => collect($used ? [$date] : []),
         ])->render();
 
+        self::assertStringNotContainsString('محفوظة وقت البيع', $html);
+        self::assertStringNotContainsString('تكلفة محفوظة', $html);
+        self::assertStringContainsString('id="sale-42"', $html);
         $dom = new \DOMDocument;
         @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
         $xpath = new \DOMXPath($dom);
         $inputs = $xpath->query('//input[@name="labor_cost"]');
-        self::assertCount(!$used && $laborTotal > 0 && ($cost === null || $cost === 0.0) ? 2 : 0, $inputs, 'Mobile and desktop editors must follow the same eligibility rule.');
+        self::assertCount(!$used && $laborTotal > 0 && ($cost === null || $cost === 0.0) ? 1 : 0, $inputs, 'The shared mobile and desktop editor must follow eligibility rules.');
         if (!$sale->canEditLaborCost()) {
             $request = Request::create('/reports/sales-cost/42/labor-cost', 'PATCH', ['labor_cost' => 15]);
             $user = new User;
