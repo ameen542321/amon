@@ -3140,6 +3140,7 @@ html.ui-font-loading body > :not(.ui-page-loader) {
 
 /* صفحة التكلفة: سجل واحد متجاوب وأعمدة مالية موحدة. */
 .ui-cost-report { padding-block: 1rem; }
+.ui-cost-report [data-cost-input]:focus::placeholder { opacity: 0; }
 .ui-cost-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; background: var(--ui-surface-muted); border-bottom: 1px solid var(--ui-border); }
 .ui-cost-toolbar form { margin-inline-start: auto; }
 .ui-cost-select { display: inline-flex; align-items: center; gap: .6rem; min-height: 2.75rem; cursor: pointer; }
