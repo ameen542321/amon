@@ -56,7 +56,7 @@
                     <div data-cost-bulk-values></div>
                     <button class="ui-btn ui-btn-primary" type="submit" data-cost-bulk-save disabled>حفظ المحدد</button>
                 </form>
-                <form method="POST" action="{{ route('user.stores.reports.sales-cost.pdf', $store) }}" data-cost-pdf-form>
+                <form method="POST" action="{{ route('user.stores.reports.sales-cost.pdf', $store) }}" target="_blank" rel="noopener" data-cost-pdf-form>
                     @csrf
                     @include('user.stores.reports.partials.sales-cost-filters')
                     <div data-cost-pdf-values></div>

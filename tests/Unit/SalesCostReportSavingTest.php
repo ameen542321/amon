@@ -179,6 +179,7 @@ class SalesCostReportSavingTest extends TestCase
         self::assertSame(124.56, $captured['summary']['total_cost']);
         self::assertSame(250.0, $captured['summary']['sales_total']);
         self::assertSame('application/pdf', $response->headers->get('Content-Type'));
+        self::assertStringStartsWith('inline;', $response->headers->get('Content-Disposition'));
         self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         self::assertStringStartsWith('%PDF-', $response->getContent());
         if ($path = getenv('SALES_COST_PDF_SAMPLE')) file_put_contents($path, $response->getContent());

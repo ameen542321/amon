@@ -45,6 +45,7 @@ class SalesCostReportController extends Controller
             'store' => $store, 'rows' => $rows, 'summary' => $summary,
             'from' => $report['from'], 'to' => $report['to'],
         ])->setOption('encoding', 'utf-8')->download('تقرير_التكلفة_'.$store->id.'.pdf')
+            ->header('Content-Disposition', 'inline; filename="sales-cost-'.$store->id.'.pdf"; filename*=UTF-8\'\''.rawurlencode('تقرير_التكلفة_'.$store->id.'.pdf'))
             ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
