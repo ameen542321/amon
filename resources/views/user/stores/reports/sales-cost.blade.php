@@ -46,7 +46,7 @@
                 </form>
             @endif
         </div>
-        @if($rows->contains(fn ($row) => $row['can_edit_labor_cost'] && !$usedDates->has($row['business_date'])))
+        @if($rows->isNotEmpty())
             <div class="ui-cost-toolbar p-4 sm:px-5">
                 <label class="ui-cost-select ui-text-soft"><input type="checkbox" data-cost-select-all> تحديد الكل</label>
                 <span class="ui-text-soft" data-cost-selection-count aria-live="polite">لم تُحدد عمليات</span>
@@ -55,6 +55,12 @@
                     @include('user.stores.reports.partials.sales-cost-filters')
                     <div data-cost-bulk-values></div>
                     <button class="ui-btn ui-btn-primary" type="submit" data-cost-bulk-save disabled>حفظ المحدد</button>
+                </form>
+                <form method="POST" action="{{ route('user.stores.reports.sales-cost.pdf', $store) }}" data-cost-pdf-form>
+                    @csrf
+                    @include('user.stores.reports.partials.sales-cost-filters')
+                    <div data-cost-pdf-values></div>
+                    <button class="ui-btn ui-btn-secondary" type="submit" data-cost-pdf-save disabled><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> تصدير PDF للمحدد</button>
                 </form>
                 <p class="ui-status-danger hidden" data-cost-feedback role="status"></p>
             </div>
@@ -69,7 +75,7 @@
                 <article id="sale-{{ $row['id'] }}" class="ui-cost-columns ui-cost-row" data-cost-row="{{ $row['id'] }}" tabindex="-1" aria-label="عملية {{ $row['id'] }}">
                     <div class="min-w-0">
                         <div class="flex gap-3 items-center">
-                            @if($editable)<label class="ui-cost-select"><input type="checkbox" data-cost-select="{{ $row['id'] }}" @checked(array_key_exists($row['id'], (array) old('costs', []))) aria-label="تحديد العملية {{ $row['id'] }}"></label>@endif
+                            <label class="ui-cost-select"><input type="checkbox" data-cost-select="{{ $row['id'] }}" @checked(array_key_exists($row['id'], (array) old('costs', []))) aria-label="تحديد العملية {{ $row['id'] }}"></label>
                             <h3 class="ui-title font-black">#{{ $row['id'] }}</h3>
                             <time class="ui-text-caption" datetime="{{ $row['business_date'] }}">{{ $row['business_date'] }}</time>
                         </div>

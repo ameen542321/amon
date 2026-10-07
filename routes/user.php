@@ -151,6 +151,8 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
             Route::get('/{store}/reports', [StoreController::class, 'reportsIndex'])->name('reports.index');
             Route::get('/{store}/reports/search', [StoreController::class, 'reportsComprehensiveSearch'])->name('reports.search');
             Route::get('/{store}/reports/sales-cost', [SalesCostReportController::class, 'index'])->name('reports.sales-cost');
+            Route::post('/{store}/reports/sales-cost/pdf', [SalesCostReportController::class, 'exportPdf'])
+                ->middleware('throttle:10,1')->name('reports.sales-cost.pdf');
             Route::post('/{store}/reports/sales-cost/mark-used', [SalesCostReportController::class, 'markUsed'])
                 ->middleware('throttle:10,1')
                 ->name('reports.sales-cost.mark-used');

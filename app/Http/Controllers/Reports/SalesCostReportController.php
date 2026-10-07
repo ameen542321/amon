@@ -25,6 +25,29 @@ class SalesCostReportController extends Controller
         return view('user.stores.reports.sales-cost', $reports->build($store, $filters));
     }
 
+    public function exportPdf(Request $request, Store $store, StoreAccessService $access, SalesCostReportService $reports): \Illuminate\Http\Response
+    {
+        $access->ensureOwnerCanAccess($request->user(), $store);
+        $filters = $this->validatedFilters($request);
+        $validated = $request->validate([
+            'sale_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'sale_ids.*' => ['required', 'integer', 'min:1', 'distinct'],
+        ]);
+        $report = $reports->build($store, $filters);
+        $rows = $report['rows']->whereIn('id', $validated['sale_ids'])->values();
+        abort_unless($rows->count() === count($validated['sale_ids']), 404);
+        $summary = [
+            'sales_total' => round((float) $rows->sum('sales_total'), 2),
+            'labor_total' => round((float) $rows->sum('labor_total'), 2),
+            'total_cost' => round((float) $rows->sum('total_cost'), 2),
+        ];
+        return \App\Support\ArabicPdf::loadView('pdf.sales-cost', [
+            'store' => $store, 'rows' => $rows, 'summary' => $summary,
+            'from' => $report['from'], 'to' => $report['to'],
+        ])->setOption('encoding', 'utf-8')->download('تقرير_التكلفة_'.$store->id.'.pdf')
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
     public function markUsed(Request $request, Store $store, StoreAccessService $access, SalesCostReportService $reports): RedirectResponse
     {
         $access->ensureOwnerCanAccess($request->user(), $store);

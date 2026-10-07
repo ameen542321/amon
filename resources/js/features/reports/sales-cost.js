@@ -7,6 +7,9 @@ if (root) {
     const bulkForm = root.querySelector('[data-cost-bulk-form]');
     const bulkButton = root.querySelector('[data-cost-bulk-save]');
     const values = root.querySelector('[data-cost-bulk-values]');
+    const pdfForm = root.querySelector('[data-cost-pdf-form]');
+    const pdfButton = root.querySelector('[data-cost-pdf-save]');
+    const editableSelected = () => selected().filter(box => root.querySelector(`[data-cost-input="${box.dataset.costSelect}"]`));
     const feedback = root.querySelector('[data-cost-feedback]');
     const selected = () => checkboxes.filter(input => input.checked);
     const showFeedback = message => {
@@ -22,7 +25,8 @@ if (root) {
             selectAll.indeterminate = selection.length > 0 && selection.length < checkboxes.length;
             selectAll.disabled = !navigator.onLine;
         }
-        if (bulkButton) bulkButton.disabled = !navigator.onLine || !selection.length;
+        if (bulkButton) bulkButton.disabled = !navigator.onLine || !editableSelected().length;
+        if (pdfButton) pdfButton.disabled = !navigator.onLine || !selection.length;
         root.querySelectorAll('[data-cost-online]').forEach(button => { button.disabled = !navigator.onLine; });
         checkboxes.forEach(input => {
             input.closest('[data-cost-row]')?.setAttribute('data-selected', String(input.checked));
@@ -44,7 +48,7 @@ if (root) {
         update();
     });
     bulkForm?.addEventListener('submit', event => {
-        const selection = selected();
+        const selection = editableSelected();
         if (!navigator.onLine || !selection.length) {
             event.preventDefault();
             showFeedback(navigator.onLine ? 'حدد عملية واحدة على الأقل.' : 'الحفظ متاح عند الاتصال بالإنترنت.');
@@ -73,6 +77,21 @@ if (root) {
         anchor.name = 'return_sale';
         anchor.value = lastId;
         values.append(anchor);
+    });
+    pdfForm?.addEventListener('submit', event => {
+        const selection = selected();
+        if (!navigator.onLine || !selection.length) {
+            event.preventDefault();
+            showFeedback(navigator.onLine ? 'حدد عملية واحدة على الأقل.' : 'التصدير متاح عند الاتصال بالإنترنت.');
+            return;
+        }
+        const fields = pdfForm.querySelector('[data-cost-pdf-values]');
+        fields.replaceChildren();
+        selection.forEach(box => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'sale_ids[]'; input.value = box.dataset.costSelect;
+            fields.append(input);
+        });
     });
     root.querySelectorAll('[data-cost-single-form]').forEach(form => form.addEventListener('submit', event => {
         if (!navigator.onLine) {

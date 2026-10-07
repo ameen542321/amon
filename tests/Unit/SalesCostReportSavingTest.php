@@ -152,6 +152,55 @@ class SalesCostReportSavingTest extends TestCase
         return [[[]], [[1 => -1]], [[1 => '']], [[1 => 'abc']], [[1 => 100000000]], [['bad-id' => 10]], [array_fill_keys(range(1, 101), 10)]];
     }
 
+    private function pdfReport(): \App\Services\Reports\SalesCostReportService
+    {
+        $reports = $this->createMock(\App\Services\Reports\SalesCostReportService::class);
+        $reports->method('build')->willReturn([
+            'from' => '2026-10-01', 'to' => '2026-10-31',
+            'rows' => collect([
+                ['id' => 1, 'business_date' => '2026-10-01', 'description' => 'EXPORT_EXCLUDED', 'products' => 'Excluded material', 'accountant' => 'محاسب', 'sales_total' => 999.99, 'labor_total' => 10, 'total_cost' => 888.88],
+                ['id' => 2, 'business_date' => '2026-10-02', 'description' => 'EXPORT_SELECTED', 'products' => 'Selected material', 'accountant' => 'محاسب', 'sales_total' => 250, 'labor_total' => 30, 'total_cost' => 124.56],
+            ]),
+        ]);
+        return $reports;
+    }
+
+    public function test_pdf_contains_only_selected_rows_with_selected_totals(): void
+    {
+        Schema::create('onesignal_settings', fn (Blueprint $table) => $table->id());
+        $captured = null;
+        app('view')->composer('pdf.sales-cost', function ($view) use (&$captured) {
+            $captured = $view->getData();
+        });
+        $response = (new SalesCostReportController)->exportPdf(
+            $this->request(['sale_ids' => [2]]), $this->store, new StoreAccessService, $this->pdfReport()
+        );
+        self::assertSame([2], $captured['rows']->pluck('id')->all());
+        self::assertSame(124.56, $captured['summary']['total_cost']);
+        self::assertSame(250.0, $captured['summary']['sales_total']);
+        self::assertSame('application/pdf', $response->headers->get('Content-Type'));
+        self::assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        self::assertStringStartsWith('%PDF-', $response->getContent());
+        if ($path = getenv('SALES_COST_PDF_SAMPLE')) file_put_contents($path, $response->getContent());
+        self::assertSame(0.0, Sale::find(2)->labor_cost, 'Export must never save an entered cost.');
+    }
+
+    public function test_pdf_rejects_ids_outside_the_current_store_report(): void
+    {
+        try {
+            (new SalesCostReportController)->exportPdf($this->request(['sale_ids' => [2, 999]]), $this->store, new StoreAccessService, $this->pdfReport());
+            self::fail('Selection outside the report must be rejected.');
+        } catch (HttpException $exception) {
+            self::assertSame(404, $exception->getStatusCode());
+        }
+    }
+
+    public function test_pdf_rejects_empty_selection(): void
+    {
+        $this->expectException(ValidationException::class);
+        (new SalesCostReportController)->exportPdf($this->request(['sale_ids' => []]), $this->store, new StoreAccessService, $this->pdfReport());
+    }
+
     protected function tearDown(): void
     {
         DB::disconnect('sqlite'); Facade::clearResolvedInstances(); Facade::setFacadeApplication(null); Container::setInstance(null);
