@@ -77,7 +77,7 @@ class SalesCostReportEditingTest extends TestCase
             }
         }
         foreach ($inputs as $input) {
-            self::assertSame($cost === null ? '' : (string) $cost, $input->getAttribute('value'));
+            self::assertSame('', $input->getAttribute('value'), 'A new labor cost must start empty, including when the stored cost is zero.');
             $form = $xpath->query('ancestor::form', $input)->item(0);
             self::assertStringContainsString('/42/labor-cost', $form->getAttribute('action'));
             self::assertSame('PATCH', $xpath->query('.//input[@name="_method"]', $form)->item(0)->getAttribute('value'));

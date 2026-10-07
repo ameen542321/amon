@@ -87,7 +87,7 @@
                                 @include('user.stores.reports.partials.sales-cost-filters')
                                 <input type="hidden" name="editing_sale" value="{{ $row['id'] }}">
                                 <label for="labor-cost-{{ $row['id'] }}" class="ui-label">تكلفة شغل اليد</label>
-                                <div class="flex items-center gap-2"><input id="labor-cost-{{ $row['id'] }}" class="ui-input min-w-0 w-full" type="number" name="labor_cost" min="0" max="99999999.99" step="0.01" required value="{{ old('costs.'.$row['id'], (int) old('editing_sale') === $row['id'] ? old('labor_cost', $row['labor_cost']) : $row['labor_cost']) }}" placeholder="أدخل التكلفة" data-cost-input="{{ $row['id'] }}" aria-invalid="{{ $costError ? 'true' : 'false' }}" @if($costError) aria-describedby="cost-error-{{ $row['id'] }}" @endif><button class="ui-btn ui-btn-primary" type="submit" data-cost-online>حفظ</button></div>
+                                <div class="flex items-center gap-2"><input id="labor-cost-{{ $row['id'] }}" class="ui-input min-w-0 w-full" type="number" name="labor_cost" min="0" max="99999999.99" step="0.01" required value="{{ old('costs.'.$row['id'], (int) old('editing_sale') === $row['id'] ? old('labor_cost', '') : '') }}" placeholder="أدخل التكلفة" data-cost-input="{{ $row['id'] }}" aria-invalid="{{ $costError ? 'true' : 'false' }}" @if($costError) aria-describedby="cost-error-{{ $row['id'] }}" @endif><button class="ui-btn ui-btn-primary" type="submit" data-cost-online>حفظ</button></div>
                             </form>
                         @endif
                         @if($costError)<p id="cost-error-{{ $row['id'] }}" class="ui-status-danger mt-2" role="alert">{{ $costError }}</p>@endif
