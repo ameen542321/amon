@@ -1,6 +1,32 @@
 const root = document.querySelector('[data-sales-cost-report]');
 
 if (root) {
+    const ordersModal = root.querySelector('[data-cost-orders-modal]');
+    const ordersTrigger = root.querySelector('[data-cost-orders-open]');
+    const ordersClose = root.querySelector('[data-cost-orders-close]');
+    let hadScrollLock = false;
+    const closeOrders = () => {
+        ordersModal?.classList.add('hidden');
+        if (!hadScrollLock) document.body.classList.remove('ui-scroll-lock');
+        ordersTrigger?.focus();
+    };
+    ordersTrigger?.addEventListener('click', () => {
+        hadScrollLock = document.body.classList.contains('ui-scroll-lock');
+        ordersModal?.classList.remove('hidden');
+        document.body.classList.add('ui-scroll-lock');
+        ordersClose?.focus();
+    });
+    ordersClose?.addEventListener('click', closeOrders);
+    ordersModal?.addEventListener('click', event => { if (event.target === ordersModal) closeOrders(); });
+    ordersModal?.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); closeOrders(); }
+        if (event.key !== 'Tab') return;
+        const items = [...ordersModal.querySelectorAll('button, a[href]')];
+        const first = items[0];
+        const last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
     const checkboxes = [...root.querySelectorAll('[data-cost-select]')];
     const selectAll = root.querySelector('[data-cost-select-all]');
     const count = root.querySelector('[data-cost-selection-count]');

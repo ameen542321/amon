@@ -36,6 +36,9 @@ class SalesCostReportEditingTest extends TestCase
         $store->user_id = 1;
         $date = '2026-10-01';
         $sale = new Sale(['store_id' => 1, 'labor_cost' => $cost, 'labor_total' => $laborTotal]);
+        $order = new \App\Modules\PurchaseOrders\Models\StorePurchaseOrder(['supplier_name' => 'مورد الاختبار']);
+        $order->id = 77;
+        $order->created_at = $date;
         $row = [
             'id' => 42, 'business_date' => $date, 'accountant' => 'محاسب',
             'description' => 'عملية اختبار', 'products' => 'منتج',
@@ -49,6 +52,7 @@ class SalesCostReportEditingTest extends TestCase
             'errors' => new \Illuminate\Support\ViewErrorBag,
             'store' => $store, 'from' => $date, 'to' => $date, 'search' => '',
             'excludeUsed' => false, 'rows' => collect([$row]),
+            'purchaseOrders' => collect([$order]),
             'summary' => $row + ['operations_count' => 1, 'missing_labor_cost_count' => $cost === null ? 1 : 0],
             'usedDates' => collect($used ? [$date => true] : []),
             'matchedDates' => collect([$date]),
@@ -58,6 +62,10 @@ class SalesCostReportEditingTest extends TestCase
         self::assertStringNotContainsString('محفوظة وقت البيع', $html);
         self::assertStringNotContainsString('تكلفة محفوظة', $html);
         self::assertStringContainsString('id="sale-42"', $html);
+        self::assertStringContainsString('مورد الاختبار', $html);
+        self::assertStringContainsString('طلبية #77', $html);
+        self::assertStringContainsString(route('user.stores.purchase-orders.show', [$store, $order]), $html);
+        self::assertStringContainsString('aria-controls="cost-purchase-orders"', $html);
         $dom = new \DOMDocument;
         @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
         $xpath = new \DOMXPath($dom);

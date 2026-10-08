@@ -22,7 +22,18 @@ class SalesCostReportController extends Controller
         $access->ensureOwnerCanAccess($request->user(), $store);
         $filters = $this->validatedFilters($request);
 
-        return view('user.stores.reports.sales-cost', $reports->build($store, $filters));
+        $report = $reports->build($store, $filters);
+        $report['purchaseOrders'] = \App\Modules\PurchaseOrders\Models\StorePurchaseOrder::query()
+            ->where('store_id', $store->id)
+            ->where('user_id', $request->user()->id)
+            ->whereBetween('created_at', [
+                \Carbon\Carbon::parse($report['from'])->startOfDay(),
+                \Carbon\Carbon::parse($report['to'])->endOfDay(),
+            ])
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->get(['id', 'store_id', 'supplier_name', 'created_at']);
+
+        return view('user.stores.reports.sales-cost', $report);
     }
 
     public function exportPdf(Request $request, Store $store, StoreAccessService $access, SalesCostReportService $reports): \Illuminate\Http\Response

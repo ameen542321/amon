@@ -3,6 +3,7 @@
 @section('content')
 @php
     $money = fn ($value) => number_format((float) $value, 2);
+    $purchaseOrders = $purchaseOrders ?? collect();
 @endphp
 <div class="ui-page ui-cost-report max-w-7xl mx-auto" dir="rtl" data-sales-cost-report>
     <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -13,12 +14,30 @@
         <x-ui.help title="تقرير التكلفة" body="يعرض إجمالي تكلفة المنتجات وشغل اليد. يمكنك إدخال تكلفة شغل اليد إذا كانت صفرًا أو غير مسجلة، ثم حفظ عملية واحدة أو تحديد عدة عمليات وحفظها معًا. الأيام المستخدمة لا تقبل التعديل." />
     </header>
 
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" aria-label="ملخص التقرير">
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5" aria-label="ملخص التقرير">
         <article class="ui-card p-4 sm:p-5"><p class="ui-text-soft">إجمالي المبيعات</p><p class="ui-title text-xl sm:text-2xl font-black mt-3">{{ $money($summary['sales_total']) }} <span class="ui-text-caption">ريال</span></p></article>
         <article class="ui-card p-4 sm:p-5"><p class="ui-text-soft">إجمالي التكلفة</p><p class="ui-status-success text-xl sm:text-2xl font-black mt-3">{{ $money($summary['total_cost']) }} <span class="ui-text-caption">ريال</span></p></article>
         <article class="ui-card p-4 sm:p-5"><p class="ui-text-soft">شغل اليد</p><p class="ui-title text-xl sm:text-2xl font-black mt-3">{{ $money($summary['labor_total']) }} <span class="ui-text-caption">ريال</span></p></article>
         <article class="ui-card p-4 sm:p-5"><p class="ui-text-soft">عدد العمليات</p><p class="ui-title text-xl sm:text-2xl font-black mt-3">{{ number_format($summary['operations_count']) }}</p></article>
+        <button type="button" class="ui-card p-4 sm:p-5 text-start" data-cost-orders-open aria-haspopup="dialog" aria-controls="cost-purchase-orders"><span class="ui-text-soft block">طلبيات التوريد</span><span class="ui-title text-xl sm:text-2xl font-black block mt-3">{{ number_format($purchaseOrders->count()) }}</span><span class="ui-text-caption block mt-2">عرض طلبيات الفترة</span></button>
     </section>
+
+    <div id="cost-purchase-orders" class="ui-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="cost-orders-title" data-cost-orders-modal>
+        <div class="ui-modal-panel ui-modal-panel-wide">
+            <div class="ui-modal-header"><h2 id="cost-orders-title" class="ui-title text-lg font-bold">طلبيات التوريد</h2><button type="button" class="ui-modal-close-text-danger" data-cost-orders-close>إغلاق</button></div>
+            <p class="ui-text-soft mt-3 mb-4">من {{ $from }} إلى {{ $to }} · حسب تاريخ إنشاء الطلبية</p>
+            <div class="space-y-3">
+                @forelse($purchaseOrders as $order)
+                    <article class="ui-card p-4 flex flex-wrap items-center justify-between gap-3">
+                        <div class="min-w-0"><h3 class="ui-title font-bold">طلبية #{{ $order->id }}</h3><p class="ui-text-soft break-words mt-1">{{ $order->supplier_name ?: 'مورد غير محدد' }}</p><time class="ui-text-caption block mt-2" datetime="{{ $order->created_at->toDateString() }}">{{ $order->created_at->toDateString() }}</time></div>
+                        <a class="ui-btn ui-btn-secondary" href="{{ route('user.stores.purchase-orders.show', [$store, $order]) }}" target="_blank" rel="noopener" aria-label="معاينة الطلبية {{ $order->id }} في تبويب جديد">معاينة <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                    </article>
+                @empty
+                    <p class="ui-text-soft text-center py-8">لا توجد طلبيات توريد خلال الفترة المحددة.</p>
+                @endforelse
+            </div>
+        </div>
+    </div>
 
     <form method="GET" action="{{ route('user.stores.reports.sales-cost', $store) }}" class="ui-card p-4 sm:p-5 mb-5">
         <div class="grid sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">

@@ -165,6 +165,28 @@ class SalesCostReportSavingTest extends TestCase
         return $reports;
     }
 
+    public function test_purchase_orders_include_both_date_boundaries_and_only_accessible_active_store_orders(): void
+    {
+        Schema::create('store_purchase_orders', function (Blueprint $table) {
+            $table->id(); $table->unsignedBigInteger('store_id'); $table->unsignedBigInteger('user_id');
+            $table->string('supplier_name'); $table->timestamps(); $table->softDeletes();
+        });
+        foreach ([
+            [1, 1, '2026-10-01 00:00:00', null],
+            [1, 1, '2026-10-31 23:59:59', null],
+            [1, 1, '2026-09-30 23:59:59', null],
+            [1, 1, '2026-11-01 00:00:00', null],
+            [2, 1, '2026-10-15 12:00:00', null],
+            [1, 2, '2026-10-15 12:00:00', null],
+            [1, 1, '2026-10-15 12:00:00', '2026-10-16 00:00:00'],
+        ] as [$storeId, $userId, $created, $deleted]) {
+            DB::table('store_purchase_orders')->insert(['store_id' => $storeId, 'user_id' => $userId,
+                'supplier_name' => 'المورد', 'created_at' => $created, 'updated_at' => $created, 'deleted_at' => $deleted]);
+        }
+        $view = (new SalesCostReportController)->index($this->request([]), $this->store, new StoreAccessService, $this->pdfReport());
+        self::assertSame([2, 1], $view->getData()['purchaseOrders']->pluck('id')->all());
+    }
+
     public function test_pdf_contains_only_selected_rows_with_selected_totals(): void
     {
         Schema::create('onesignal_settings', fn (Blueprint $table) => $table->id());
