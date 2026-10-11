@@ -210,11 +210,4 @@ class EmployeeReports
         return $pdf->download("تقرير {$reportMonthKey} - {$person->name}.pdf");
     }
 
-    /**
-     * 2026-05-16: دالة توافق مؤقتة لأي استدعاء قديم ما زال يستخدم اسم exportSnappy.
-     */
-    public static function exportSnappy($id)
-    {
-        return self::exportPdf($id);
-    }
 }

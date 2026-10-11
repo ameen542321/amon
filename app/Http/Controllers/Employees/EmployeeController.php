@@ -137,11 +137,4 @@ class EmployeeController extends Controller
         return EmployeeReports::exportPdf($id);
     }
 
-    /**
-     * 2026-05-16: دالة توافق مؤقتة لأي route قديم ما زال يستخدم اسم exportSnappy.
-     */
-    public function exportSnappy($id)
-    {
-        return $this->exportPdf($id);
-    }
 }

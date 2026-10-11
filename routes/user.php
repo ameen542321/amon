@@ -310,7 +310,7 @@ Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(funct
         Route::post('/{employee}/promote', [EmployeeController::class, 'promote'])->name('promote');
         Route::post('/{employee}/demote', [EmployeeController::class, 'demote'])->name('demote');
         Route::get('/{employee}/actions', [EmployeeActionsController::class, 'index'])->name('actions');
-        Route::get('/{employee}/export-log', [EmployeeController::class, 'exportSnappy'])->name('exportLog');
+        Route::get('/{employee}/export-log', [EmployeeController::class, 'exportPdf'])->name('exportLog');
         Route::post('/{employee}/absence', [EmployeeActionsController::class, 'storeAbsence'])->name('absence.store');
         Route::post('/{employee}/debt', [EmployeeActionsController::class, 'storeDebt'])->name('debt.store');
         Route::patch('/debt/{debt}', [EmployeeActionsController::class, 'updateDebt'])->name('debt.update');
