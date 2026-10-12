@@ -18,7 +18,7 @@ check(store.includes('MAX_OUTBOX_ITEMS_PER_ACCOUNT = 25') && store.includes('MAX
 check(!store.includes('_token') && !store.includes('accessToken') && !store.includes('Authorization'), 'outbox store contains no authentication secrets');
 check(sync.includes("['queued', 'failed']") && sync.includes('item.attempts < 5'), 'sync retries are stateful and bounded');
 check(sync.includes("status: conflict ? 'conflict' : 'failed'"), 'server conflicts are preserved for user review');
-check(lifecycle.includes('deleteOutboxForAccount') && lifecycle.includes('Promise.all'), 'logout clears drafts and outbox together');
+check(lifecycle.includes('clearAccountData') && read('resources/js/features/pwa/account-context.js').includes('deleteOutboxForAccount') && read('resources/js/features/pwa/account-context.js').includes('Promise.all'), 'logout clears drafts and outbox together');
 check(inventory.includes('navigator.onLine') && inventory.includes('putOutboxItem') && inventory.includes('session_version'), 'inventory form queues only offline draft saves with a server version');
 check(routes.includes("middleware('idempotency')->name('items.bulk-update')"), 'web draft save is protected by server idempotency');
 // Regression guard: complex inline @php(...) previously made Blade report @endforeach as an unexpected token.

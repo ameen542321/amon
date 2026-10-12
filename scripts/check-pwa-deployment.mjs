@@ -105,7 +105,7 @@ try {
     const workerCache = worker.response.headers.get('cache-control') ?? '';
     if (!/no-cache|no-store|max-age=0/i.test(workerCache)) fail(`sw.js Cache-Control is unsafe: ${workerCache || 'missing'}`);
     else pass(`sw.js Cache-Control prevents a stale worker: ${workerCache}`);
-    if (!worker.body.includes("const CACHE_VERSION = 'carled-shell-")) fail('sw.js response is not the CARLED worker');
+    if (!worker.body.includes("const CACHE_VERSION = `carled-shell-")) fail('sw.js response is not the CARLED worker');
     else pass('sw.js response contains the CARLED worker contract');
     if (!worker.body.includes("event.data?.type === 'GET_VERSION'") || !worker.body.includes('event.ports[0]?.postMessage')) {
         fail('sw.js does not expose the runtime version probe');

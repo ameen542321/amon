@@ -1,6 +1,7 @@
+import { onPageReady } from '../page-ready';
 // ينقل تفاعل أسطر خدمة تعديل الفاتورة كما هو دون تغيير الحقول أو قيم النموذج.
 if (document.querySelector('[data-invoice-edit-interface]')) {
-    document.addEventListener('DOMContentLoaded', function () {
+    onPageReady( function () {
             const serviceLinesList = document.getElementById('service-lines-list');
             const addServiceLineBtn = document.getElementById('add-service-line');
             const subtotalInput = document.querySelector('input[name="subtotal"]');

@@ -3,6 +3,7 @@
   "required_automated_gates": [
     "build",
     "pwa_contract",
+    "pwa_runtime",
     "phase3_contract",
     "outbox_contract",
     "operational_controls",

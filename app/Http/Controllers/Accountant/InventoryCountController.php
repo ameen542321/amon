@@ -8,6 +8,7 @@ use App\Models\InventoryCountSessionItem;
 use App\Models\Product;
 use App\Services\InventoryCountService;
 use App\Services\ShiftLifecycleService;
+use App\Support\Api\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -18,6 +19,7 @@ class InventoryCountController extends Controller
     {
         $accountant = auth('accountant')->user();
         $sessions = InventoryCountSession::with('store')->withCount('items')->where('accountant_id', $accountant->id)->latest()->paginate(15);
+
         return view('inventory-counts.accountant.index', compact('sessions'));
     }
 
@@ -31,12 +33,14 @@ class InventoryCountController extends Controller
                 : $q->where('decision', 'pending'))->with('product'),
             'store',
         ]);
+
         return view('inventory-counts.accountant.show', ['session' => $inventoryCount]);
     }
 
     public function update(Request $request, InventoryCountSession $inventoryCount, InventoryCountSessionItem $item, InventoryCountService $service)
     {
-        $this->authorizeSession($inventoryCount); abort_unless($item->inventory_count_session_id === $inventoryCount->id, 404);
+        $this->authorizeSession($inventoryCount);
+        abort_unless($item->inventory_count_session_id === $inventoryCount->id, 404);
         abort_unless(in_array($inventoryCount->status, ['sent_to_accountant', 'counting', 'returned_to_accountant'], true), 403);
         $item->loadMissing('product');
         $data = $request->validate([
@@ -46,6 +50,7 @@ class InventoryCountController extends Controller
         ]);
         $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
         $service->saveAccountantCount($item, $data, $businessDate);
+
         return back()->with('success', 'تم حفظ كمية المنتج وتسجيل اليوم تلقائيًا.');
     }
 
@@ -84,7 +89,7 @@ class InventoryCountController extends Controller
         }
 
         $businessDate = app(ShiftLifecycleService::class)->currentShiftContext($inventoryCount->store_id)['business_date'];
-        $service->saveAccountantCounts(
+        $savedSession = $service->saveAccountantCounts(
             $inventoryCount,
             $data['items'],
             $businessDate,
@@ -92,12 +97,22 @@ class InventoryCountController extends Controller
             (int) auth('accountant')->id(),
         );
 
+        if ($request->expectsJson()) {
+            return ApiResponse::success([
+                'saved' => true,
+                'session_id' => (int) $savedSession->id,
+                'session_version' => $savedSession->updated_at->toISOString(),
+            ]);
+        }
+
         return back()->with('success', 'تم حفظ كميات جميع المنتجات في الجلسة.');
     }
 
     public function submit(InventoryCountSession $inventoryCount, InventoryCountService $service)
     {
-        $this->authorizeSession($inventoryCount); $service->submitByAccountant($inventoryCount);
+        $this->authorizeSession($inventoryCount);
+        $service->submitByAccountant($inventoryCount);
+
         return redirect()->route('accountant.inventory-counts.index')->with('success', 'تم إرسال نتائج الجرد للمالك.');
     }
 

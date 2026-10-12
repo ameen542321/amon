@@ -11,6 +11,7 @@ const contract = JSON.parse(readFileSync('config/pwa_acceptance.json', 'utf8'));
 
 const commands = [
     ['build', 'npm', ['run', 'build']],
+    ['pwa_runtime', 'npm', ['run', 'test:pwa:runtime']],
     ['pwa_contract', 'npm', ['run', 'test:pwa']],
     ['phase3_contract', 'npm', ['run', 'test:pwa:phase3']],
     ['outbox_contract', 'npm', ['run', 'test:pwa:outbox']],

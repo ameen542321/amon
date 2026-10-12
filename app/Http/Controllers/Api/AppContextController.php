@@ -42,6 +42,8 @@ class AppContextController extends Controller
 
     private function currentAccount(): ?Authenticatable
     {
-        return Auth::guard('accountant')->user() ?? Auth::guard('web')->user();
+        return request()->is('accountant/*')
+            ? Auth::guard('accountant')->user()
+            : Auth::guard('web')->user();
     }
 }

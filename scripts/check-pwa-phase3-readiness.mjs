@@ -13,7 +13,7 @@ const runtimeConfig = source('resources/views/components/pwa-runtime-config.blad
 check(manifest.lang === 'ar' && manifest.dir === 'rtl' && manifest.display === 'standalone', 'manifest is Arabic RTL standalone');
 check(Array.isArray(manifest.shortcuts) && manifest.shortcuts.length >= 2, 'manifest exposes role shortcuts');
 check(worker.includes('WORKER_VERSION') && worker.includes('carled-shell-${WORKER_VERSION}'), 'worker cache is build-versioned');
-check(worker.includes("fetch(request, { cache: 'no-store' })") && worker.includes("caches.match('/offline.html')"), 'navigation is network-first with offline fallback');
+check(worker.includes("fetch(request, { cache: 'no-store' })") && worker.includes("caches.match('/offline.html', { cacheName: CACHE_VERSION })"), 'navigation is network-first with offline fallback');
 check(worker.includes('isPrivateApplicationRequest(url) || !isStaticAsset(url)'), 'private data and APIs are never runtime cached');
 check(worker.includes("event.data?.type === 'GET_VERSION'") && worker.includes('event.ports[0]?.postMessage'), 'worker exposes its runtime identity');
 check(registration.includes('pwa-build-version') && registration.includes('/sw.js?v=${encodeURIComponent(buildVersion)}'), 'registration requests an explicit build version');

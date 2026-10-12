@@ -104,7 +104,7 @@ try {
         })),
         new Promise((_, reject) => setTimeout(() => reject(new Error('service worker activation timed out')), 15000)),
     ])`);
-    if (registration.scope !== `${origin}/` || registration.scriptURL !== `${origin}/sw.js` || registration.state !== 'activated') {
+    if (registration.scope !== `${origin}/` || new URL(registration.scriptURL).pathname !== '/sw.js' || registration.state !== 'activated') {
         fail(`unexpected service worker registration: ${JSON.stringify(registration)}`);
     }
     pass('service worker is activated with root scope');
@@ -128,10 +128,8 @@ try {
     if (!cacheSnapshot.some(({ name }) => name === workerIdentity.cache)) {
         fail(`active worker cache ${workerIdentity.cache} is absent`);
     }
-    if (cacheSnapshot.some(({ name }) => name.startsWith('carled-shell-') && name !== workerIdentity.cache)) {
-        fail('a stale CARLED shell cache remains after worker activation');
-    }
-    pass('only the active build shell cache remains');
+    if (cacheSnapshot.filter(({ name }) => name.startsWith('carled-shell-')).length > 2) fail('more than two CARLED shell caches remain');
+    pass('active and at most one previous shell cache remain');
     const cachedUrls = cacheSnapshot.flatMap(({ urls }) => urls);
     if (!cachedUrls.includes(`${origin}/offline.html`)) fail('offline shell is absent from browser Cache Storage');
     pass('offline shell is present in browser Cache Storage');

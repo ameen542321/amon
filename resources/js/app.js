@@ -4,6 +4,7 @@ import './features/number-input-wheel-guard';
 import './features/pwa/register-service-worker';
 import './features/pwa/client-storage-lifecycle';
 import './features/pwa/outbox-sync';
+import './features/pwa/center';
 import './features/dashboard-navigation';
 import './features/dashboard/owner-dashboard';
 import './features/dashboard-notifications';
@@ -13,10 +14,6 @@ import './features/ui-actions';
 import './features/general-view-actions';
 import './features/notifications/interface-actions';
 import './features/purchase-orders/index-filter';
-import './features/purchase-orders/form-interface';
-import './features/purchase-orders/show-interface';
-import './features/invoices/create-form';
-import './features/invoices/edit-form';
 import './features/accountant/expense-interface';
 import './features/employees/actions-interface';
 import './features/employees/edit-interface';
@@ -27,8 +24,6 @@ import './features/subscriptions/renew-interface';
 import './features/shifts/gap-confirmations';
 import './features/cashier/internal-use-interface';
 import './features/cashier/owner-purchases-interface';
-import './features/cashier/tint-sale-interface';
-import './features/cashier/quick-sale-interface';
 // ربط عقود data-* للواجهات المالية الحساسة بدل خصائص الأحداث المضمّنة داخل Blade.
 import './features/sensitive-interface-actions';
 // تأكيد الموازنة وإشعار واتساب منفصلان لحماية نموذج الشفت من الربط المضمّن.
@@ -48,8 +43,6 @@ import './features/security-session-monitor';
 import './features/store-products/product-form-shared';
 import './features/store-products/product-create-interface';
 import './features/store-products/product-edit-interface';
-import './features/store-products/product-catalog';
-import './features/store-products/inventory-system';
 import './features/store-categories/category-system';
 import './features/user-logs/log-details';
 import './features/store-transfers/transfer-system';
@@ -64,7 +57,22 @@ import collapse from '@alpinejs/collapse';
 Alpine.plugin(collapse);
 
 window.Alpine = Alpine;
-Alpine.start();
+// الوحدات الخاصة بالصفحة تحمل قبل Alpine كي تبقى منشئات x-data متاحة.
+const pageModules = [
+    ['[data-quick-sale-config]', () => import('./features/cashier/quick-sale-interface')],
+    ['[data-tint-sale-config]', () => import('./features/cashier/tint-sale-interface')],
+    ['[data-purchase-order-form-config]', () => import('./features/purchase-orders/form-interface')],
+    ['[data-purchase-order-show-config]', () => import('./features/purchase-orders/show-interface')],
+    ['[data-invoice-create-config]', () => import('./features/invoices/create-form')],
+    ['[data-invoice-edit-interface]', () => import('./features/invoices/edit-form')],
+    ['[data-store-products-catalog]', () => import('./features/store-products/product-catalog')],
+    ['[data-inventory-system]', () => import('./features/store-products/inventory-system')],
+];
+const startPage = async () => {
+    await Promise.all(pageModules.filter(([selector]) => document.querySelector(selector)).map(([, load]) => load()));
+    Alpine.start();
+};
+startPage().catch(error => console.error('تعذر تحميل واجهة الصفحة؛ أعد المحاولة.', error));
 
 document.addEventListener("DOMContentLoaded", () => {
 

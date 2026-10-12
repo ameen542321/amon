@@ -83,6 +83,6 @@ class TintAndInventoryCountUiContractTest extends TestCase
         self::assertStringContainsString('pruneDrafts', $script);
         self::assertStringContainsString('restoreDraft()', $script);
         self::assertStringContainsString('draft.serverVersion === serverVersion', $script);
-        self::assertStringContainsString('لن تُرسل تلقائيًا', $view);
+        self::assertStringContainsString('المسودة لا تغيّر المخزون ولا تعتمد الجرد', $view);
     }
 }

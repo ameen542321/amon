@@ -19,17 +19,13 @@ for (const file of requiredFiles) {
     if (!existsSync(file)) fail(`missing ${file}`);
 }
 
-for (const file of ['public/icons/carled-192.png', 'public/icons/carled-512.png']) {
-    if (existsSync(file)) fail(`binary PWA icon must not be committed: ${file}`);
-}
-
 const manifest = JSON.parse(readFileSync('public/manifest.webmanifest', 'utf8'));
 if (manifest.display !== 'standalone') fail('manifest display must be standalone');
 if (manifest.dir !== 'rtl' || manifest.lang !== 'ar') fail('manifest must declare Arabic RTL');
-if (manifest.icons?.length !== 1
+if (manifest.icons?.length !== 3
     || manifest.icons[0].sizes !== 'any'
     || manifest.icons[0].type !== 'image/svg+xml') {
-    fail('manifest must use the single scalable SVG icon');
+    fail('manifest must include the SVG source and two PNG compatibility icons');
 }
 
 const icon = readFileSync('public/carled.svg', 'utf8');
@@ -75,7 +71,7 @@ const worker = readFileSync('public/sw.js', 'utf8');
 for (const prefix of ['/admin', '/user', '/accountant', '/api', '/device-token']) {
     if (!worker.includes(`'${prefix}'`)) fail(`private prefix ${prefix} is not excluded from cache`);
 }
-if (!worker.includes("caches.match('/offline.html')")) fail('offline navigation fallback is missing');
+if (!worker.includes("caches.match('/offline.html', { cacheName: CACHE_VERSION })")) fail('offline navigation fallback is missing');
 if (!worker.includes('isStaticAsset')) fail('runtime cache is not limited to static assets');
 if (!worker.includes("event.data?.type === 'SKIP_WAITING'")) {
     fail('worker updates must require an explicit user action');
@@ -118,7 +114,7 @@ if (!inventoryDraft.includes('draft.accountScope === accountScope')) fail('inven
 if (!inventoryDraft.includes('String(draft.storeId) === String(storeId)')) fail('inventory drafts are not isolated by store');
 
 const storageLifecycle = readFileSync('resources/js/features/pwa/client-storage-lifecycle.js', 'utf8');
-if (!storageLifecycle.includes('deleteDraftsForAccount(accountScope)')) fail('logout does not clear account drafts');
+if (!storageLifecycle.includes('clearAccountData(accountScope)')) fail('logout does not clear account drafts');
 if (!app.includes("./features/pwa/client-storage-lifecycle")) fail('client storage lifecycle is not imported');
 
 for (const layoutPath of [
@@ -139,4 +135,4 @@ if (failures.length) {
     process.exit(1);
 }
 
-console.log('PWA contract passed with text-only SVG assets.');
+console.log('PWA contract passed with SVG source and generated compatibility icons.');

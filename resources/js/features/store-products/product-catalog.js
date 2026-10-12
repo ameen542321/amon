@@ -1,3 +1,4 @@
+import { onPageReady } from '../page-ready';
 const catalogRootSelector = '[data-store-products-catalog]';
 
 const catalogConfig = () => JSON.parse(
@@ -156,7 +157,7 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+onPageReady( () => {
     const catalogRoot = document.querySelector(catalogRootSelector);
     if (!catalogRoot) return;
 

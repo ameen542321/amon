@@ -17,7 +17,7 @@
     @if($errors->any())<div class="ui-alert ui-alert-danger" role="alert"><strong>تعذر إكمال العملية:</strong> {{ $errors->first() }}</div>@endif
     <div class="flex items-center gap-2">
         <x-ui.badge variant="info"><span data-inventory-count-draft-status>تُحفظ مسودة الجرد محليًا في هذا الجهاز</span></x-ui.badge>
-        <x-ui.help title="حفظ الكميات" body="يحفظ المتصفح ما تكتبه في قاعدة IndexedDB المحلية لتستكمل الجرد عند العودة. المسودة لا تُرسل تلقائيًا ولا تغيّر المخزون؛ اضغط حفظ جميع الكميات عند توفر الإنترنت لتثبيتها في الخادم." />
+        <x-ui.help title="حفظ الكميات" body="يحفظ المتصفح ما تكتبه على هذا الجهاز. إذا ضغطت حفظ جميع الكميات دون اتصال، يجهز طلب مسودة للمزامنة عند عودة الإنترنت. المسودة لا تغيّر المخزون ولا تعتمد الجرد؛ الإرسال النهائي للمالك يحتاج اتصالًا." />
     </div>
     <div class="ui-alert ui-alert-info" role="status" aria-live="polite" data-inventory-count-connection-status>
         جارٍ التحقق من حالة الاتصال…

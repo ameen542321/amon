@@ -1,11 +1,14 @@
+import { onPageReady } from '../page-ready';
+import { deleteDraft } from '../pwa/draft-store';
 // ينقل تفاعلات عرض واستلام واعتماد الطلبية كما هي؛ الحالة والتغييرات تصل عبر عقد Blade.
 const root = document.querySelector('[data-purchase-order-show-config]');
 if (root) {
     const config = JSON.parse(root.dataset.purchaseOrderShowConfig || '{}');
     if (config.clearDraft) {
-        try { localStorage.removeItem(config.draftKey); } catch (error) { /* نجاح الحفظ لا يعتمد على تخزين المتصفح. */ }
+        deleteDraft(config.draftKey).catch(() => undefined);
+        try { localStorage.removeItem(config.legacyDraftKey); } catch { /* التخزين القديم قد يكون معطلاً. */ }
     }
-    document.addEventListener('DOMContentLoaded', () => {
+    onPageReady( () => {
         const sendPurchaseOrderForm = document.getElementById('sendPurchaseOrderForm');
         sendPurchaseOrderForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -786,15 +789,9 @@ if (root) {
 
         const approveOrderForm = document.getElementById('approveOrderForm');
         const approvalSummary = config.approvalSummary || {};
-        const approveStorageKey = approveOrderForm ? `purchase-order-approval-pending-${approveOrderForm.dataset.orderId}` : null;
-
-        if (approveStorageKey && config.orderStatus === 'approved') {
-            localStorage.removeItem(approveStorageKey);
-        }
 
         function lockApproveForm(form) {
             form.dataset.submitting = '1';
-            localStorage.setItem(`purchase-order-approval-pending-${form.dataset.orderId}`, '1');
             const button = form.querySelector('#approveOrderButton');
             const label = form.querySelector('.js-approve-button-text');
             if (button) button.disabled = true;

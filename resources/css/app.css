@@ -3119,7 +3119,7 @@ html.ui-font-loading body > :not(.ui-page-loader) {
     .pwa-install-panel {
         position: fixed;
         inset-inline-end: 1rem;
-        bottom: 1rem;
+        bottom: 9rem;
         z-index: 70;
         width: min(calc(100% - 2rem), 24rem);
         padding: 1rem;
@@ -3162,3 +3162,10 @@ html.ui-font-loading body > :not(.ui-page-loader) {
     .ui-cost-mobile-label { display: none; }
     .ui-cost-total { border: 0; padding: 0; }
 }
+
+/* مركز PWA يشارك توكنات الهوية والمودال المركزي. */
+.ui-pwa-launcher { max-width: calc(100% - 2rem); position: fixed; inset-inline-start: 1rem; bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); z-index: 65; box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+.ui-pwa-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem; border: 1px solid var(--ui-border); border-radius: .75rem; background: var(--ui-surface); }
+.ui-pwa-item > div { min-width: 0; overflow-wrap: anywhere; }
+
+.ui-pwa-account-ended > :not([data-pwa-session-ended]) { visibility: hidden !important; pointer-events: none !important; }

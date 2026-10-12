@@ -1,3 +1,6 @@
+import { onPageReady } from '../page-ready';
+import { getDraft, putDraft, deleteDraft } from '../pwa/draft-store';
+import { accountReady, currentAccountScope } from '../pwa/account-context';
 // ينقل منشئ طلب الشراء كما هو؛ المنتجات والمسودة وحالة التعديل تصل عبر عقد إعداد آمن.
 const root = document.querySelector('[data-purchase-order-form-config]');
 if (root) {
@@ -12,7 +15,8 @@ if (root) {
         return text;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    onPageReady( async () => {
+        await accountReady;
         const products = config.products || [];
         const existingProductRows = config.existingProductRows || [];
         const existingCustomRows = config.existingCustomRows || [];
@@ -89,38 +93,44 @@ if (root) {
             };
         }
 
+        let draftQueue = Promise.resolve();
         function saveDraft(pendingSubmission = false) {
-            if (isEdit || restoringDraft) return;
-            try {
-                localStorage.setItem(draftKey, JSON.stringify(draftSnapshot(pendingSubmission)));
-            } catch (error) {
-                // تعذر التخزين لا يمنع المستخدم من إكمال الطلبية أو إرسالها.
-            }
+            if (isEdit || restoringDraft || currentAccountScope() !== config.accountScope) return Promise.resolve();
+            const snapshot = draftSnapshot(pendingSubmission);
+            const payload = { ...snapshot, savedAt: snapshot.saved_at, accountScope: config.accountScope,
+                storeId: config.storeId, schemaVersion: 1, draftType: 'purchase-order' };
+            draftQueue = draftQueue.catch(() => undefined).then(() => putDraft(draftKey, payload));
+            return draftQueue;
         }
 
         function scheduleDraftSave() {
             if (isEdit || restoringDraft) return;
             window.clearTimeout(draftSaveTimer);
-            draftSaveTimer = window.setTimeout(() => saveDraft(false), 250);
+            draftSaveTimer = window.setTimeout(() => saveDraft(false).catch(() => undefined), 250);
         }
 
-        function readDraft() {
+        async function readDraft() {
+            if (currentAccountScope() !== config.accountScope) return null;
             try {
-                const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-                if (!draft || !draft.saved_at || Date.now() - Number(draft.saved_at) > draftLifetime || !hasDraftContent(draft)) {
-                    localStorage.removeItem(draftKey);
+                let draft = await getDraft(draftKey);
+                // نوع الحساب والمتجر مثبتان في المفتاح القديم؛ لا تنقل مفاتيح غير معزولة.
+                if (!draft && config.legacyDraftKey?.startsWith(`purchase-order-draft:${config.accountScope}:`)) {
+                    const legacy = JSON.parse(localStorage.getItem(config.legacyDraftKey) || 'null');
+                    if (legacy && hasDraftContent(legacy) && Date.now() - Number(legacy.saved_at) <= draftLifetime) {
+                        draft = { ...legacy, savedAt: legacy.saved_at, accountScope: config.accountScope,
+                            storeId: config.storeId, schemaVersion: 1, draftType: 'purchase-order' };
+                        await putDraft(draftKey, draft);
+                    }
+                    localStorage.removeItem(config.legacyDraftKey);
+                }
+                if (!draft || draft.accountScope !== config.accountScope || String(draft.storeId) !== String(config.storeId)
+                    || Date.now() - Number(draft.savedAt) > draftLifetime || !hasDraftContent(draft)) {
+                    if (draft) await deleteDraft(draftKey);
                     return null;
                 }
-                // الإرسال الناجح يغادر صفحة الإنشاء؛ عند فتح طلبية جديدة نحذف المسودة المعلّمة كمرسلة.
-                if (draft.pending_submission && !hasServerErrors) {
-                    localStorage.removeItem(draftKey);
-                    return null;
-                }
+                // تأكيد نجاح الحفظ وحده يحذف المسودة في شاشة تفاصيل الطلبية.
                 return draft;
-            } catch (error) {
-                localStorage.removeItem(draftKey);
-                return null;
-            }
+            } catch { return null; }
         }
 
         function updateRowNumbers() {
@@ -749,7 +759,7 @@ if (root) {
 
         if (skipConfirmation) {
             submissionInProgress = true;
-            saveDraft(true);
+            await saveDraft(true).catch(() => undefined);
             event.target.submit();
             return;
         }
@@ -767,12 +777,12 @@ if (root) {
 
         if (result.isConfirmed) {
             submissionInProgress = true;
-            saveDraft(true);
+            await saveDraft(true).catch(() => undefined);
             event.target.submit();
         }
     });
 
-        const draft = !isEdit ? readDraft() : null;
+        const draft = !isEdit ? await readDraft() : null;
         const draftRestoreNotice = document.getElementById('draftRestoreNotice');
         const restoreStoredDraft = () => {
             if (!draft) return;
@@ -789,7 +799,7 @@ if (root) {
                 restoringDraft = false;
                 closeAllRows();
                 updateRowsSearch();
-                saveDraft(false);
+                saveDraft(false).catch(() => undefined);
                 draftRestoreNotice?.classList.add('hidden');
         };
         const openDraftRestoreDialog = async () => {
@@ -828,6 +838,12 @@ if (root) {
         purchaseOrderForm?.addEventListener('input', updateRowNumbers);
         purchaseOrderForm?.addEventListener('change', updateRowNumbers);
         updateRowNumbers();
-        window.addEventListener('beforeunload', () => saveDraft(submissionInProgress));
+        if (!isEdit && purchaseOrderForm) purchaseOrderForm.dataset.pwaDraftSafe = 'true';
+        window.addEventListener('pagehide', () => saveDraft(submissionInProgress).catch(() => undefined));
+        window.addEventListener('carled:pwa-prepare-update', event => {
+            if (isEdit) return;
+            window.clearTimeout(draftSaveTimer);
+            event.detail?.pending?.push(saveDraft(false));
+        });
     });
 }

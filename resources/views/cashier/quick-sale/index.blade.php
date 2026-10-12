@@ -625,6 +625,7 @@
     ],
     'hasStoreTaxNumber' => (bool) auth('accountant')->user()->store->tax_number,
     'hasApprovedTaxNumber' => (bool) ($hasApprovedTaxNumber ?? false),
+    'storeId' => (int) auth('accountant')->user()->store_id,
     'clearPendingOnSuccess' => (bool) session('success'),
     'operationStatusBaseUrl' => url('/accountant/quick-sale/operation-status'),
     'pendingWarningDelayMs' => 60 * 1000,

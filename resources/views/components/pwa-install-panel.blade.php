@@ -25,3 +25,5 @@
         </button>
     </div>
 </aside>
+
+<x-pwa-center />

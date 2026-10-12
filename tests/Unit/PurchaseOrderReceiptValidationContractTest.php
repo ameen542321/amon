@@ -8,11 +8,11 @@ class PurchaseOrderReceiptValidationContractTest extends TestCase
 {
     public function test_receipt_forms_explain_and_reveal_invalid_fields(): void
     {
-        $view = file_get_contents(base_path('resources/views/modules/purchase-orders/user/show.blade.php'));
-        $interface = file_get_contents(base_path('resources/js/features/purchase-orders/show-interface.js'));
-        $styles = file_get_contents(base_path('resources/css/app.css'));
-        $ownerController = file_get_contents(base_path('app/Modules/PurchaseOrders/Controllers/StorePurchaseOrderController.php'));
-        $accountantController = file_get_contents(base_path('app/Modules/PurchaseOrders/Controllers/AccountantPurchaseOrderController.php'));
+        $view = file_get_contents((dirname(__DIR__, 2).'/resources/views/modules/purchase-orders/user/show.blade.php'));
+        $interface = file_get_contents((dirname(__DIR__, 2).'/resources/js/features/purchase-orders/show-interface.js'));
+        $styles = file_get_contents((dirname(__DIR__, 2).'/resources/css/app.css'));
+        $ownerController = file_get_contents((dirname(__DIR__, 2).'/app/Modules/PurchaseOrders/Controllers/StorePurchaseOrderController.php'));
+        $accountantController = file_get_contents((dirname(__DIR__, 2).'/app/Modules/PurchaseOrders/Controllers/AccountantPurchaseOrderController.php'));
 
         self::assertGreaterThanOrEqual(2, substr_count($view, 'js-receipt-validation-summary'));
         self::assertStringContainsString('تعذر حفظ بيانات الاستلام', $view);

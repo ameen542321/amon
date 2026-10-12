@@ -33,10 +33,15 @@
     "test:pwa:deep-links": "node scripts/check-pwa-notification-deep-links.mjs",
     "test:pwa:staging": "node scripts/run-pwa-staging-acceptance.mjs",
     "test:pwa:staging-plan": "node scripts/run-pwa-staging-acceptance.mjs --plan",
-    "test:pwa:performance": "node scripts/measure-pwa-staging-performance.mjs"
+    "test:pwa:performance": "node scripts/measure-pwa-staging-performance.mjs",
+    "prebuild": "node scripts/generate-pwa-icons.mjs",
+    "test:pwa:runtime-browser": "node scripts/check-pwa-runtime-browser.mjs",
+    "test:pwa:runtime": "node --experimental-vm-modules --test tests/pwa/runtime.test.mjs",
+    "test": "npm run test:visual && npm run build && npm run test:pwa:change-policy && npm run test:pwa && npm run test:pwa:outbox && npm run test:pwa:controls && npm run test:pwa:phase3 && npm run test:pwa:deep-links && npm run test:notifications && npm run test:pwa:runtime"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
+    "fake-indexeddb": "^6.2.5",
     "laravel-vite-plugin": "^2.0.0",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.1",

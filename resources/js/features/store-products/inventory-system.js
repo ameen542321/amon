@@ -1,3 +1,4 @@
+import { onPageReady } from '../page-ready';
 const inventoryRootSelector = '[data-inventory-system]';
 
 const disableInventoryFormButtons = (form) => {
@@ -56,7 +57,7 @@ const normalizedRequestedQuantity = (form) => {
     return quantity;
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+onPageReady( () => {
     const inventoryRoot = document.querySelector(inventoryRootSelector);
     if (!inventoryRoot) return;
 

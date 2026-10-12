@@ -8,9 +8,9 @@ class PwaChangePolicyContractTest extends TestCase
 {
     public function test_every_change_must_review_and_record_its_pwa_impact(): void
     {
-        $agents = file_get_contents(base_path('AGENTS.md'));
-        $policy = file_get_contents(base_path('docs/قاعدة-PWA-لكل-تغيير.md'));
-        $package = file_get_contents(base_path('package.json'));
+        $agents = file_get_contents((dirname(__DIR__, 2).'/AGENTS.md'));
+        $policy = file_get_contents((dirname(__DIR__, 2).'/docs/قاعدة-PWA-لكل-تغيير.md'));
+        $package = file_get_contents((dirname(__DIR__, 2).'/package.json'));
 
         self::assertStringContainsString('قاعدة PWA الإلزامية لكل تغيير', $agents);
         self::assertStringContainsString('ينطبق', $agents);

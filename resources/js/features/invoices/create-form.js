@@ -1,9 +1,10 @@
+import { onPageReady } from '../page-ready';
 // ينقل سلوك نموذج إنشاء الفاتورة كما هو؛ لا يغير أسماء الحقول أو معادلة الإجمالي والضريبة.
 const root = document.querySelector('[data-invoice-create-config]');
 
 if (root) {
     const config = JSON.parse(root.dataset.invoiceCreateConfig || '{}');
-    document.addEventListener('DOMContentLoaded', function() {
+    onPageReady( function() {
         const plateInput = document.getElementById('plate_number');
 
         plateInput.addEventListener('input', function (e) {
@@ -29,7 +30,7 @@ if (root) {
         });
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
+    onPageReady( function() {
             const serviceLinesList = document.getElementById('service-lines-list');
             const addServiceLineBtn = document.getElementById('add-service-line');
 
@@ -126,7 +127,7 @@ if (root) {
             recalcServiceTotals();
         });
 
-    document.addEventListener('DOMContentLoaded', function() {
+    onPageReady( function() {
             const subtotalInput = document.getElementById('subtotal');
             const taxRateInput = document.getElementById('tax_rate');
             const taxDisplay = document.getElementById('tax_amount_display');

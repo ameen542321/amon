@@ -1638,7 +1638,8 @@
         'business_date' => $currentBusinessDate ?? null,
     ],
     'orderStatus' => $order->status,
-    'draftKey' => 'purchase-order-draft:' . auth()->id() . ':' . $store->id,
+    'draftKey' => 'purchase-order:' . ($isAccountantContext ? 'accountant:' . auth('accountant')->id() : 'user:' . auth()->id()) . ':' . $store->id,
+    'legacyDraftKey' => 'purchase-order-draft:' . ($isAccountantContext ? 'accountant:' . auth('accountant')->id() : 'user:' . auth()->id()) . ':' . $store->id,
     'clearDraft' => session('success') === 'تم تجهيز الطلبية كمسودة. راجعها ثم اضغط اعتماد الطلبية لإرسالها للمورد.',
 ], JSON_HEX_APOS | JSON_HEX_QUOT) }}" aria-hidden="true"></div>
 @endif

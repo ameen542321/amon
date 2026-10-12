@@ -45,7 +45,11 @@ const openDatabase = () => new Promise((resolve, reject) => {
             outbox.createIndex('createdAt', 'createdAt');
         }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onblocked = () => reject(new Error('أغلق تبويب التطبيق القديم لإتاحة التخزين.'));
+    request.onsuccess = () => {
+        request.result.onversionchange = () => request.result.close();
+        resolve(request.result);
+    };
 });
 
 const withStore = async (mode, operation) => {
@@ -75,6 +79,7 @@ export const clientDatabaseVersion = DATABASE_VERSION;
 export const outboxStoreName = OUTBOX_STORE;
 
 export const getDraft = (key) => withStore('readonly', (store) => store.get(key));
+export const listDraftsForAccount = (accountScope) => withStore('readonly', (store) => store.index('accountScope').getAll(accountScope));
 
 const enforceAccountLimit = async (accountScope) => {
     const database = await openDatabase();
@@ -98,7 +103,8 @@ const enforceAccountLimit = async (accountScope) => {
 };
 
 export const putDraft = async (key, payload) => {
-    if (!payload.accountScope) throw new Error('Draft account scope is required');
+    if (!payload.accountScope || !payload.storeId) throw new Error('Draft account and store scope are required');
+    if (localStorage.getItem('carled-active-account') !== payload.accountScope) throw new Error('انتهت جلسة الجهاز؛ لن تحفظ مسودة للحساب السابق.');
     if (new TextEncoder().encode(JSON.stringify(payload)).byteLength > MAX_DRAFT_BYTES) {
         throw new Error('Draft exceeds the local size limit');
     }

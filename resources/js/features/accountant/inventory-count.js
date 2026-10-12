@@ -1,3 +1,5 @@
+import { accountReady, currentAccountScope } from '../pwa/account-context';
+import { assertInventorySaved } from '../pwa/outbox-sync';
 import { deleteDraft, getDraft, pruneDrafts, putDraft } from '../pwa/draft-store';
 import { apiRequest, createIdempotencyKey } from '../pwa/api-client';
 import { putOutboxItem } from '../pwa/outbox-store';
@@ -36,6 +38,7 @@ const updateKitBreakdown = (item) => {
 document.addEventListener('DOMContentLoaded', async () => {
     const form = document.querySelector('[data-inventory-count-form]');
     if (!form) return;
+    await accountReady;
 
     const storageKey = form.dataset.inventoryCountStorageKey;
     const legacyStorageKey = form.dataset.inventoryCountLegacyStorageKey;
@@ -70,6 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    const initialValues = Object.fromEntries(draftFields.map(field => [field.name, field.value]));
     const valuesSnapshot = () => Object.fromEntries(draftFields.map((field) => [field.name, field.value]));
 
     const migrateLegacyDraft = async () => {
@@ -126,10 +130,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 && Date.now() - draft.savedAt <= maxDraftAge;
 
             if (!isCurrent) {
-                if (draft) await deleteDraft(storageKey);
+                if (draft && draft.accountScope === accountScope && String(draft.storeId) === String(storeId)
+                    && draft.values && Date.now() - draft.savedAt <= maxDraftAge) {
+                    setStatus('توجد مسودة محلية من نسخة سابقة للجلسة؛ نزّلها من حالة التطبيق وراجعها قبل الحفظ.');
+                } else if (draft) await deleteDraft(storageKey);
                 return;
             }
 
+            if (draftFields.some(field => field.value !== initialValues[field.name])) {
+                setStatus('توجد مسودة محفوظة؛ لم نستعدها لأنك بدأت تعديل الحقول.');
+                return;
+            }
             draftFields.forEach((field) => {
                 if (Object.hasOwn(draft.values, field.name)) field.value = draft.values[field.name];
             });
@@ -140,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const persistDraft = () => {
-        if (!storageKey) return Promise.resolve();
+        if (!storageKey || currentAccountScope() !== accountScope) return Promise.reject(new Error('انتهت جلسة الجهاز؛ أعد فتح الصفحة.'));
 
         const draft = {
             schemaVersion: 2,
@@ -159,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .then(() => setStatus(navigator.onLine
                 ? 'حُفظت المسودة محليًا في هذا الجهاز'
                 : 'حُفظت المسودة محليًا — يلزم الإنترنت لتثبيتها في الخادم'))
-            .catch(() => setStatus('تعذر الحفظ المحلي؛ اضغط حفظ جميع الكميات قبل المغادرة'));
+            .catch(error => { setStatus('تعذر الحفظ المحلي؛ احفظ الكميات في الخادم قبل المغادرة'); throw error; });
 
         return writeQueue;
     };
@@ -167,14 +178,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const scheduleDraftSave = () => {
         clearTimeout(saveTimer);
         setStatus('جارٍ حفظ المسودة محليًا…');
-        saveTimer = window.setTimeout(persistDraft, 300);
+        saveTimer = window.setTimeout(() => persistDraft().catch(() => undefined), 300);
     };
 
     const flushDraft = () => {
         if (!saveTimer) return;
         clearTimeout(saveTimer);
         saveTimer = null;
-        persistDraft();
+        persistDraft().catch(() => undefined);
     };
 
     form.addEventListener('submit', async (event) => {
@@ -188,12 +199,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             if (navigator.onLine) {
                 setStatus('جارٍ تثبيت المسودة في الخادم…');
-                await apiRequest(form.action, {
+                const result = await apiRequest(form.action, {
                     method: 'PUT',
                     body: new URLSearchParams(payload),
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
                     idempotencyKey: createIdempotencyKey(),
                 });
+                assertInventorySaved(result, { url: form.action });
                 await deleteDraft(storageKey).catch(() => undefined);
                 window.location.reload();
                 return;
@@ -257,10 +269,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateConnectionState();
     });
     window.addEventListener('online', updateConnectionState);
-    window.addEventListener('carled:outbox-synced', async () => {
+    window.addEventListener('carled:outbox-synced', async event => {
+        if (event.detail.accountScope !== accountScope || event.detail.localId !== `${storageKey}:server-draft`) return;
+        // إذا عدلت القيم بعد تجهيز الطلب المؤجل، تبقى المسودة الأحدث محفوظة.
+        const latest = await getDraft(storageKey);
+        if (latest && latest.savedAt > (event.detail.queuedAt ?? 0)) {
+            setStatus('تمت مزامنة الطلب السابق؛ توجد تعديلات محلية أحدث، حدّث الصفحة وراجعها.');
+            return;
+        }
         await deleteDraft(storageKey).catch(() => undefined);
         setStatus('تم تثبيت مسودة الجرد في الخادم — حدّث الصفحة قبل متابعة التعديل');
     });
-    window.addEventListener('carled:outbox-conflict', () => setStatus('تغيرت الجلسة على الخادم — راجع أحدث البيانات قبل إعادة الإرسال'));
+    window.addEventListener('carled:outbox-conflict', event => { if (event.detail.localId === `${storageKey}:server-draft`) setStatus('تغيرت الجلسة على الخادم — راجع أحدث البيانات قبل إعادة الإرسال'); });
+    form.dataset.pwaDraftSafe = 'true';
     updateConnectionState();
 });

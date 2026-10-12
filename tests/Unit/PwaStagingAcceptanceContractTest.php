@@ -8,8 +8,8 @@ class PwaStagingAcceptanceContractTest extends TestCase
 {
     public function test_staging_gate_never_treats_missing_evidence_as_success(): void
     {
-        $contract = json_decode(file_get_contents(base_path('config/pwa_acceptance.json')), true, 512, JSON_THROW_ON_ERROR);
-        $runner = file_get_contents(base_path('scripts/run-pwa-staging-acceptance.mjs'));
+        $contract = json_decode(file_get_contents((dirname(__DIR__, 2).'/config/pwa_acceptance.json')), true, 512, JSON_THROW_ON_ERROR);
+        $runner = file_get_contents((dirname(__DIR__, 2).'/scripts/run-pwa-staging-acceptance.mjs'));
 
         self::assertSame(1, $contract['schema_version']);
         self::assertContains('deployment', $contract['required_automated_gates']);

@@ -16,12 +16,12 @@ class PwaFoundationContractTest extends TestCase
 
         self::assertStringContainsString('isPrivateApplicationRequest(url)', $worker);
         self::assertStringContainsString('isStaticAsset(url)', $worker);
-        self::assertStringContainsString("caches.match('/offline.html')", $worker);
+        self::assertStringContainsString("caches.match('/offline.html', { cacheName: CACHE_VERSION })", $worker);
         self::assertStringContainsString("request.method !== 'GET'", $worker);
         self::assertStringContainsString("event.data?.type === 'SKIP_WAITING'", $worker);
     }
 
-    public function test_manifest_uses_only_the_text_based_svg_icon(): void
+    public function test_manifest_uses_svg_source_and_generated_compatibility_icons(): void
     {
         $root = dirname(__DIR__, 2);
         $manifest = json_decode(file_get_contents($root.'/public/manifest.webmanifest'), true, flags: JSON_THROW_ON_ERROR);
@@ -29,12 +29,13 @@ class PwaFoundationContractTest extends TestCase
         self::assertSame('standalone', $manifest['display']);
         self::assertSame('rtl', $manifest['dir']);
         self::assertSame('ar', $manifest['lang']);
-        self::assertCount(1, $manifest['icons']);
+        self::assertCount(3, $manifest['icons']);
         self::assertSame('/carled.svg', $manifest['icons'][0]['src']);
         self::assertSame('image/svg+xml', $manifest['icons'][0]['type']);
         self::assertFileExists($root.'/public/carled.svg');
-        self::assertFileDoesNotExist($root.'/public/icons/carled-192.png');
-        self::assertFileDoesNotExist($root.'/public/icons/carled-512.png');
+        self::assertSame('192x192', $manifest['icons'][1]['sizes']);
+        self::assertSame('512x512', $manifest['icons'][2]['sizes']);
+        self::assertFileExists($root.'/scripts/generate-pwa-icons.mjs');
     }
 
     public function test_main_layouts_expose_installable_metadata_without_inline_css(): void
@@ -101,14 +102,14 @@ class PwaFoundationContractTest extends TestCase
         $layout = file_get_contents($root.'/resources/views/dashboard/app.blade.php');
         $inventoryView = file_get_contents($root.'/resources/views/inventory-counts/accountant/show.blade.php');
 
-        self::assertStringContainsString('const DATABASE_VERSION = 2', $store);
+        self::assertStringContainsString('const DATABASE_VERSION = 3', $store);
         self::assertStringContainsString("createIndex('accountScope', 'accountScope')", $store);
         self::assertStringContainsString('MAX_DRAFT_BYTES', $store);
         self::assertStringContainsString('MAX_DRAFTS_PER_ACCOUNT', $store);
         self::assertStringContainsString('deleteDraftsForAccount', $store);
         self::assertStringContainsString('draft.accountScope === accountScope', $inventory);
         self::assertStringContainsString('String(draft.storeId) === String(storeId)', $inventory);
-        self::assertStringContainsString('deleteDraftsForAccount(accountScope)', $lifecycle);
+        self::assertStringContainsString('clearAccountData(accountScope)', $lifecycle);
         self::assertStringContainsString('data-client-account-scope', $layout);
         self::assertStringContainsString('data-inventory-count-account-scope', $inventoryView);
         self::assertStringContainsString('data-inventory-count-store-id', $inventoryView);
@@ -126,7 +127,7 @@ class PwaFoundationContractTest extends TestCase
         self::assertSame('node scripts/check-pwa-browser.mjs', $package['scripts']['test:pwa:browser']);
         self::assertStringContainsString("candidate.protocol !== 'https:'", $checker);
         self::assertStringContainsString("fetchPath('/manifest.webmanifest'", $checker);
-        self::assertStringContainsString("fetchPath('/sw.js'", $checker);
+        self::assertStringContainsString("fetchPath(`/sw.js", $checker);
         self::assertStringContainsString("fetchPath('/offline.html'", $checker);
         self::assertStringContainsString('sameOriginModuleScripts', $checker);
         self::assertStringContainsString("moduleSource.includes('/sw.js')", $checker);

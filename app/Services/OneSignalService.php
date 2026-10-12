@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\DeviceToken;
 use App\Models\OneSignalSetting;
+use App\Support\Notifications\NotificationPayload;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Support\Notifications\NotificationPayload;
 
 class OneSignalService
 {
@@ -26,8 +27,13 @@ class OneSignalService
             return false;
         }
 
+        $deviceTokens = app(PushPreferenceService::class)->filter($deviceTokens, $data);
+        if (! $deviceTokens) {
+            return true;
+        } // كتم المستخدم ليس فشل تسليم ولا يعاد إرساله.
+
         $config = self::getConfig();
-        if (!$config || !$config->app_id || !$config->api_key) {
+        if (! $config || ! $config->app_id || ! $config->api_key) {
             return false;
         }
 
@@ -56,7 +62,7 @@ class OneSignalService
                 'Content-Type' => 'application/json',
             ])->post('https://onesignal.com/api/v1/notifications', $payload);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::warning('رفض OneSignal طلب إرسال الإشعار.', [
                 'status' => $response->status(),
                 'device_count' => count($deviceTokens),
@@ -71,42 +77,17 @@ class OneSignalService
      */
     public function sendToAll(string $title, string $message, array $data = []): bool
     {
-        $config = self::getConfig();
-        if (!$config || !$config->app_id || !$config->api_key) {
+        $batches = DeviceToken::query()->pluck('token')->unique()->chunk(1000);
+        if ($batches->isEmpty()) {
             return false;
         }
 
-        $data = NotificationPayload::normalize($data);
-        $webUrl = NotificationPayload::safeWebUrl($data);
-        $payload = [
-            'app_id' => $config->app_id,
-            'included_segments' => ['All'],
-            'headings' => [
-                'en' => $title,
-                'ar' => $title,
-            ],
-            'contents' => [
-                'en' => $message,
-                'ar' => $message,
-            ],
-            'data' => $data,
-            ...($webUrl ? ['url' => $webUrl] : []),
-        ];
-
-        $response = Http::connectTimeout(5)
-            ->timeout(10)
-            ->retry(2, 250, throw: false)
-            ->withHeaders([
-                'Authorization' => "Basic {$config->api_key}",
-                'Content-Type' => 'application/json',
-            ])->post('https://onesignal.com/api/v1/notifications', $payload);
-
-        if (!$response->successful()) {
-            Log::warning('فشل اختبار الإرسال العام عبر OneSignal.', [
-                'status' => $response->status(),
-            ]);
+        $delivered = true;
+        foreach ($batches as $batch) {
+            $sent = $this->sendToDevices($batch->all(), $title, $message, $data);
+            $delivered = $sent && $delivered;
         }
 
-        return $response->successful();
+        return $delivered;
     }
 }

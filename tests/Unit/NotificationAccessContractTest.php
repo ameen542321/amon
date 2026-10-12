@@ -126,7 +126,9 @@ class NotificationAccessContractTest extends TestCase
         self::assertStringContainsString("middleware(['api.contract', 'throttle:120,1'])", $ownerRoutes);
         self::assertStringContainsString("prefix('api/v1/notifications')", $accountantRoutes);
         self::assertStringContainsString("middleware(['api.contract', 'throttle:120,1'])", $accountantRoutes);
-        self::assertStringNotContainsString('notifications', $publicApiRoutes);
+        self::assertStringContainsString("middleware(['auth.api-token', 'throttle:mobile-api'])", $publicApiRoutes);
+        self::assertStringContainsString("middleware('ability:notifications:read')", $publicApiRoutes);
+        self::assertStringContainsString("['ability:notifications:write', 'idempotency']", $publicApiRoutes);
     }
 
     public function test_notification_staging_gate_is_repeatable_and_protects_real_data(): void

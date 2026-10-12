@@ -130,9 +130,8 @@ const pwaTextAssets = [
 ];
 if (pwaTextAssets.every(existsSync)) pass('text-only PWA foundation is present');
 else fail('one or more text-only PWA foundation files are missing');
-if (!existsSync('public/icons/carled-192.png') && !existsSync('public/icons/carled-512.png')) {
-    pass('legacy binary PWA icons remain absent');
-} else fail('binary PWA icons must be replaced by the SVG asset');
+if (existsSync('scripts/generate-pwa-icons.mjs')) pass('compatibility icons are generated from text sources during build');
+else fail('PWA compatibility icon generator is missing');
 
 if (process.argv.includes('--staging-env')) {
     const appEnv = process.env.APP_ENV;

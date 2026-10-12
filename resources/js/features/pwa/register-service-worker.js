@@ -1,3 +1,4 @@
+import { hasUnsavedForms, inputRevision } from './update-guard';
 import { pwaRuntimeConfig } from './runtime-config';
 
 const canRegister = pwaRuntimeConfig.serviceWorkerEnabled
@@ -18,6 +19,9 @@ let deferredInstallPrompt = null;
 let activeRegistration = null;
 let reloadingForUpdate = false;
 let onlineTimer = null;
+let updateApprovedHere = false;
+let controllerChanged = false;
+let wasControlled = Boolean(navigator.serviceWorker?.controller);
 
 const withTimeout = (promise, milliseconds, label) => new Promise((resolve, reject) => {
     const timer = window.setTimeout(
@@ -126,7 +130,8 @@ installButton?.addEventListener('click', async () => {
 
 updateButton?.addEventListener('click', async () => {
     updateButton.disabled = true;
-    message.textContent = 'جارٍ حفظ المسودة قبل تطبيق التحديث…';
+    const startingRevision = inputRevision();
+    message.textContent = 'جارٍ التأكد من حفظ بيانات الصفحة قبل التحديث…';
     const pending = [];
     window.dispatchEvent(new CustomEvent('carled:pwa-prepare-update', { detail: { pending } }));
     const results = await Promise.allSettled(pending.map((task) => withTimeout(
@@ -136,25 +141,31 @@ updateButton?.addEventListener('click', async () => {
     )));
     const failures = results.filter(({ status }) => status === 'rejected');
 
-    if (failures.length) {
-        message.textContent = 'تعذر حفظ البيانات المحلية. لم يُطبّق التحديث؛ حاول مرة أخرى.';
+    if (failures.length || inputRevision() !== startingRevision || hasUnsavedForms()) {
+        message.textContent = 'احفظ النموذج المفتوح أولًا. إذا تعذر حفظ المسودة فلن يطبق التحديث.';
         updateButton.disabled = false;
         announceStatus('update-blocked', { failures: failures.length });
         return;
     }
 
     const waitingWorker = activeRegistration?.waiting;
+    if (!waitingWorker && controllerChanged) { updateApprovedHere = true; window.location.reload(); return; }
     if (!waitingWorker) {
         updateButton.disabled = false;
+        message.textContent = 'لم يعد هناك تحديث منتظر؛ يمكنك متابعة العمل.';
         announceStatus('update-worker-missing');
         return;
     }
 
+    updateApprovedHere = true;
     announceStatus('update-approved', { preparedTasks: results.length });
     waitingWorker.postMessage({ type: 'SKIP_WAITING' });
 });
 
-retryButton?.addEventListener('click', () => window.location.reload());
+retryButton?.addEventListener('click', () => {
+    if (hasUnsavedForms()) { message.textContent = 'احفظ النموذج المفتوح قبل إعادة تحميل الصفحة.'; return; }
+    window.location.reload();
+});
 
 dismissButton?.addEventListener('click', () => {
     if (deferredInstallPrompt) sessionStorage.setItem('pwa-install-dismissed', '1');
@@ -167,7 +178,9 @@ if (!pwaRuntimeConfig.serviceWorkerEnabled && 'serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
         try {
             const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map((registration) => registration.unregister()));
+            await Promise.all(registrations.filter(registration => new URL((registration.active ?? registration.waiting ?? registration.installing)?.scriptURL ?? '/', location.origin).pathname === '/sw.js').map(registration => registration.unregister()));
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(key => key.startsWith('carled-shell-')).map(key => caches.delete(key)));
             announceStatus('disabled');
         } catch (error) {
             announceStatus('disable-failed');
@@ -182,6 +195,7 @@ if (canRegister) {
             activeRegistration = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(buildVersion)}`, { scope: '/' });
             const deployedWorker = activeRegistration.active ?? activeRegistration.waiting;
             const deployedVersion = await workerVersion(deployedWorker).catch(() => null);
+            wasControlled ||= Boolean(navigator.serviceWorker.controller);
             announceStatus('registered', { workerVersion: deployedVersion?.version ?? null });
             if (deployedVersion?.version && deployedVersion.version !== buildVersion) {
                 announceStatus('version-mismatch', { workerVersion: deployedVersion.version });
@@ -207,8 +221,24 @@ if (canRegister) {
     });
 
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        controllerChanged = true;
+        const firstClaim = !wasControlled;
+        wasControlled = Boolean(navigator.serviceWorker.controller);
+        if (!updateApprovedHere || hasUnsavedForms()) {
+            if (!firstClaim || updateApprovedHere) showUpdate();
+            return;
+        }
         if (reloadingForUpdate) return;
         reloadingForUpdate = true;
         window.location.reload();
     });
 }
+
+window.addEventListener('carled:pwa-install-request', () => {
+    if (deferredInstallPrompt) installButton?.click();
+    else {
+        title.textContent = 'تثبيت التطبيق';
+        message.textContent = /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'افتح الموقع في Safari، ثم المشاركة ← إضافة إلى الشاشة الرئيسية.' : 'من قائمة المتصفح اختر تثبيت التطبيق أو إضافة إلى الشاشة الرئيسية. استخدم اتصالًا آمنًا HTTPS.';
+        setHidden(installButton, true); setHidden(updateButton, true); setHidden(retryButton, true); setHidden(dismissButton, false); showPanel();
+    }
+});

@@ -174,7 +174,10 @@
     'existingCustomRows' => $existingCustomRows,
     'isEdit' => $isEdit,
     'hasServerErrors' => $errors->any(),
-    'draftKey' => 'purchase-order-draft:' . $draftActorId . ':' . $store->id,
+    'draftKey' => 'purchase-order:' . $draftActorId . ':' . $store->id,
+    'legacyDraftKey' => 'purchase-order-draft:' . $draftActorId . ':' . $store->id,
+    'accountScope' => $draftActorId,
+    'storeId' => (int) $store->id,
     'hideInventoryValues' => $isAccountantContext,
     'skipConfirmation' => $isAccountantContext,
 ], JSON_HEX_APOS | JSON_HEX_QUOT) }}" aria-hidden="true"></div>

@@ -221,41 +221,41 @@ const applicationEntry = fs.readFileSync('resources/js/app.js', 'utf8');
 
 if (accountantCollectionView.includes('<script>')
     || !accountantCollectionView.includes('data-credit-collection-config=')
-    || !fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/accountant/credit-collection';")) {
+    || !fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/accountant/credit-collection'")) {
     failures.push('accountant collection: behavior must remain extracted behind the safe config contract');
 }
 if (accountantDebtView.includes('<script>')
     || !accountantDebtView.includes('data-debt-operations-config=')
-    || !fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/accountant/debt-operations';")) {
+    || !fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/accountant/debt-operations'")) {
     failures.push('accountant debt: behavior must remain extracted behind the safe config contract');
 }
 if (dailySalesView.includes('<script>')
     || !dailySalesView.includes('data-daily-sales-config=')
-    || !applicationEntry.includes("import './features/stores/daily-sales';")) {
+    || !applicationEntry.includes("'./features/stores/daily-sales'")) {
     failures.push('daily sales: behavior must remain extracted behind the safe config contract');
 }
 const storeDetailsView = fs.readFileSync('resources/views/user/stores/show.blade.php', 'utf8');
 if (storeDetailsView.includes('<script>')
     || !storeDetailsView.includes('data-store-sales-chart-config=')
-    || !applicationEntry.includes("import './features/stores/store-sales-chart';")) {
+    || !applicationEntry.includes("'./features/stores/store-sales-chart'")) {
     failures.push('store details: sales chart must remain extracted behind the safe config contract');
 }
 const ownerDashboardViewSource = fs.readFileSync('resources/views/dashboard/user/index.blade.php', 'utf8');
 if (ownerDashboardViewSource.includes('<script>')
     || !ownerDashboardViewSource.includes('data-owner-dashboard-config=')
-    || !applicationEntry.includes("import './features/dashboard/owner-dashboard';")) {
+    || !applicationEntry.includes("'./features/dashboard/owner-dashboard'")) {
     failures.push('owner dashboard: display behavior must remain extracted behind the safe config contract');
 }
 const invoiceCreateView = fs.readFileSync('resources/views/invoices/create.blade.php', 'utf8');
 const invoiceEditView = fs.readFileSync('resources/views/invoices/edit.blade.php', 'utf8');
 if (invoiceCreateView.includes('<script>')
     || !invoiceCreateView.includes('data-invoice-create-config=')
-    || !applicationEntry.includes("import './features/invoices/create-form';")) {
+    || !applicationEntry.includes("'./features/invoices/create-form'")) {
     failures.push('invoice create: interface behavior must remain extracted behind the safe config contract');
 }
 if (invoiceEditView.includes('<script>')
     || !invoiceEditView.includes('data-invoice-edit-interface')
-    || !applicationEntry.includes("import './features/invoices/edit-form';")) {
+    || !applicationEntry.includes("'./features/invoices/edit-form'")) {
     failures.push('invoice edit: interface behavior must remain extracted behind its activation contract');
 }
 
@@ -282,7 +282,7 @@ for (const [viewPath, contract, moduleImport] of [
     ['resources/views/user/stores/shift-gaps.blade.php', 'data-shift-gap-interface', "import './features/shifts/gap-confirmations';"],
 ]) {
     const source = fs.readFileSync(viewPath, 'utf8');
-    if (source.includes('<script>') || !source.includes(contract) || !applicationEntry.includes(moduleImport)) {
+    if (source.includes('<script>') || !source.includes(contract) || !(applicationEntry.includes(moduleImport) || applicationEntry.includes(moduleImport.replace('import ', 'import(').replace(';', ')')))) {
         failures.push(`${viewPath}: interface behavior must remain extracted behind its activation contract`);
     }
 }
@@ -291,7 +291,7 @@ for (const [viewPath, contract, moduleImport] of [
     ['resources/views/modules/purchase-orders/user/show.blade.php', 'data-purchase-order-show-config=', "import './features/purchase-orders/show-interface';"],
 ]) {
     const source = fs.readFileSync(viewPath, 'utf8');
-    if (source.includes('<script>') || !source.includes(contract) || !applicationEntry.includes(moduleImport)) {
+    if (source.includes('<script>') || !source.includes(contract) || !(applicationEntry.includes(moduleImport) || applicationEntry.includes(moduleImport.replace('import ', 'import(').replace(';', ')')))) {
         failures.push(`${viewPath}: purchase-order behavior must remain extracted behind its config contract`);
     }
 }
@@ -407,7 +407,7 @@ for (const [viewPath, contract, moduleImport] of [
     ['resources/views/cashier/quick-sale/index.blade.php', 'data-quick-sale-config=', "import './features/cashier/quick-sale-interface';"],
 ]) {
     const source = fs.readFileSync(viewPath, 'utf8');
-    if (source.includes('<script>') || !source.includes(contract) || !applicationEntry.includes(moduleImport)) {
+    if (source.includes('<script>') || !source.includes(contract) || !(applicationEntry.includes(moduleImport) || applicationEntry.includes(moduleImport.replace('import ', 'import(').replace(';', ')')))) {
         failures.push(`${viewPath}: stock-sensitive interface must remain extracted behind its config contract`);
     }
 }
@@ -415,7 +415,7 @@ const employeeDebtComponent = fs.readFileSync('resources/views/components/employ
 if (employeeDebtComponent.includes('<script>')
     || !employeeDebtComponent.includes('data-employee-debt-interface')
     || !employeeDebtComponent.includes('data-employee-debt-collect')
-    || !applicationEntry.includes("import './features/employees/debt-interface';")) {
+    || !applicationEntry.includes("'./features/employees/debt-interface'")) {
     failures.push('employee debt component: collection behavior must remain extracted behind data contracts');
 }
 for (const [viewPath, contract, moduleImport] of [
@@ -423,7 +423,7 @@ for (const [viewPath, contract, moduleImport] of [
     ['resources/views/user/stores/products/edit.blade.php', 'data-product-edit-interface', "import './features/store-products/product-edit-interface';"],
 ]) {
     const source = fs.readFileSync(viewPath, 'utf8');
-    if (source.includes('<script>') || !source.includes(contract) || !applicationEntry.includes(moduleImport)) {
+    if (source.includes('<script>') || !source.includes(contract) || !(applicationEntry.includes(moduleImport) || applicationEntry.includes(moduleImport.replace('import ', 'import(').replace(';', ')')))) {
         failures.push(`${viewPath}: product unit behavior must remain extracted behind its activation contract`);
     }
 }
@@ -1144,7 +1144,7 @@ if (!editProductForm.includes("route('user.stores.products.update', [$store->id,
 
 const sharedProductFormScriptPath = 'resources/js/features/store-products/product-form-shared.js';
 const sharedProductFormScript = fs.readFileSync(sharedProductFormScriptPath, 'utf8');
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/store-products/product-form-shared';")) {
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/store-products/product-form-shared'")) {
     failures.push('application script must load the shared store product form feature');
 }
 for (const productFormFile of Object.values(productFormFiles)) {
@@ -1245,7 +1245,7 @@ if (!productCatalog.includes('<span>إضافة منتج</span>')
     || productCatalog.includes('<span class="hidden sm:inline">منتج جديد</span>')) {
     failures.push(`${productCatalogFile}: add-product action must keep its explanatory text visible on small screens`);
 }
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/store-products/product-catalog';")) {
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/store-products/product-catalog'")) {
     failures.push('application script must load the store product catalog feature');
 }
 if (productCatalogScript.includes('innerHTML') || !productCatalogScript.includes('window.Alpine.data')) {
@@ -1283,7 +1283,7 @@ const inventoryAuditView = fs.readFileSync('resources/views/user/stores/products
 if (stockView.includes('<script>') || !stockView.includes('data-inventory-system') || !inventoryAuditView.includes('data-inventory-audit')) {
     failures.push('inventory views must expose their system roots and keep operational JavaScript outside Blade');
 }
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/store-products/inventory-system';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/store-products/inventory-system'")
     || !inventoryScript.includes('window.Swal.fire')
     || !inventoryScript.includes('window.confirm')
     || !inventoryScript.includes("form.submit()")) {
@@ -1320,7 +1320,7 @@ if (!categoryIndexView.includes('md:flex-row md:items-center md:justify-between'
 }
 const categorySystemScriptPath = 'resources/js/features/store-categories/category-system.js';
 const categorySystemScript = fs.readFileSync(categorySystemScriptPath, 'utf8');
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/store-categories/category-system';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/store-categories/category-system'")
     || !categorySystemScript.includes('window.Swal.fire')
     || !categorySystemScript.includes('window.confirm')
     || !categorySystemScript.includes('category_name_preset')
@@ -1369,7 +1369,7 @@ for (const [deadPattern, deadLabel] of [
 }
 const uiDialogsScriptPath = 'resources/js/features/ui-dialogs.js';
 const uiDialogsScript = fs.readFileSync(uiDialogsScriptPath, 'utf8');
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/ui-dialogs';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/ui-dialogs'")
     || !uiDialogsScript.includes('window.Swal.fire')
     || !uiDialogsScript.includes('window.confirm')) {
     failures.push(`${uiDialogsScriptPath}: SweetAlert must be primary and browser confirmation must remain fallback only`);
@@ -1417,7 +1417,7 @@ const userLogsViewFile = 'resources/views/user/logs/index.blade.php';
 const userLogsView = fs.readFileSync(userLogsViewFile, 'utf8');
 const userLogsFeatureFile = 'resources/js/features/user-logs/log-details.js';
 const userLogsFeature = fs.readFileSync(userLogsFeatureFile, 'utf8');
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/user-logs/log-details';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/user-logs/log-details'")
     || !userLogsView.includes('data-user-logs')
     || !userLogsView.includes('data-log-details-trigger')
     || userLogsView.includes('<script')
@@ -1443,7 +1443,7 @@ const transferIndexViewFiles = [
     'resources/views/user/store-transfers/index.blade.php',
     'resources/views/accountants/store-transfers/index.blade.php',
 ];
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/store-transfers/transfer-system';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/store-transfers/transfer-system'")
     || !transferSystemScript.includes("window.Alpine.data('storeTransferBuilder'")
     || !transferSystemScript.includes('[data-transfer-product-picker]')) {
     failures.push(`${transferSystemScriptPath}: transfer creation and receiver product picking must remain centralized`);
@@ -1554,7 +1554,7 @@ if (!suspendedAuthenticationView.includes("auth('web')->check()")
 }
 const welcomeProgressFeaturePath = 'resources/js/features/auth/welcome-progress.js';
 const welcomeProgressFeature = fs.readFileSync(welcomeProgressFeaturePath, 'utf8');
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/auth/welcome-progress';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/auth/welcome-progress'")
     || !welcomeScreenView.includes('data-welcome-progress')
     || !welcomeProgressFeature.includes('currentProgress += 5')
     || !welcomeProgressFeature.includes('}, 100);')
@@ -1655,7 +1655,7 @@ if (!publicLandingView.includes("auth('accountant')->check()")
 const flashMessagesFeaturePath = 'resources/js/features/ui-flash-messages.js';
 const flashMessagesFeature = fs.readFileSync(flashMessagesFeaturePath, 'utf8');
 const dashboardFlashLayout = fs.readFileSync('resources/views/dashboard/app.blade.php', 'utf8');
-if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("import './features/ui-flash-messages';")
+if (!fs.readFileSync('resources/js/app.js', 'utf8').includes("'./features/ui-flash-messages'")
     || !dashboardFlashLayout.includes('data-ui-flash-messages')
     || !dashboardFlashLayout.includes('data-success-message="{{ session(\'success\') }}"')
     || !dashboardFlashLayout.includes('data-error-message="{{ session(\'error\') }}"')

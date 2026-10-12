@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/carled-180.png') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CARLED">
     <meta name="theme-color" content="#00C4B4">
     <x-pwa-runtime-config />
     <meta name="application-name" content="CARLED">
@@ -18,8 +21,9 @@
 </head>
 
 @php
-    $clientAccount = auth('accountant')->user() ?? auth('web')->user();
-    $clientAccountType = auth('accountant')->check() ? 'accountant' : (auth('web')->check() ? 'user' : null);
+    $clientUsesAccountant = request()->is('accountant/*') || (!auth('web')->check() && auth('accountant')->check());
+    $clientAccount = $clientUsesAccountant ? auth('accountant')->user() : auth('web')->user();
+    $clientAccountType = $clientAccount ? ($clientUsesAccountant ? 'accountant' : 'user') : null;
     $clientAccountScope = $clientAccountType && $clientAccount
         ? $clientAccountType.':'.$clientAccount->getAuthIdentifier()
         : null;

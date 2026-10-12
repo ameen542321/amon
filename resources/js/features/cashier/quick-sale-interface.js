@@ -1,3 +1,9 @@
+import { accountReady, canUseCurrentPage, scopedStorageKey, readOperationState, writeOperationState, removeOperationState } from '../pwa/account-context';
+const quickSaleSessionState = {
+    getItem: key => { try { return sessionStorage.getItem(key); } catch { return null; } },
+    setItem: (key, value) => { try { sessionStorage.setItem(key, value); } catch { /* لا تؤثر علامة الجلسة على حفظ البيع. */ } },
+    removeItem: key => { try { sessionStorage.removeItem(key); } catch { /* التخزين قد يكون محظورًا. */ } },
+};
 // تحافظ الوحدة على حسابات البيع والتحقق كما كانت، وتقرأ بيانات الخادم من عقد Blade فقط.
 const configRoot = document.querySelector('[data-quick-sale-config]');
 const quickSaleConfig = configRoot ? JSON.parse(configRoot.dataset.quickSaleConfig || '{}') : {};
@@ -41,11 +47,17 @@ window.quickSale = function quickSale() {
         saleSubmitting: false,
         hasApprovedTaxNumber: Boolean(quickSaleConfig.hasApprovedTaxNumber),
 
-        init() {
+        async init() {
+            await accountReady;
+            if (!canUseCurrentPage()) return;
+            if (quickSaleSessionState.getItem('carled-legacy-sale-warning')) {
+                quickSaleSessionState.removeItem('carled-legacy-sale-warning');
+                window.alert('تم تحديث حماية بيانات الجهاز. إذا كانت لديك عملية بيع سابقة لم تتأكد نتيجتها، راجع سجل المبيعات قبل إعادة تسجيلها.');
+            }
             if (this.reloadIfRestoredFromHistory()) return;
 
             if (quickSaleConfig.clearPendingOnSuccess) {
-                localStorage.removeItem(this.quickSalePendingKey());
+                removeOperationState(this.quickSalePendingKey());
             }
             this.restorePendingOperation();
             this.verifyPendingOperation(false);
@@ -56,7 +68,7 @@ window.quickSale = function quickSale() {
         },
 
         quickSalePendingKey() {
-            return 'quick-sale-pending-operation';
+            return scopedStorageKey('quick-sale-pending', quickSaleConfig.storeId);
         },
 
         quickSaleHistoryReloadKey() {
@@ -68,21 +80,21 @@ window.quickSale = function quickSale() {
             const navigationEntry = performance.getEntriesByType?.('navigation')?.[0];
             const isBackForwardLoad = navigationEntry?.type === 'back_forward';
 
-            if (sessionStorage.getItem(reloadKey) === '1') {
-                sessionStorage.removeItem(reloadKey);
+            if (quickSaleSessionState.getItem(reloadKey) === '1') {
+                quickSaleSessionState.removeItem(reloadKey);
                 return false;
             }
 
             if (isBackForwardLoad) {
-                sessionStorage.setItem(reloadKey, '1');
+                quickSaleSessionState.setItem(reloadKey, '1');
                 window.location.reload();
                 return true;
             }
 
             window.addEventListener('pageshow', (event) => {
-                if (!event.persisted || sessionStorage.getItem(reloadKey) === '1') return;
+                if (!event.persisted || quickSaleSessionState.getItem(reloadKey) === '1') return;
 
-                sessionStorage.setItem(reloadKey, '1');
+                quickSaleSessionState.setItem(reloadKey, '1');
                 window.location.reload();
             }, { once: true });
 
@@ -109,7 +121,7 @@ window.quickSale = function quickSale() {
 
         restorePendingOperation() {
             try {
-                const raw = localStorage.getItem(this.quickSalePendingKey());
+                const raw = readOperationState(this.quickSalePendingKey());
                 const pending = raw ? JSON.parse(raw) : null;
                 const savedAt = pending?.saved_at ? Date.parse(pending.saved_at) : 0;
                 if (!pending?.id || !savedAt || Date.now() - savedAt > 10 * 60 * 1000) {
@@ -133,7 +145,7 @@ window.quickSale = function quickSale() {
             this.pendingQuickSaleOperation = pending;
             this.pendingWarningVisible = false;
             this.schedulePendingWarning();
-            localStorage.setItem(this.quickSalePendingKey(), JSON.stringify(pending));
+            writeOperationState(this.quickSalePendingKey(), JSON.stringify(pending));
         },
 
         schedulePendingWarning() {
@@ -151,7 +163,7 @@ window.quickSale = function quickSale() {
         },
 
         clearPendingOperation(generateNewOperationId = true) {
-            localStorage.removeItem(this.quickSalePendingKey());
+            removeOperationState(this.quickSalePendingKey());
             window.clearTimeout(this.pendingWarningTimer);
             this.pendingQuickSaleOperation = null;
             this.pendingWarningVisible = false;

@@ -25,20 +25,30 @@ const transact = async (mode, operation) => {
 const validateOperation = (operation) => {
     if (!ALLOWED_OPERATION_TYPES.has(operation.operationType)) throw new Error('Operation type is not allowed offline');
     if (!operation.accountScope || !operation.storeId) throw new Error('Outbox account and store scope are required');
-    if (!ALLOWED_PATH.test(new URL(operation.url, window.location.origin).pathname)) throw new Error('Outbox URL is not allowed');
+    if (!/^accountant:[1-9]\d*$/.test(operation.accountScope)) throw new Error('Only accountant inventory drafts may be queued');
+    const target = new URL(operation.url, window.location.origin);
+    if (target.origin !== window.location.origin || target.search || target.hash || !ALLOWED_PATH.test(target.pathname)) throw new Error('Outbox URL is not allowed');
+    if (String(operation.payload?.session_version) !== String(operation.serverVersion)) throw new Error('Outbox version does not match payload');
     if (operation.method !== 'PUT') throw new Error('Only inventory draft PUT is allowed');
     if (!operation.idempotencyKey || !operation.serverVersion) throw new Error('Outbox idempotency key and source version are required');
     if (new TextEncoder().encode(JSON.stringify(operation.payload)).byteLength > MAX_PAYLOAD_BYTES) throw new Error('Outbox payload exceeds the local limit');
 };
 
-export const putOutboxItem = async (operation) => {
+const writeOutboxItem = async (operation) => {
     validateOperation(operation);
+    if (localStorage.getItem('carled-active-account') !== operation.accountScope) throw new Error('انتهت جلسة الجهاز؛ لن يجهز طلب للحساب السابق.');
     const existing = await listOutboxForAccount(operation.accountScope);
+    const previous = existing.find(item => item.localId === operation.localId);
+    if (previous?.lastAttemptAt) throw new Error('يوجد طلب سبق إرساله لهذه الجلسة. راجعه في مركز المزامنة قبل تجهيز طلب جديد.');
     if (!existing.some((item) => item.localId === operation.localId) && existing.length >= MAX_OUTBOX_ITEMS_PER_ACCOUNT) {
         throw new Error('Outbox account limit reached');
     }
     return transact('readwrite', (store) => store.put(operation));
 };
+
+export const putOutboxItem = operation => navigator.locks
+    ? navigator.locks.request(`carled-client:${operation.accountScope}`, () => writeOutboxItem(operation))
+    : writeOutboxItem(operation);
 
 export const listOutboxForAccount = (accountScope) => transact('readonly', (store) => store.index('accountScope').getAll(accountScope));
 export const deleteOutboxItem = (localId) => transact('readwrite', (store) => store.delete(localId));

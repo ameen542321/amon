@@ -44,6 +44,9 @@ Route::post('/employees/check-email', [EmployeeController::class, 'checkEmail'])
 */
 Route::middleware(['owner.unified'])->prefix('user')->name('user.')->group(function () {
 
+    Route::get('/api/v1/pwa/preferences', [\App\Http\Controllers\Api\PwaPreferencesController::class, 'show'])->middleware(['api.contract', 'throttle:60,1'])->name('api.pwa.preferences');
+    Route::put('/api/v1/pwa/preferences', [\App\Http\Controllers\Api\PwaPreferencesController::class, 'update'])->middleware(['api.contract', 'throttle:30,1'])->name('api.pwa.preferences.update');
+
     Route::get('/api/v1/app-context', AppContextController::class)
         ->middleware(['api.contract', 'throttle:60,1'])
         ->name('api.app-context');

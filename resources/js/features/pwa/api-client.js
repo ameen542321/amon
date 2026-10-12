@@ -39,17 +39,24 @@ export const apiRequest = async (url, options = {}) => {
             method,
             headers,
             credentials: 'same-origin',
+            redirect: 'error',
+            cache: 'no-store',
             signal: controller.signal,
         });
         const body = response.status === 204 ? null : await response.json().catch(() => null);
 
         if (!response.ok) {
-            throw new ApiError(body?.error?.message ?? 'تعذر إكمال طلب التطبيق.', {
+            throw new ApiError(body?.error?.message ?? body?.message ?? 'تعذر إكمال طلب التطبيق.', {
                 code: body?.error?.code,
                 status: response.status,
                 details: body?.error?.details,
                 requestId: body?.meta?.request_id ?? response.headers.get('X-Request-ID'),
             });
+        }
+
+        if (response.status !== 204 && (!response.headers.get('Content-Type')?.includes('application/json')
+            || !body || typeof body !== 'object' || !Object.hasOwn(body, 'data') || body.error)) {
+            throw new ApiError('لم يؤكد الخادم حفظ العملية. بقيت البيانات المحلية محفوظة.', { code: 'INVALID_RESPONSE', status: response.status });
         }
 
         return {
