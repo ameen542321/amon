@@ -37,7 +37,8 @@
     "prebuild": "node scripts/generate-pwa-icons.mjs",
     "test:pwa:runtime-browser": "node scripts/check-pwa-runtime-browser.mjs",
     "test:pwa:runtime": "node --experimental-vm-modules --test tests/pwa/runtime.test.mjs",
-    "test": "npm run test:visual && npm run build && npm run test:pwa:change-policy && npm run test:pwa && npm run test:pwa:outbox && npm run test:pwa:controls && npm run test:pwa:phase3 && npm run test:pwa:deep-links && npm run test:notifications && npm run test:pwa:runtime"
+    "test": "npm run test:visual && npm run build && npm run test:pwa:change-policy && npm run test:pwa && npm run test:pwa:outbox && npm run test:pwa:controls && npm run test:pwa:phase3 && npm run test:pwa:deep-links && npm run test:notifications && npm run test:pwa:runtime",
+    "test:workspace:browser": "node scripts/check-workspace-browser.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

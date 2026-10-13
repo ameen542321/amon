@@ -49,7 +49,7 @@
         </div>
     @endif
 
-    <form id="filterForm" data-purchase-order-filter action="{{ $indexRoute }}" method="GET" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 ui-card p-4">
+    <form id="filterForm" data-workspace-filters="status,search,date_from,date_to,workflow_status" data-purchase-order-filter action="{{ $indexRoute }}" method="GET" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 ui-card p-4">
         <input type="hidden" id="currentStatus" name="status" value="{{ $status }}">
 
         <div>
@@ -91,9 +91,9 @@
         @endforeach
     </div>
 
-    <div class="grid grid-cols-1 gap-4">
+    <div class="grid grid-cols-1 gap-4 ui-workspace-record-list" data-workspace-record-list>
         @forelse($orders as $order)
-            <div class="ui-card p-5 ui-border transition group">
+            <div class="ui-card p-5 ui-border transition group" data-workspace-record data-record-title="{{ $orderDisplayName($order) }}" data-record-date="{{ $order->created_at?->format('Y-m-d') }}" data-record-reference="{{ $order->referenceCode() }}" data-record-status="{{ $workflowLabels[$order->workflow_status] ?? \App\Modules\PurchaseOrders\Support\PurchaseOrderWorkflow::UNKNOWN_LABEL }}">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     @if($order->trashed())<div class="flex-1">@else<a href="{{ $showRoute($order) }}" class="flex-1 block">@endif
                         <p class="ui-title font-black group-ui-status-info transition">{{ $orderDisplayName($order) }}</p>

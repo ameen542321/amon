@@ -10,7 +10,7 @@ const quickSaleConfig = configRoot ? JSON.parse(configRoot.dataset.quickSaleConf
 
 window.quickSale = function quickSale() {
     return {
-        search: '',
+        search: (new URLSearchParams(window.location.search).get('workspace_search') ?? '').slice(0, 100),
         results: [],
         searchResultsOpen: false,
         infoModal: null,

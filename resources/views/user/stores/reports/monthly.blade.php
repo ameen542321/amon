@@ -14,7 +14,7 @@
         </a>
     </div>
 
-    <form method="GET" class="mb-4 grid grid-cols-1 gap-3 sm:flex sm:items-end">
+    <form data-workspace-filters="month,year" method="GET" class="mb-4 grid grid-cols-1 gap-3 sm:flex sm:items-end">
         <div class="w-full sm:w-auto">
             <label class="block ui-text-caption ui-text-muted mb-1">الشهر</label>
             <input type="month" name="month" value="{{ $month }}" class="ui-surface-muted-bg ui-border w-full rounded-lg px-3 py-2 ui-title text-sm sm:w-auto">
@@ -243,7 +243,7 @@
                         </div>
                         <div class="ui-alert ui-alert-neutral"><span class="ui-alert-title">المعادلة</span><span class="ui-alert-body block mt-1">{{ number_format($cashSales, 2) }} كاش + {{ number_format($cardSales, 2) }} شبكة @if(abs($unallocatedCollectedSales ?? 0) > 0.009) + {{ number_format($unallocatedCollectedSales, 2) }} محصل غير موزع @endif = {{ number_format($totalSales, 2) }} ر.س.</span></div>
                         @if(collect($salesReconciliationRows ?? [])->isNotEmpty())
-                            <div class="ui-table-wrap"><table class="ui-table"><thead class="ui-table-head"><tr><th>رقم العملية</th><th>التاريخ</th><th>المحصل</th><th>كاش</th><th>شبكة</th><th>الفرق</th></tr></thead><tbody>@foreach($salesReconciliationRows as $differenceRow)<tr><td>#{{ $differenceRow['id'] }}</td><td>{{ $differenceRow['date'] }}</td><td>{{ number_format($differenceRow['paid'], 2) }}</td><td>{{ number_format($differenceRow['cash'], 2) }}</td><td>{{ number_format($differenceRow['card'], 2) }}</td><td class="ui-status-warning font-bold">{{ number_format($differenceRow['difference'], 2) }}</td></tr>@endforeach</tbody></table></div>
+                            <div class="ui-table-wrap"><table data-workspace-table="sales-reconciliation" class="ui-table"><thead class="ui-table-head"><tr><th>رقم العملية</th><th>التاريخ</th><th>المحصل</th><th>كاش</th><th>شبكة</th><th>الفرق</th></tr></thead><tbody>@foreach($salesReconciliationRows as $differenceRow)<tr><td>#{{ $differenceRow['id'] }}</td><td>{{ $differenceRow['date'] }}</td><td>{{ number_format($differenceRow['paid'], 2) }}</td><td>{{ number_format($differenceRow['cash'], 2) }}</td><td>{{ number_format($differenceRow['card'], 2) }}</td><td class="ui-status-warning font-bold">{{ number_format($differenceRow['difference'], 2) }}</td></tr>@endforeach</tbody></table></div>
                         @endif
                     </div>
 
@@ -318,7 +318,7 @@
                             @endif
                         </div>
                         <div class="ui-table-wrap">
-                            <table class="ui-table">
+                            <table data-workspace-table="approved-supplies" class="ui-table">
                                 <thead class="ui-table-head"><tr><th>الطلبية</th><th>التاريخ</th><th>المورد</th><th>مشتريات المالك</th><th>تكلفتها</th><th>المضاف للمخزن</th><th>تكلفته</th><th>إجمالي الطلبية</th></tr></thead>
                                 <tbody>
                                     @forelse(($approvedSupplySummary['rows'] ?? collect()) as $row)

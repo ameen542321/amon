@@ -11,7 +11,7 @@ const initializeStoreNavigationSelects = () => {
 const applyTheme = (useDarkTheme) => {
     document.documentElement.classList.toggle('dark', useDarkTheme);
     document.documentElement.classList.toggle('light', !useDarkTheme);
-    localStorage.setItem('theme', useDarkTheme ? 'dark' : 'light');
+    try { localStorage.setItem('theme', useDarkTheme ? 'dark' : 'light'); } catch { /* Theme still applies when storage is unavailable. */ }
 
     document.querySelectorAll('[data-theme-toggle]').forEach((themeToggle) => {
         themeToggle.setAttribute('aria-pressed', String(useDarkTheme));

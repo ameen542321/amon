@@ -78,7 +78,7 @@
 
     {{-- ===== الفلترة والبحث ===== --}}
     <div class="mb-6 ui-surface-muted-bg p-4 rounded-2xl border ui-border">
-        <form method="GET" action="{{ route('user.stores.products.index', $store->id) }}" class="flex flex-col lg:flex-row gap-2 w-full">
+        <form data-workspace-filters="search,category_id" method="GET" action="{{ route('user.stores.products.index', $store->id) }}" class="flex flex-col lg:flex-row flex-wrap gap-2 w-full">
             <div class="relative flex-grow">
                 <input type="text" name="search" value="{{ request('search') }}"
                        x-model="searchQuery"

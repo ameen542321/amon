@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('user.stores.reports.sales-cost', $store) }}" class="ui-card p-4 sm:p-5 mb-5">
+    <form data-workspace-filters="q,from,to,exclude_used" method="GET" action="{{ route('user.stores.reports.sales-cost', $store) }}" class="ui-card p-4 sm:p-5 mb-5">
         <div class="grid sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
             <label class="lg:col-span-5"><span class="ui-label">البحث</span><input class="ui-input w-full" type="search" name="q" maxlength="100" value="{{ $search }}" placeholder="اسم المنتج أو وصف العملية"></label>
             <label class="lg:col-span-3"><span class="ui-label">من تاريخ</span><input class="ui-input w-full" type="date" name="from" value="{{ $from }}" required></label>

@@ -4,6 +4,7 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OneSignalController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DeviceTokenController;

@@ -49,6 +49,9 @@ Route::middleware(['web', 'auth', 'is.admin'])
         | لوحة التحكم
         |--------------------------------------------------------------------------
         */
+        Route::get('/api/v1/workspace/search', \App\Http\Controllers\Api\WorkspaceController::class)->middleware(['api.contract', 'throttle:60,1'])->name('api.workspace.search');
+        Route::get('/api/v1/workspace/tasks', \App\Http\Controllers\Api\WorkspaceController::class)->middleware(['api.contract', 'throttle:30,1'])->name('api.workspace.tasks');
+
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])
             ->name('dashboard.index');
 

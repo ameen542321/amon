@@ -6,6 +6,8 @@ import './features/pwa/client-storage-lifecycle';
 import './features/pwa/outbox-sync';
 import './features/pwa/center';
 import './features/dashboard-navigation';
+import './features/workspace/interface';
+import './features/workspace/data-views';
 import './features/dashboard/owner-dashboard';
 import './features/dashboard-notifications';
 import './features/ui-dialogs';

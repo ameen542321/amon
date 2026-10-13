@@ -35,14 +35,19 @@
         : null;
 @endphp
 <body class="ui-page min-h-screen" @if($clientAccountScope) data-client-account-scope="{{ $clientAccountScope }}" @endif>
+<a href="#workspace-main" class="ui-workspace-skip">انتقل إلى المحتوى</a>
 <x-ui.page-loader />
 @php
-    $role = auth('web')->check() ? (auth('web')->user()->role ?? 'user') : null;
+    $role = $clientAccountType === 'accountant' ? 'accountant' : ($clientAccount?->role ?? 'user');
+    $workspaceService = app(\App\Services\WorkspaceUiService::class);
+    $workspaceStores = $clientAccount && $role !== 'admin' ? $workspaceService->stores($clientAccount) : collect();
+    $workspaceRouteStore = request()->route('store');
+    $workspaceStoreId = is_object($workspaceRouteStore) ? $workspaceRouteStore->id : (int) $workspaceRouteStore;
+    $workspaceStore = $workspaceStores->firstWhere('id', $workspaceStoreId) ?? $workspaceStores->first();
+    $workspaceLinks = $workspaceService->links($role, $workspaceStore);
     $usesAdminSidebar = $role === 'admin';
 @endphp
-@if($usesAdminSidebar)
-    <div class="min-h-screen flex">
-@endif
+<div class="min-h-screen flex ui-workspace-layout">
 @if(auth('web')->check())
 
     @if($role === 'admin')
@@ -50,6 +55,9 @@
     @endif
 @endif
 
+    @if($clientAccount && !$usesAdminSidebar)
+        @include('dashboard.partials.workspace-sidebar')
+    @endif
     <div class="min-w-0 flex-1 flex flex-col">
         <div hidden
              data-ui-flash-messages
@@ -58,7 +66,7 @@
              data-warning-message="{{ session('warning') }}"
              data-info-message="{{ session('info') ?: session('status') }}"></div>
         <header>
-@if(auth('accountant')->check())
+@if($clientAccountType === 'accountant')
     @include('dashboard.navbars.accountant')
 @elseif(auth('web')->check())
     @php
@@ -72,7 +80,10 @@
     @endif
 @endif
         </header>
-        <main class="flex-1 px-3 py-4 sm:px-6 sm:py-6">
+        @if($clientAccount)
+            @include('dashboard.partials.workspace-tools')
+        @endif
+        <main id="workspace-main" class="flex-1 px-3 py-4 sm:px-6 sm:py-6" tabindex="-1">
             @if(session(\App\Services\SupportSessionService::SESSION_KEY))
                 @php($technicalSupportSession = app(\App\Services\SupportSessionService::class)->active())
                 @if($technicalSupportSession)
@@ -88,7 +99,7 @@
                     </div>
                 @endif
             @endif
-            @if(auth('accountant')->check() && session('accountant_shift_gap_business_date'))
+            @if($clientAccountType === 'accountant' && session('accountant_shift_gap_business_date'))
                 <x-accountant-reference-day-banner :date="session('accountant_shift_gap_business_date')" />
             @endif
             @yield('content')
@@ -99,9 +110,7 @@
         </footer>
 
     </div>
-@if($usesAdminSidebar)
-    </div>
-@endif
+</div>
 <x-pwa-install-panel />
 <x-ui.help-modal />
 @yield('scripts')

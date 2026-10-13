@@ -56,6 +56,9 @@ Route::post('/accountant/logout', [LoginController::class, 'logout'])
 Route::middleware(['accountant.unified'])->group(function () {
     Route::prefix('accountant')->name('accountant.')->group(function () {
 
+        Route::get('/api/v1/workspace/search', \App\Http\Controllers\Api\WorkspaceController::class)->middleware(['api.contract', 'throttle:60,1'])->name('api.workspace.search');
+        Route::get('/api/v1/workspace/tasks', \App\Http\Controllers\Api\WorkspaceController::class)->middleware(['api.contract', 'throttle:30,1'])->name('api.workspace.tasks');
+
         Route::get('/api/v1/pwa/preferences', [\App\Http\Controllers\Api\PwaPreferencesController::class, 'show'])->middleware(['api.contract', 'throttle:60,1'])->name('api.pwa.preferences');
         Route::put('/api/v1/pwa/preferences', [\App\Http\Controllers\Api\PwaPreferencesController::class, 'update'])->middleware(['api.contract', 'throttle:30,1'])->name('api.pwa.preferences.update');
 
